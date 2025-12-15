@@ -666,12 +666,16 @@ class FlowAuditInstaller(tk.Tk):
         lines.append(f"Docker: {'OK' if docker_ok else 'FEHLT'}")
         lines.append(f"Compose: {'OK' if compose_ok else 'FEHLT'}")
 
-        # Check NVIDIA
+        # Check NVIDIA GPU
         nvidia_ok = False
+        nvidia_driver_ok = False
+        nvidia_toolkit_ok = False
+
         try:
-            result = subprocess.run(["nvidia-smi"], capture_output=True, text=True)
+            result = subprocess.run(["nvidia-smi"], capture_output=True, text=True, timeout=5)
             if result.returncode == 0:
                 nvidia_ok = True
+                nvidia_driver_ok = True
                 # Extract GPU info
                 for line in result.stdout.split("\n"):
                     if "NVIDIA" in line and "RTX" in line:
@@ -679,10 +683,49 @@ class FlowAuditInstaller(tk.Tk):
                         break
                 else:
                     lines.append("GPU: NVIDIA erkannt")
-        except FileNotFoundError:
+        except (FileNotFoundError, subprocess.TimeoutExpired):
             pass
 
         lines.append(f"NVIDIA GPU: {'OK' if nvidia_ok else 'Nicht verfügbar (CPU-only Modus)'}")
+
+        # Check NVIDIA Container Toolkit (required for GPU in Docker)
+        if nvidia_ok:
+            try:
+                result = subprocess.run(
+                    ["dpkg", "-l"],
+                    capture_output=True,
+                    text=True,
+                    timeout=5
+                )
+                if "nvidia-container-toolkit" in result.stdout or "libnvidia-container" in result.stdout:
+                    nvidia_toolkit_ok = True
+                    lines.append("NVIDIA Container Toolkit: OK")
+                else:
+                    lines.append("NVIDIA Container Toolkit: FEHLT (GPU in Docker nicht verfügbar)")
+                    self.log("NVIDIA Container Toolkit fehlt. GPU wird in Docker nicht funktionieren.", "warning")
+                    self.log("Installation: sudo apt install -y nvidia-container-toolkit", "info")
+            except (FileNotFoundError, subprocess.TimeoutExpired):
+                lines.append("NVIDIA Container Toolkit: Unbekannt (dpkg nicht verfügbar)")
+
+            # Test GPU in Docker
+            if nvidia_toolkit_ok and docker_ok:
+                try:
+                    self.log("Teste GPU-Zugriff in Docker...", "info")
+                    result = subprocess.run(
+                        ["docker", "run", "--rm", "--gpus", "all", "nvidia/cuda:12.4.1-base-ubuntu22.04", "nvidia-smi"],
+                        capture_output=True,
+                        text=True,
+                        timeout=30
+                    )
+                    if result.returncode == 0:
+                        lines.append("GPU in Docker: OK (Test erfolgreich)")
+                        self.log("GPU-Test in Docker erfolgreich.", "success")
+                    else:
+                        lines.append(f"GPU in Docker: FEHLER - {result.stderr[:100]}")
+                        self.log(f"GPU-Test in Docker fehlgeschlagen: {result.stderr}", "warning")
+                except (FileNotFoundError, subprocess.TimeoutExpired) as e:
+                    lines.append(f"GPU in Docker: Test fehlgeschlagen ({e})")
+                    self.log(f"GPU-Docker-Test übersprungen: {e}", "warning")
 
         # Check Docker group membership
         if platform.system() == "Linux":
@@ -911,6 +954,14 @@ class FlowAuditInstaller(tk.Tk):
             "# FlowAudit Environment Configuration",
             f"# Generated: {datetime.now().isoformat()}",
             "",
+            "# Port Configuration (can be changed if ports are occupied)",
+            "FRONTEND_PORT=3000",
+            "BACKEND_PORT=8000",
+            "CHROMADB_PORT=8001",
+            "OLLAMA_PORT=11434",
+            "POSTGRES_PORT=5432",
+            "REDIS_PORT=6379",
+            "",
             "# Database",
             f"POSTGRES_PASSWORD={sanitize_env_value(self.db_password.get())}",
             "",
@@ -989,6 +1040,65 @@ services:
         self._set_status("config", "OK")
         self.progress.set(max(self.progress.get(), 55))
         self.log("Konfiguration: OK", "success")
+
+    # -------------------------------------------------------------------------
+    # Port checks
+    # -------------------------------------------------------------------------
+    def _check_ports(self) -> list[tuple[int, str]]:
+        """
+        Check if required ports are available.
+        Returns list of (port, process_info) for occupied ports.
+        """
+        required_ports = {
+            3000: "Frontend",
+            8000: "Backend",
+            8001: "ChromaDB",
+            11434: "Ollama",
+            5432: "PostgreSQL",
+            6379: "Redis",
+            9443: "Portainer (optional)"
+        }
+
+        occupied = []
+
+        try:
+            if platform.system() == "Linux":
+                # Use ss command (more reliable than netstat)
+                result = subprocess.run(
+                    ["ss", "-tulpn"],
+                    capture_output=True,
+                    text=True,
+                    timeout=5
+                )
+                if result.returncode == 0:
+                    for port, service in required_ports.items():
+                        # Check if port appears in output
+                        port_pattern = f":{port}"
+                        for line in result.stdout.split("\n"):
+                            if "LISTEN" in line and port_pattern in line:
+                                occupied.append((port, service))
+                                self.log(f"Port {port} ({service}) ist bereits belegt", "warning")
+                                break
+            elif platform.system() == "Windows":
+                # Use netstat on Windows
+                result = subprocess.run(
+                    ["netstat", "-an"],
+                    capture_output=True,
+                    text=True,
+                    timeout=5
+                )
+                if result.returncode == 0:
+                    for port, service in required_ports.items():
+                        port_pattern = f":{port}"
+                        for line in result.stdout.split("\n"):
+                            if "LISTENING" in line and port_pattern in line:
+                                occupied.append((port, service))
+                                self.log(f"Port {port} ({service}) ist bereits belegt", "warning")
+                                break
+        except (FileNotFoundError, subprocess.TimeoutExpired) as e:
+            self.log(f"Port-Check übersprungen: {e}", "warning")
+
+        return occupied
 
     # -------------------------------------------------------------------------
     # Docker compose abstraction
@@ -1095,6 +1205,22 @@ services:
         self.log("=== START DEPLOYMENT ===", "info")
 
         docker_dir = self.detected_repo_root / DEFAULT_DOCKER_DIR
+
+        # Port checks (preflight)
+        self.log("Prüfe Ports...", "info")
+        occupied_ports = self._check_ports()
+        if occupied_ports:
+            critical_ports = [(p, s) for p, s in occupied_ports if p != 9443]  # Portainer is optional
+            if critical_ports:
+                port_list = ", ".join([f"{p} ({s})" for p, s in critical_ports])
+                error_msg = f"Kritische Ports sind bereits belegt: {port_list}\n\n"
+                error_msg += "Bitte stoppen Sie die Dienste, die diese Ports verwenden, oder ändern Sie die Ports in der .env Datei."
+                self.log(f"FEHLER: Ports belegt: {port_list}", "error")
+                raise ProcessError(error_msg)
+            else:
+                self.log("Hinweis: Port 9443 (Portainer) ist belegt, aber optional.", "warning")
+        else:
+            self.log("Alle benötigten Ports sind frei.", "success")
 
         # Create data directory
         data_dir = self.detected_repo_root / "data"
