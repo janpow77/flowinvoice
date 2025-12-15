@@ -141,18 +141,21 @@ export default function DocumentDetail() {
                 'p-4 rounded-lg',
                 document.analysis_result.overall_assessment === 'ok' ? 'bg-green-50' :
                 document.analysis_result.overall_assessment === 'review_needed' ? 'bg-yellow-50' :
-                'bg-red-50'
+                document.analysis_result.overall_assessment === 'rejected' ? 'bg-red-50' :
+                'bg-gray-50'
               )}>
                 <p className="text-sm font-medium text-gray-500">Gesamtbewertung</p>
                 <p className={clsx(
                   'text-lg font-semibold',
                   document.analysis_result.overall_assessment === 'ok' ? 'text-green-700' :
                   document.analysis_result.overall_assessment === 'review_needed' ? 'text-yellow-700' :
-                  'text-red-700'
+                  document.analysis_result.overall_assessment === 'rejected' ? 'text-red-700' :
+                  'text-gray-700'
                 )}>
                   {document.analysis_result.overall_assessment === 'ok' ? 'In Ordnung' :
                    document.analysis_result.overall_assessment === 'review_needed' ? 'Prüfung erforderlich' :
-                   'Abgelehnt'}
+                   document.analysis_result.overall_assessment === 'rejected' ? 'Abgelehnt' :
+                   document.analysis_result.overall_assessment || 'Unbekannt'}
                 </p>
               </div>
 
@@ -160,7 +163,9 @@ export default function DocumentDetail() {
               <div className="p-4 rounded-lg bg-gray-50">
                 <p className="text-sm font-medium text-gray-500">Konfidenz</p>
                 <p className="text-lg font-semibold text-gray-900">
-                  {Math.round(document.analysis_result.confidence * 100)}%
+                  {document.analysis_result.confidence != null
+                    ? `${Math.round(document.analysis_result.confidence * 100)}%`
+                    : '-'}
                 </p>
               </div>
 
@@ -168,7 +173,7 @@ export default function DocumentDetail() {
               <div className="p-4 rounded-lg bg-gray-50">
                 <p className="text-sm font-medium text-gray-500">Provider</p>
                 <p className="text-lg font-semibold text-gray-900">
-                  {document.analysis_result.provider}
+                  {document.analysis_result.provider || 'Unbekannt'}
                 </p>
               </div>
             </div>

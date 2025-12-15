@@ -34,11 +34,41 @@ async def get_global_stats(
     Returns:
         Übersicht, Genauigkeit, Provider-Stats.
     """
+    from app.models.enums import DocumentStatus
+
     # Counts
     total_projects = await session.scalar(select(func.count(Project.id))) or 0
     total_documents = await session.scalar(select(func.count(Document.id))) or 0
     total_rag_examples = await session.scalar(select(func.count(RagExample.id))) or 0
     total_llm_runs = await session.scalar(select(func.count(LlmRun.id))) or 0
+
+    # Feedback-basierte Genauigkeit
+    total_feedback = await session.scalar(select(func.count(Feedback.id))) or 0
+    correct_feedback = await session.scalar(
+        select(func.count(Feedback.id)).where(Feedback.rating == "CORRECT")
+    ) or 0
+
+    accuracy_percent = (
+        (correct_feedback / total_feedback * 100) if total_feedback > 0 else 0.0
+    )
+
+    # Provider-Stats aus LLM-Runs
+    provider_stats = {}
+    provider_query = await session.execute(
+        select(
+            LlmRun.provider,
+            func.count(LlmRun.id).label("count"),
+            func.avg(LlmRun.input_tokens).label("avg_input"),
+            func.avg(LlmRun.output_tokens).label("avg_output"),
+        ).group_by(LlmRun.provider)
+    )
+    for row in provider_query.all():
+        provider_name = row.provider.value if row.provider else "unknown"
+        provider_stats[provider_name] = {
+            "total_runs": row.count,
+            "avg_input_tokens": round(row.avg_input or 0),
+            "avg_output_tokens": round(row.avg_output or 0),
+        }
 
     return {
         "overview": {
@@ -50,10 +80,12 @@ async def get_global_stats(
             "uptime_hours": 0.0,
         },
         "accuracy": {
-            "overall_accuracy_percent": 0.0,
+            "overall_accuracy_percent": round(accuracy_percent, 1),
+            "total_feedback": total_feedback,
+            "correct_count": correct_feedback,
             "feature_accuracy": {},
         },
-        "by_provider": {},
+        "by_provider": provider_stats,
         "time_trend": None,
     }
 
@@ -72,28 +104,71 @@ async def get_project_stats(
     Returns:
         Zähler, Timing, Token-Stats.
     """
-    # Document counts
+    from app.models.enums import DocumentStatus
+
+    # Document counts by status
     total_docs = await session.scalar(
         select(func.count(Document.id)).where(Document.project_id == project_id)
+    ) or 0
+
+    accepted_docs = await session.scalar(
+        select(func.count(Document.id)).where(
+            Document.project_id == project_id,
+            Document.status == DocumentStatus.ACCEPTED,
+        )
+    ) or 0
+
+    review_pending = await session.scalar(
+        select(func.count(Document.id)).where(
+            Document.project_id == project_id,
+            Document.status == DocumentStatus.REVIEW_PENDING,
+        )
+    ) or 0
+
+    rejected_docs = await session.scalar(
+        select(func.count(Document.id)).where(
+            Document.project_id == project_id,
+            Document.status == DocumentStatus.REJECTED,
+        )
+    ) or 0
+
+    # LLM-Run Stats für Projekt-Dokumente
+    llm_stats_query = await session.execute(
+        select(
+            func.avg(LlmRun.input_tokens).label("avg_in"),
+            func.avg(LlmRun.output_tokens).label("avg_out"),
+            func.avg(LlmRun.latency_ms).label("avg_latency"),
+        )
+        .join(Document, LlmRun.document_id == Document.id)
+        .where(Document.project_id == project_id)
+    )
+    llm_stats = llm_stats_query.first()
+
+    # RAG-Examples aus Projekt-Feedback
+    rag_examples_used = await session.scalar(
+        select(func.count(RagExample.id))
+        .join(Feedback, RagExample.feedback_id == Feedback.id)
+        .join(Document, Feedback.document_id == Document.id)
+        .where(Document.project_id == project_id)
     ) or 0
 
     return {
         "project_id": project_id,
         "counters": {
             "documents_total": total_docs,
-            "accepted": 0,
-            "review_pending": 0,
-            "rejected": 0,
-            "rag_examples_used": 0,
+            "accepted": accepted_docs,
+            "review_pending": review_pending,
+            "rejected": rejected_docs,
+            "rag_examples_used": rag_examples_used,
         },
         "timings": {
-            "avg_parse_ms": 0,
-            "avg_llm_ms": 0,
-            "avg_total_ms": 0,
+            "avg_parse_ms": 0,  # TODO: ParseRun hat kein aggregiertes Timing
+            "avg_llm_ms": round(llm_stats.avg_latency or 0) if llm_stats else 0,
+            "avg_total_ms": round(llm_stats.avg_latency or 0) if llm_stats else 0,
         },
         "tokens": {
-            "avg_in": 0,
-            "avg_out": 0,
+            "avg_in": round(llm_stats.avg_in or 0) if llm_stats else 0,
+            "avg_out": round(llm_stats.avg_out or 0) if llm_stats else 0,
         },
         "feature_error_rates": [],
     }
@@ -111,15 +186,36 @@ async def get_feedback_stats(
     """
     total_feedback = await session.scalar(select(func.count(Feedback.id))) or 0
 
+    # Rating-Verteilung
+    correct_count = await session.scalar(
+        select(func.count(Feedback.id)).where(Feedback.rating == "CORRECT")
+    ) or 0
+    partial_count = await session.scalar(
+        select(func.count(Feedback.id)).where(Feedback.rating == "PARTIAL")
+    ) or 0
+    wrong_count = await session.scalar(
+        select(func.count(Feedback.id)).where(Feedback.rating.in_(["WRONG", "INCORRECT"]))
+    ) or 0
+
+    # Durchschnittliche Korrekturen pro Feedback
+    feedbacks_with_corrections = await session.scalar(
+        select(func.count(Feedback.id)).where(Feedback.corrections.isnot(None))
+    ) or 0
+
+    # RAG-Examples-Statistik
+    total_rag_examples = await session.scalar(select(func.count(RagExample.id))) or 0
+
     return {
         "summary": {
             "total_feedback_entries": total_feedback,
             "rating_distribution": {
-                "CORRECT": 0,
-                "PARTIAL": 0,
-                "WRONG": 0,
+                "CORRECT": correct_count,
+                "PARTIAL": partial_count,
+                "WRONG": wrong_count,
             },
-            "avg_corrections_per_analysis": 0.0,
+            "avg_corrections_per_analysis": (
+                feedbacks_with_corrections / total_feedback if total_feedback > 0 else 0.0
+            ),
         },
         "errors_by_feature": [],
         "errors_by_source": {
@@ -150,7 +246,7 @@ async def get_feedback_stats(
             "accuracy_before_rag": 0.0,
             "accuracy_after_rag": 0.0,
             "improvement_percent": 0.0,
-            "examples_contributing": 0,
+            "examples_contributing": total_rag_examples,
         },
         "feedback_timeline": [],
     }
@@ -168,6 +264,36 @@ async def get_llm_stats(
     """
     total_llm_runs = await session.scalar(select(func.count(LlmRun.id))) or 0
 
+    # Aggregierte LLM-Statistiken
+    llm_agg_query = await session.execute(
+        select(
+            func.avg(LlmRun.input_tokens).label("avg_in"),
+            func.avg(LlmRun.output_tokens).label("avg_out"),
+            func.sum(LlmRun.input_tokens + LlmRun.output_tokens).label("total_tokens"),
+            func.avg(LlmRun.latency_ms).label("avg_latency"),
+            func.min(LlmRun.latency_ms).label("min_latency"),
+            func.max(LlmRun.latency_ms).label("max_latency"),
+        )
+    )
+    llm_agg = llm_agg_query.first()
+
+    avg_tokens_in = round(llm_agg.avg_in or 0) if llm_agg else 0
+    avg_tokens_out = round(llm_agg.avg_out or 0) if llm_agg else 0
+    total_tokens = int(llm_agg.total_tokens or 0) if llm_agg else 0
+    avg_latency = round(llm_agg.avg_latency or 0) if llm_agg else 0
+    min_latency = int(llm_agg.min_latency or 0) if llm_agg else 0
+    max_latency = int(llm_agg.max_latency or 0) if llm_agg else 0
+
+    # Tokens pro Sekunde berechnen
+    tokens_per_second = 0.0
+    if avg_latency > 0 and avg_tokens_out > 0:
+        tokens_per_second = round(avg_tokens_out / (avg_latency / 1000), 1)
+
+    # Fehler-Statistiken (Status != COMPLETED)
+    error_count = await session.scalar(
+        select(func.count(LlmRun.id)).where(LlmRun.status != "COMPLETED")
+    ) or 0
+
     return {
         "active_provider": "LOCAL_OLLAMA",
         "active_model": "llama3.1:8b-instruct-q4",
@@ -178,13 +304,13 @@ async def get_llm_stats(
             "loaded": False,
             "context_window": 8192,
             "total_requests": total_llm_runs,
-            "avg_tokens_in": 0,
-            "avg_tokens_out": 0,
-            "total_tokens_processed": 0,
-            "avg_inference_time_ms": 0,
-            "min_inference_time_ms": 0,
-            "max_inference_time_ms": 0,
-            "tokens_per_second_avg": 0.0,
+            "avg_tokens_in": avg_tokens_in,
+            "avg_tokens_out": avg_tokens_out,
+            "total_tokens_processed": total_tokens,
+            "avg_inference_time_ms": avg_latency,
+            "min_inference_time_ms": min_latency,
+            "max_inference_time_ms": max_latency,
+            "tokens_per_second_avg": tokens_per_second,
         },
         "resource_usage": {
             "current_cpu_percent": 0.0,
@@ -199,7 +325,7 @@ async def get_llm_stats(
         "error_stats": {
             "timeout_count": 0,
             "parse_error_count": 0,
-            "connection_error_count": 0,
+            "connection_error_count": error_count,
             "last_error": None,
         },
         "external_providers": {},
