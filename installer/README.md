@@ -43,12 +43,34 @@ sudo usermod -aG docker $USER
 
 ## Schnellstart
 
-```bash
-# In das Installer-Verzeichnis wechseln
-cd /pfad/zu/flowinvoice/installer
+### Option A: Nur Installer downloaden (empfohlen)
 
-# Installer starten
-python3 gui_installer.py
+```bash
+# 1. Voraussetzungen installieren
+sudo apt-get update
+sudo apt-get install -y python3 python3-tk python3-pip git
+pip3 install pillow
+
+# 2. Installer herunterladen
+mkdir ~/FlowAudit && cd ~/FlowAudit
+curl -O https://raw.githubusercontent.com/janpow77/flowinvoice/main/installer/flowaudit_installer.py
+
+# 3. Installer starten
+python3 flowaudit_installer.py
+
+# 4. Im GUI: "Alles in einem Schritt" klicken
+#    → Klont Repo, konfiguriert, startet Container
+```
+
+### Option B: Ganzes Repo klonen
+
+```bash
+# 1. Repo klonen
+git clone https://github.com/janpow77/flowinvoice.git
+cd flowinvoice/installer
+
+# 2. Installer starten
+python3 flowaudit_installer.py
 ```
 
 ## Verwendung
@@ -107,9 +129,9 @@ python3 gui_installer.py
 
 ```
 installer/
-├── gui_installer.py    # Hauptinstaller
-├── auditlogo.png       # Logo für UI
-└── README.md           # Diese Datei
+├── flowaudit_installer.py   # Hauptinstaller
+├── auditlogo.png            # Logo für UI (optional, wird aus Repo geladen)
+└── README.md                # Diese Datei
 ```
 
 ## Troubleshooting
