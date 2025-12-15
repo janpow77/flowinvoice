@@ -84,6 +84,16 @@ export default function Layout({ children }: LayoutProps) {
             <br />
             Seminarsystem
           </div>
+          <div className="mt-3 pt-3 border-t border-gray-100 text-xs text-gray-400">
+            <div className="font-medium text-gray-500">Kontakt</div>
+            <div>Jan Riener</div>
+            <a
+              href="mailto:jan.riener@vwvg.de"
+              className="text-primary-600 hover:text-primary-700 hover:underline"
+            >
+              jan.riener@vwvg.de
+            </a>
+          </div>
         </div>
       </aside>
 

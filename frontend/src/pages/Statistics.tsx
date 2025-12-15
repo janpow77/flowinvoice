@@ -1,17 +1,49 @@
 import { useQuery } from '@tanstack/react-query'
+import { useTranslation } from 'react-i18next'
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, LineChart, Line } from 'recharts'
+import { AlertCircle, RefreshCw, Loader2 } from 'lucide-react'
 import { api } from '@/lib/api'
 
 const COLORS = ['#22c55e', '#f59e0b', '#ef4444', '#3b82f6', '#8b5cf6']
 
 export default function Statistics() {
-  const { data: stats, isLoading } = useQuery({
+  const { t } = useTranslation()
+  const { data: stats, isLoading, error, refetch } = useQuery({
     queryKey: ['statistics'],
     queryFn: () => api.getDetailedStats(),
+    retry: 2,
   })
 
   if (isLoading) {
-    return <div className="animate-pulse">Lade Statistiken...</div>
+    return (
+      <div className="flex items-center justify-center h-64">
+        <Loader2 className="h-8 w-8 text-primary-600 animate-spin" />
+        <span className="ml-3 text-gray-600">{t('common.loading')}</span>
+      </div>
+    )
+  }
+
+  if (error) {
+    return (
+      <div className="bg-red-50 border border-red-200 rounded-lg p-6">
+        <div className="flex items-center">
+          <AlertCircle className="h-6 w-6 text-red-600" />
+          <div className="ml-3">
+            <h3 className="text-lg font-medium text-red-800">{t('common.error')}</h3>
+            <p className="text-sm text-red-600 mt-1">
+              {t('errors.network')}
+            </p>
+          </div>
+        </div>
+        <button
+          onClick={() => refetch()}
+          className="mt-4 px-4 py-2 bg-red-100 text-red-700 rounded-lg hover:bg-red-200 transition-colors flex items-center"
+        >
+          <RefreshCw className="h-4 w-4 mr-2" />
+          {t('common.retry')}
+        </button>
+      </div>
+    )
   }
 
   // Mock data for demonstration

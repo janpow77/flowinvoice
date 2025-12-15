@@ -83,6 +83,13 @@ gpu = [
     "transformers>=4.37.1",
 ]
 
+ocr = [
+    # OCR für gescannte PDFs (erfordert tesseract-ocr und poppler-utils)
+    "pdf2image>=1.16.3",
+    "pytesseract>=0.3.10",
+    "Pillow>=10.2.0",
+]
+
 [build-system]
 requires = ["hatchling"]
 build-backend = "hatchling.build"

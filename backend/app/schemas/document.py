@@ -185,3 +185,15 @@ class PrecheckRunResponse(BaseModel):
     error_message: str | None = Field(default=None, description="Fehlermeldung")
     created_at: datetime = Field(..., description="Erstellt")
     completed_at: datetime | None = Field(default=None, description="Abgeschlossen")
+
+
+class DocumentDeleteResponse(BaseModel):
+    """Response für Dokument-Löschung."""
+
+    model_config = ConfigDict(from_attributes=True)
+
+    document_id: str = Field(..., description="Gelöschte Dokument-ID")
+    filename: str = Field(..., description="Dateiname")
+    deleted: bool = Field(..., description="Erfolgreich gelöscht")
+    file_deleted: bool = Field(..., description="Datei vom Speicher entfernt")
+    message: str = Field(..., description="Status-Nachricht")

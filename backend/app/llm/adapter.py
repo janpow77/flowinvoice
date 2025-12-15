@@ -8,6 +8,7 @@ Ermöglicht transparenten Provider-Wechsel.
 
 import json
 import logging
+import re
 from dataclasses import dataclass
 from typing import Any
 
@@ -22,6 +23,40 @@ from .ollama import OllamaProvider
 from .openai import OpenAIProvider
 
 logger = logging.getLogger(__name__)
+
+
+def _strip_markdown_fences(text: str) -> str:
+    """
+    Entfernt Markdown-Code-Fences aus LLM-Responses.
+
+    LLMs antworten oft mit ```json ... ``` obwohl json_mode aktiv ist.
+    Diese Funktion entfernt solche Wrapper sicher.
+
+    Args:
+        text: Rohe LLM-Antwort
+
+    Returns:
+        Bereinigter JSON-String
+    """
+    text = text.strip()
+
+    # Pattern für Code-Fences (```json, ```, etc.)
+    fence_pattern = r'^```(?:json|JSON)?\s*\n?(.*?)\n?```$'
+    match = re.match(fence_pattern, text, re.DOTALL | re.IGNORECASE)
+    if match:
+        return match.group(1).strip()
+
+    # Fallback: Einfache Fence-Entfernung am Anfang/Ende
+    if text.startswith("```"):
+        # Erste Zeile (```json oder ```) entfernen
+        lines = text.split("\n", 1)
+        if len(lines) > 1:
+            text = lines[1]
+
+    if text.endswith("```"):
+        text = text.rsplit("```", 1)[0]
+
+    return text.strip()
 
 
 @dataclass
@@ -333,8 +368,9 @@ class LLMAdapter:
             return default_result
 
         try:
-            # JSON parsen
-            data = json.loads(response.content)
+            # Markdown-Fences entfernen und JSON parsen
+            clean_content = _strip_markdown_fences(response.content)
+            data = json.loads(clean_content)
 
             return InvoiceAnalysisResult(
                 semantic_check=data.get("semantic_check", {}),

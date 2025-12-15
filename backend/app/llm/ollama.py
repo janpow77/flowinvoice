@@ -41,7 +41,7 @@ class OllamaProvider(BaseLLMProvider):
             timeout: Timeout in Sekunden
         """
         settings = get_settings()
-        self.base_url = base_url or settings.ollama_url
+        self.base_url = base_url or settings.ollama_host
         self.timeout = timeout
         self._client = httpx.AsyncClient(
             base_url=self.base_url,

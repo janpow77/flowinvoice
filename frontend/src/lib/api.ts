@@ -140,6 +140,27 @@ export const api = {
     return response.data
   },
 
+  // Performance Settings
+  getPerformanceSettings: async () => {
+    const response = await apiClient.get('/settings/performance')
+    return response.data
+  },
+
+  updatePerformanceSettings: async (settings: {
+    uvicorn_workers?: number
+    celery_concurrency?: number
+  }) => {
+    const params = new URLSearchParams()
+    if (settings.uvicorn_workers !== undefined) {
+      params.append('uvicorn_workers', settings.uvicorn_workers.toString())
+    }
+    if (settings.celery_concurrency !== undefined) {
+      params.append('celery_concurrency', settings.celery_concurrency.toString())
+    }
+    const response = await apiClient.put(`/settings/performance?${params.toString()}`)
+    return response.data
+  },
+
   // Rulesets
   getRulesets: async () => {
     const response = await apiClient.get('/rulesets')
@@ -148,6 +169,49 @@ export const api = {
 
   getRuleset: async (id: string) => {
     const response = await apiClient.get(`/rulesets/${id}`)
+    return response.data
+  },
+
+  // System Monitoring
+  getSystemMetrics: async () => {
+    const response = await apiClient.get('/system/metrics')
+    return response.data
+  },
+
+  getGpuSettings: async () => {
+    const response = await apiClient.get('/system/gpu')
+    return response.data
+  },
+
+  updateGpuSettings: async (settings: {
+    gpu_memory_fraction?: number
+    num_gpu_layers?: number
+    num_parallel?: number
+    context_size?: number
+    thermal_throttle_temp?: number
+  }) => {
+    const params = new URLSearchParams()
+    if (settings.gpu_memory_fraction !== undefined) {
+      params.append('gpu_memory_fraction', settings.gpu_memory_fraction.toString())
+    }
+    if (settings.num_gpu_layers !== undefined) {
+      params.append('num_gpu_layers', settings.num_gpu_layers.toString())
+    }
+    if (settings.num_parallel !== undefined) {
+      params.append('num_parallel', settings.num_parallel.toString())
+    }
+    if (settings.context_size !== undefined) {
+      params.append('context_size', settings.context_size.toString())
+    }
+    if (settings.thermal_throttle_temp !== undefined) {
+      params.append('thermal_throttle_temp', settings.thermal_throttle_temp.toString())
+    }
+    const response = await apiClient.put(`/system/gpu?${params.toString()}`)
+    return response.data
+  },
+
+  getDetailedHealth: async () => {
+    const response = await apiClient.get('/system/health/detailed')
     return response.data
   },
 }

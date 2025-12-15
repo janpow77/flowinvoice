@@ -27,6 +27,7 @@ from app.api import (
     rulesets,
     settings,
     stats,
+    system,
 )
 from app.config import get_settings
 from app.database import close_db, init_db
@@ -123,6 +124,7 @@ app.include_router(rag.router, prefix="/api", tags=["RAG"])
 app.include_router(stats.router, prefix="/api", tags=["Statistics"])
 app.include_router(export.router, prefix="/api", tags=["Export"])
 app.include_router(generator.router, prefix="/api", tags=["Generator"])
+app.include_router(system.router, prefix="/api", tags=["System"])
 
 
 @app.get("/", include_in_schema=False)

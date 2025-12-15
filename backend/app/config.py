@@ -83,6 +83,10 @@ class Settings(BaseSettings):
     generator_enabled: bool = True
     generator_max_count: int = 100
 
+    # Performance / Worker settings
+    uvicorn_workers: int = Field(default=4, ge=1, le=8)
+    celery_concurrency: int = Field(default=4, ge=1, le=8)
+
     @field_validator("storage_path", mode="before")
     @classmethod
     def validate_storage_path(cls, v: str | Path) -> Path:
