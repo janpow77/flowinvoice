@@ -170,7 +170,10 @@ jobs:
         shell: pwsh
         run: |
           cd installer
-          # Build ohne Icon (optional: Icon später hinzufügen wenn vorhanden)
+          # Cleanup alte Build-Artefakte
+          Remove-Item -Force -ErrorAction SilentlyContinue *.spec
+          Remove-Item -Recurse -Force -ErrorAction SilentlyContinue build, dist
+          # Build ohne Icon
           pyinstaller --onefile --windowed `
             --name flowaudit-installer-${{ steps.version.outputs.version }}-windows `
             --add-data "../frontend/public/auditlogo.png;." `
