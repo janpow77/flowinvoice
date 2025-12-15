@@ -6,7 +6,6 @@ import {
   FileText,
   BarChart3,
   Settings,
-  FileCheck2,
 } from 'lucide-react'
 import clsx from 'clsx'
 
@@ -30,10 +29,19 @@ export default function Layout({ children }: LayoutProps) {
       {/* Sidebar */}
       <aside className="w-64 bg-white border-r border-gray-200 flex flex-col">
         {/* Logo */}
-        <div className="h-16 flex items-center px-6 border-b border-gray-200">
-          <FileCheck2 className="h-8 w-8 text-primary-600" />
-          <span className="ml-2 text-xl font-bold text-gray-900">FlowAudit</span>
-        </div>
+        <Link to="/" className="h-16 flex items-center px-4 border-b border-gray-200 hover:bg-gray-50 transition-colors">
+          <img
+            src="/auditlogo.png"
+            alt="FlowAudit Logo"
+            className="h-10 w-10 object-contain"
+            onError={(e) => {
+              // Fallback zu Text wenn Logo nicht gefunden
+              const target = e.target as HTMLImageElement;
+              target.style.display = 'none';
+            }}
+          />
+          <span className="ml-3 text-xl font-bold text-gray-900">FlowAudit</span>
+        </Link>
 
         {/* Navigation */}
         <nav className="flex-1 px-4 py-4 space-y-1">
