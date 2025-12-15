@@ -143,10 +143,24 @@ Diese Severity wird für:
   ],
   "beneficiary": {
     "name": "Stadt Aschaffenburg",
-    "address": "..."
+    "street": "Dalbergstraße 15",
+    "zip": "63739",
+    "city": "Aschaffenburg",
+    "country": "DE",
+    "aliases": ["Stadt Aschaffenburg", "Stadtverwaltung Aschaffenburg"]
+  },
+  "implementation": {
+    "location_name": "Baustelle Hauptbahnhof",
+    "street": "Bahnhofsplatz 1",
+    "zip": "63739",
+    "city": "Aschaffenburg",
+    "country": "DE",
+    "description": "Umbaumaßnahmen am Hauptbahnhof Aschaffenburg"
   }
 }
 ```
+
+**Wichtig:** Die Rechnungsadresse (Empfänger) geht an den **Begünstigten** (beneficiary), aber der **Leistungsort** auf der Rechnung kann dem **Durchführungsort** (implementation) entsprechen.
 
 ### 4.2 Hard Checks (ohne KI)
 
@@ -159,9 +173,115 @@ Diese Flags werden:
 * in den KI-Input aufgenommen
 * bei Konflikt mit KI-Aussage markiert
 
+### 4.3 Standort-Validierung (Pflicht)
+
+#### 4.3.1 Drei relevante Standorte
+
+| Standort | Quelle | Beschreibung |
+|----------|--------|--------------|
+| **Sitz Begünstigter** | `project.beneficiary` | Wo die Rechnung hingeht (Rechnungsempfänger) |
+| **Durchführungsort** | `project.implementation` | Wo das Vorhaben tatsächlich stattfindet |
+| **Leistungsort (Rechnung)** | Aus PDF extrahiert | Wo laut Rechnung die Leistung erbracht wurde |
+
+#### 4.3.2 Validierungslogik
+
+```
+┌─────────────────────────────────────────────────────────────────────────────┐
+│  Rechnung                                                                    │
+│  ┌──────────────────────────────┐  ┌──────────────────────────────┐        │
+│  │  Rechnungsempfänger:         │  │  Leistungsort:               │        │
+│  │  Stadt Aschaffenburg         │  │  Bahnhofsplatz 1             │        │
+│  │  Dalbergstraße 15            │  │  63739 Aschaffenburg         │        │
+│  │  63739 Aschaffenburg         │  │                              │        │
+│  └──────────────────────────────┘  └──────────────────────────────┘        │
+└─────────────────────────────────────────────────────────────────────────────┘
+                    │                              │
+                    ▼                              ▼
+        ┌───────────────────┐          ┌───────────────────┐
+        │ Abgleich mit      │          │ Abgleich mit      │
+        │ beneficiary       │          │ implementation    │
+        └───────────────────┘          └───────────────────┘
+                    │                              │
+                    ▼                              ▼
+              ┌─────────┐                    ┌─────────┐
+              │  MATCH  │                    │  MATCH  │
+              │ PARTIAL │                    │ PARTIAL │
+              │ MISMATCH│                    │ MISMATCH│
+              │ UNCLEAR │                    │ UNCLEAR │
+              └─────────┘                    └─────────┘
+```
+
+#### 4.3.3 Prüfergebnisse (semantic_location_fit)
+
+```json
+{
+  "semantic_location_fit": {
+    "customer_matches_beneficiary": {
+      "status": "MATCH",
+      "confidence": 95,
+      "invoice_value": "Stadt Aschaffenburg, Dalbergstraße 15, 63739 Aschaffenburg",
+      "project_value": "Stadt Aschaffenburg, Dalbergstraße 15, 63739 Aschaffenburg",
+      "note": "Exakte Übereinstimmung"
+    },
+    "service_location_matches_implementation": {
+      "status": "MATCH",
+      "confidence": 88,
+      "invoice_value": "Bahnhofsplatz 1, 63739 Aschaffenburg",
+      "project_value": "Bahnhofsplatz 1, 63739 Aschaffenburg",
+      "note": "Leistungsort entspricht Durchführungsort"
+    },
+    "service_location_matches_beneficiary": {
+      "status": "MISMATCH",
+      "confidence": 92,
+      "invoice_value": "Bahnhofsplatz 1, 63739 Aschaffenburg",
+      "project_value": "Dalbergstraße 15, 63739 Aschaffenburg",
+      "note": "Leistungsort ≠ Sitz Begünstigter (erwartbar bei Bauvorhaben)"
+    },
+    "overall_location_plausibility": "PLAUSIBLE",
+    "rationale": "Rechnungsempfänger = Begünstigter ✓, Leistungsort = Durchführungsort ✓"
+  }
+}
+```
+
+#### 4.3.4 Mögliche Szenarien
+
+| Szenario | Bewertung | Erklärung |
+|----------|-----------|-----------|
+| Empfänger = Begünstigter, Leistungsort = Durchführungsort | ✅ OPTIMAL | Normalfall bei Bauvorhaben |
+| Empfänger = Begünstigter, Leistungsort = Sitz Begünstigter | ✅ OK | Dienstleistung vor Ort beim Kunden |
+| Empfänger = Begünstigter, Leistungsort ≠ beides | ⚠️ PRÜFEN | Leistungsort nicht zuordenbar |
+| Empfänger ≠ Begünstigter | ❌ WARNUNG | Falsche Rechnungsadresse? |
+| Kein Leistungsort auf Rechnung | ⚠️ PRÜFEN | Bei manchen Leistungen optional |
+
+#### 4.3.5 UI-Anzeige
+
+```
+┌─────────────────────────────────────────────────────────────────────────────┐
+│  📍 Standort-Prüfung                                                         │
+├─────────────────────────────────────────────────────────────────────────────┤
+│                                                                              │
+│  Rechnungsempfänger → Begünstigter:                                         │
+│  ┌────────────────────────────────────────────────────────────────────────┐ │
+│  │ ✅ ÜBEREINSTIMMUNG                                                      │ │
+│  │ Rechnung: Stadt Aschaffenburg, Dalbergstraße 15, 63739 Aschaffenburg   │ │
+│  │ Projekt:  Stadt Aschaffenburg, Dalbergstraße 15, 63739 Aschaffenburg   │ │
+│  └────────────────────────────────────────────────────────────────────────┘ │
+│                                                                              │
+│  Leistungsort → Durchführungsort:                                           │
+│  ┌────────────────────────────────────────────────────────────────────────┐ │
+│  │ ✅ ÜBEREINSTIMMUNG                                                      │ │
+│  │ Rechnung: Bahnhofsplatz 1, 63739 Aschaffenburg                         │ │
+│  │ Projekt:  Bahnhofsplatz 1, 63739 Aschaffenburg (Baustelle Hauptbahnhof)│ │
+│  └────────────────────────────────────────────────────────────────────────┘ │
+│                                                                              │
+│  Gesamtbewertung: ✅ Standortangaben plausibel                              │
+│                                                                              │
+└─────────────────────────────────────────────────────────────────────────────┘
+```
+
 ---
 
-## 5. PDF Parser (Pflichtmodul, „zerlegt“ PDF)
+## 5. PDF Parser (Pflichtmodul, „zerlegt" PDF)
 
 ### 5.1 Ziel
 
@@ -633,6 +753,27 @@ jeweiligen Anbieters verarbeitet.
 │  │ vat_amount                   │    7   │ 12.5%  │ → stabil           │  │
 │  └──────────────────────────────────────────────────────────────────────┘  │
 │                                                                              │
+│  ── Fehler nach Quelle (Steuerrecht vs. Projektdaten) ─────────────────   │
+│                                                                              │
+│  ┌──────────────────────────────────────────────────────────────────────┐  │
+│  │ Kategorie                              │ Fehler │ Anteil │          │  │
+│  ├──────────────────────────────────────────────────────────────────────┤  │
+│  │ 📜 STEUERRECHT (UStG/VAT/MwStSystRL)  │   34   │ 60.7%  │          │  │
+│  │    ├─ supplier_tax_or_vat_id          │   18   │        │          │  │
+│  │    ├─ invoice_number                  │    5   │        │          │  │
+│  │    ├─ vat_amount                      │    7   │        │          │  │
+│  │    └─ supply_date_or_period           │    4   │        │          │  │
+│  ├──────────────────────────────────────────────────────────────────────┤  │
+│  │ 🏢 BEGÜNSTIGTEN-DATEN (Projektabgleich)│  15   │ 26.8%  │          │  │
+│  │    ├─ customer_name_address           │    8   │        │          │  │
+│  │    ├─ service_location_match          │    4   │        │          │  │
+│  │    └─ beneficiary_alias_match         │    3   │        │          │  │
+│  ├──────────────────────────────────────────────────────────────────────┤  │
+│  │ 📍 STANDORT-VALIDIERUNG               │    7   │ 12.5%  │          │  │
+│  │    ├─ service_location_mismatch       │    4   │        │          │  │
+│  │    └─ implementation_location_unclear │    3   │        │          │  │
+│  └──────────────────────────────────────────────────────────────────────┘  │
+│                                                                              │
 │  ── Verbesserung durch RAG ──────────────────────────────────────────────  │
 │                                                                              │
 │  Fehlerquote ohne RAG:    22.4%                                            │
@@ -642,6 +783,19 @@ jeweiligen Anbieters verarbeitet.
 │                                                                              │
 └─────────────────────────────────────────────────────────────────────────────┘
 ```
+
+#### 12.3.1 Fehlerquellen-Klassifikation
+
+| Quelle | Beschreibung | Beispiele |
+|--------|--------------|-----------|
+| **Steuerrecht** | Pflichtangaben nach UStG/VAT/MwStSystRL | Steuernummer, USt-ID, Rechnungsnummer, Steuerbetrag |
+| **Begünstigten-Daten** | Abgleich mit Projektprofil | Empfängername, Alias-Erkennung, Adressabgleich |
+| **Standort-Validierung** | Sitz ↔ Durchführungsort ↔ Leistungsort | Leistungsort auf Rechnung passt nicht zum Projekt |
+
+Diese Aufschlüsselung zeigt den Seminarteilnehmern:
+- Welche Fehler aus dem **Steuerrecht** resultieren (Pflichtangaben nicht erkannt)
+- Welche Fehler beim **Projektabgleich** entstehen (Begünstigter nicht zugeordnet)
+- Welche Fehler bei der **Standort-Prüfung** auftreten (Leistungsort unklar)
 
 ### 12.4 Tab: Modell-Statistik (Lokales LLM)
 

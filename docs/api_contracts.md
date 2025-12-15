@@ -116,7 +116,20 @@
 * `UNCLEAR`
 * `NO`
 
-### 1.11 Schema: Money
+### 1.11 Enum: LocationMatchStatus
+
+* `MATCH` – Exakte oder semantische Übereinstimmung
+* `PARTIAL` – Teilweise Übereinstimmung (z.B. gleiche Stadt, andere Straße)
+* `MISMATCH` – Keine Übereinstimmung
+* `UNCLEAR` – Nicht bestimmbar (fehlende Daten)
+
+### 1.12 Enum: ErrorSourceCategory
+
+* `TAX_LAW` – Fehler bei steuerrechtlichen Pflichtangaben (UStG/VAT/MwStSystRL)
+* `BENEFICIARY_DATA` – Fehler beim Abgleich mit Begünstigten-/Projektdaten
+* `LOCATION_VALIDATION` – Fehler bei der Standort-Validierung (Sitz ↔ Durchführungsort ↔ Leistungsort)
+
+### 1.13 Schema: Money
 
 ```json
 {
@@ -125,7 +138,7 @@
 }
 ```
 
-### 1.12 Schema: DateRange
+### 1.14 Schema: DateRange
 
 ```json
 {
@@ -134,7 +147,7 @@
 }
 ```
 
-### 1.13 Schema: BoundingBox (normalized)
+### 1.15 Schema: BoundingBox (normalized)
 
 ```json
 {
@@ -483,8 +496,14 @@ Update einer Version (optional; besser: immutable + new version).
     "project_title": "Baumaßnahme Aschaffenburg",
     "file_reference": "AZ-2025-0001",
     "project_description": "Umbau und Sanierung …",
-    "implementation_location": "Aschaffenburg",
-    "implementation_address": "Baustelle …",
+    "implementation": {
+      "location_name": "Baustelle Hauptbahnhof",
+      "street": "Bahnhofsplatz 1",
+      "zip": "63739",
+      "city": "Aschaffenburg",
+      "country": "DE",
+      "description": "Umbaumaßnahmen am Hauptbahnhof Aschaffenburg"
+    },
     "total_budget": { "amount": "5000000.00", "currency": "EUR" },
     "funding_type": "PERCENT",
     "funding_rate_percent": 70.0,
@@ -813,8 +832,32 @@ Starts LLM inference using latest payload (or specify payload_id).
       "reasons": ["Construction services match project description"],
       "mapped_cost_category": "Bau",
       "time_plausible": true,
-      "location_plausible": true,
-      "beneficiary_plausible": true
+      "beneficiary_plausible": true,
+      "location_fit": {
+        "customer_matches_beneficiary": {
+          "status": "MATCH",
+          "confidence": 95,
+          "invoice_value": "Stadt Aschaffenburg, Dalbergstraße 15, 63739 Aschaffenburg",
+          "project_value": "Stadt Aschaffenburg, Dalbergstraße 15, 63739 Aschaffenburg",
+          "note": "Exakte Übereinstimmung"
+        },
+        "service_location_matches_implementation": {
+          "status": "MATCH",
+          "confidence": 88,
+          "invoice_value": "Bahnhofsplatz 1, 63739 Aschaffenburg",
+          "project_value": "Bahnhofsplatz 1, 63739 Aschaffenburg",
+          "note": "Leistungsort entspricht Durchführungsort"
+        },
+        "service_location_matches_beneficiary": {
+          "status": "MISMATCH",
+          "confidence": 92,
+          "invoice_value": "Bahnhofsplatz 1, 63739 Aschaffenburg",
+          "project_value": "Dalbergstraße 15, 63739 Aschaffenburg",
+          "note": "Leistungsort ≠ Sitz Begünstigter (erwartbar bei Bauvorhaben)"
+        },
+        "overall_location_plausibility": "PLAUSIBLE",
+        "rationale": "Rechnungsempfänger = Begünstigter ✓, Leistungsort = Durchführungsort ✓"
+      }
     }
   }
 }
@@ -1101,6 +1144,41 @@ Feedback-Statistiken für Didaktik-Dashboard.
       "most_common_correction": "Lieferzeitraum falsch interpretiert"
     }
   ],
+  "errors_by_source": {
+    "TAX_LAW": {
+      "label_de": "Steuerrecht (UStG/VAT/MwStSystRL)",
+      "label_en": "Tax Law (UStG/VAT/VAT Directive)",
+      "total_errors": 34,
+      "percentage": 60.7,
+      "features": [
+        { "feature_id": "supplier_tax_or_vat_id", "errors": 18 },
+        { "feature_id": "invoice_number", "errors": 5 },
+        { "feature_id": "vat_amount", "errors": 7 },
+        { "feature_id": "supply_date_or_period", "errors": 4 }
+      ]
+    },
+    "BENEFICIARY_DATA": {
+      "label_de": "Begünstigten-Daten (Projektabgleich)",
+      "label_en": "Beneficiary Data (Project Matching)",
+      "total_errors": 15,
+      "percentage": 26.8,
+      "features": [
+        { "feature_id": "customer_name_address", "errors": 8 },
+        { "feature_id": "service_location_match", "errors": 4 },
+        { "feature_id": "beneficiary_alias_match", "errors": 3 }
+      ]
+    },
+    "LOCATION_VALIDATION": {
+      "label_de": "Standort-Validierung",
+      "label_en": "Location Validation",
+      "total_errors": 7,
+      "percentage": 12.5,
+      "features": [
+        { "feature_id": "service_location_mismatch", "errors": 4 },
+        { "feature_id": "implementation_location_unclear", "errors": 3 }
+      ]
+    }
+  },
   "rag_improvement": {
     "accuracy_before_rag": 78.5,
     "accuracy_after_rag": 87.3,
