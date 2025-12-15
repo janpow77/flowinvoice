@@ -107,7 +107,9 @@ flowaudit/
 │   ├── api_contracts.md
 │   ├── rulesets.md
 │   ├── architecture.md
-│   └── rag_learning.md
+│   ├── rag_learning.md
+│   ├── generator_templates.md
+│   └── operations.md
 └── data/
     ├── generated_invoices/
     ├── solutions/
@@ -124,10 +126,13 @@ Claude Code arbeitet **linear**, kein Springen.
 
 Claude **muss zuerst vollständig lesen**:
 
-1. `/docs/requirements.md`
-2. `/docs/rulesets.md`
-3. `/docs/api_contracts.md`
-4. `/docs/architecture.md`
+1. `/docs/requirements.md` – Funktionale Anforderungen
+2. `/docs/rulesets.md` – Steuerliche Regelwerke mit Regex-Validierung
+3. `/docs/api_contracts.md` – API-Spezifikation
+4. `/docs/architecture.md` – Systemarchitektur und Komponenten
+5. `/docs/rag_learning.md` – RAG/Lernmechanismus mit ChromaDB
+6. `/docs/generator_templates.md` – 5 PDF-Generator-Templates
+7. `/docs/operations.md` – Performance, Auth, CI/CD, Backup
 
 👉 Danach **kurz bestätigen**, dass alle Anforderungen verstanden wurden.
 

@@ -580,7 +580,166 @@ Lokale Provider zusätzlich:
 
 ---
 
-## 20. Abnahmekriterien (Definition of Done)
+## 20. Error Handling & Recovery (Pflicht)
+
+### 20.1 Fehlerklassifikation
+
+| Fehlerklasse | Beschreibung | Auswirkung |
+|--------------|--------------|------------|
+| `RECOVERABLE` | Kann automatisch wiederholt werden | Retry mit Backoff |
+| `USER_CORRECTABLE` | Benutzer kann beheben | Fehlermeldung mit Anleitung |
+| `SYSTEM_ERROR` | Systemfehler, Admin nötig | Alert + Logging |
+| `DATA_ERROR` | Fehlerhafte Eingabedaten | Dokument als ERROR markieren |
+
+### 20.2 Fehlerszenarien und Reaktionen
+
+#### 20.2.1 PDF-Parser-Fehler
+
+| Fehler | Reaktion |
+|--------|----------|
+| PDF korrupt/unlesbar | Status `ERROR`, Meldung "PDF konnte nicht gelesen werden" |
+| PDF passwortgeschützt | Status `ERROR`, Meldung "Passwortgeschützte PDFs nicht unterstützt" |
+| Kein Text extrahierbar (Bild-PDF) | Status `PARSED` mit Warning, OCR-Hinweis in UI |
+| Parser-Timeout (>30s) | Retry 1x, dann Status `ERROR` |
+| Speicherüberlauf | Task abbrechen, Status `ERROR`, Alert an Admin |
+
+#### 20.2.2 LLM-Provider-Fehler
+
+| Fehler | Reaktion |
+|--------|----------|
+| Connection Timeout | 3 Retries mit exponential backoff (2s, 4s, 8s) |
+| Rate Limit (429) | Warten + Retry nach Header-Info oder 60s |
+| Invalid API Key | Status `ERROR`, Settings-Prüfung anfordern |
+| Model not found | Fallback auf Standard-Modell, Warning |
+| Context too long | Text kürzen, Retry |
+| Invalid JSON Response | 2 Retries, dann manuelle Struktur-Extraktion |
+| Provider nicht erreichbar | Fallback auf alternativen Provider (wenn konfiguriert) |
+
+#### 20.2.3 Datenbank-Fehler
+
+| Fehler | Reaktion |
+|--------|----------|
+| Connection lost | Retry mit Connection Pool |
+| Constraint violation | Rollback, aussagekräftige Fehlermeldung |
+| Disk full | Alert an Admin, keine neuen Uploads |
+| Migration failed | Rollback, System bleibt auf alter Version |
+
+#### 20.2.4 Dateisystem-Fehler
+
+| Fehler | Reaktion |
+|--------|----------|
+| Upload-Verzeichnis nicht beschreibbar | Alert, Upload-Endpoint deaktivieren |
+| PDF nicht gefunden | Status `ERROR`, Konsistenzprüfung triggern |
+| Export-Fehler | Retry 1x, dann Error an User |
+
+### 20.3 Retry-Strategien
+
+```python
+RETRY_CONFIG = {
+    "pdf_parse": {
+        "max_retries": 1,
+        "backoff": "none",
+        "timeout_seconds": 30
+    },
+    "llm_call": {
+        "max_retries": 3,
+        "backoff": "exponential",
+        "base_delay_seconds": 2,
+        "max_delay_seconds": 30,
+        "timeout_seconds": 120
+    },
+    "db_operation": {
+        "max_retries": 3,
+        "backoff": "linear",
+        "delay_seconds": 1,
+        "timeout_seconds": 10
+    },
+    "external_api": {
+        "max_retries": 3,
+        "backoff": "exponential",
+        "base_delay_seconds": 5,
+        "max_delay_seconds": 60,
+        "respect_rate_limit_headers": True
+    }
+}
+```
+
+### 20.4 Benutzer-Fehlermeldungen (zweisprachig)
+
+| Fehler-Code | Meldung (DE) | Meldung (EN) |
+|-------------|--------------|--------------|
+| `PDF_CORRUPT` | "Die PDF-Datei ist beschädigt oder nicht lesbar." | "The PDF file is corrupted or unreadable." |
+| `PDF_PASSWORD` | "Passwortgeschützte PDFs werden nicht unterstützt." | "Password-protected PDFs are not supported." |
+| `PDF_NO_TEXT` | "Kein Text im PDF gefunden. Möglicherweise ein Bild-PDF." | "No text found in PDF. It may be an image-based PDF." |
+| `LLM_UNAVAILABLE` | "Der KI-Dienst ist vorübergehend nicht erreichbar." | "The AI service is temporarily unavailable." |
+| `LLM_TIMEOUT` | "Die Analyse hat zu lange gedauert. Bitte erneut versuchen." | "Analysis took too long. Please try again." |
+| `UPLOAD_FAILED` | "Upload fehlgeschlagen. Bitte erneut versuchen." | "Upload failed. Please try again." |
+| `EXPORT_FAILED` | "Export konnte nicht erstellt werden." | "Export could not be created." |
+
+### 20.5 Logging-Anforderungen
+
+**Jeder Fehler muss enthalten:**
+```json
+{
+  "timestamp": "2025-12-15T12:00:00Z",
+  "level": "ERROR",
+  "error_code": "LLM_TIMEOUT",
+  "error_class": "RECOVERABLE",
+  "service": "worker",
+  "task_id": "task_123",
+  "document_id": "doc_456",
+  "project_id": "prj_789",
+  "message": "LLM call timed out after 120s",
+  "details": {
+    "provider": "LOCAL_OLLAMA",
+    "model": "llama3.1:8b",
+    "retry_count": 3,
+    "last_error": "Connection timed out"
+  },
+  "stack_trace": "..."
+}
+```
+
+### 20.6 Health-Check-Integration
+
+```python
+# Automatische Fehlererkennung über Health-Checks
+HEALTH_CHECK_CONFIG = {
+    "db": {
+        "interval_seconds": 30,
+        "timeout_seconds": 5,
+        "unhealthy_threshold": 3
+    },
+    "ollama": {
+        "interval_seconds": 60,
+        "timeout_seconds": 10,
+        "unhealthy_threshold": 2
+    },
+    "chroma": {
+        "interval_seconds": 60,
+        "timeout_seconds": 5,
+        "unhealthy_threshold": 3
+    },
+    "redis": {
+        "interval_seconds": 30,
+        "timeout_seconds": 5,
+        "unhealthy_threshold": 2
+    }
+}
+```
+
+### 20.7 Graceful Degradation
+
+| Komponente ausfallend | Degradiertes Verhalten |
+|-----------------------|------------------------|
+| Ollama | Nur externe Provider nutzbar, UI-Hinweis |
+| ChromaDB | RAG deaktiviert, Analyse ohne Few-Shot |
+| Redis | Synchrone Verarbeitung statt Queue |
+| PostgreSQL | System nicht nutzbar, Maintenance-Seite |
+
+---
+
+## 21. Abnahmekriterien (Definition of Done)
 
 Das System ist nur „fertig“, wenn:
 
