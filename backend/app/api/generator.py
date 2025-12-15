@@ -5,14 +5,18 @@ FlowAudit Generator API (Admin)
 Endpoints für PDF-Generator (Seminarbetrieb).
 """
 
+import json
+from pathlib import Path
 from typing import Any
 
 from fastapi import APIRouter, Depends, Header, HTTPException, status
+from fastapi.responses import HTMLResponse
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.database import get_async_session
 from app.models.export import GeneratorJob
+from app.worker.tasks import generate_invoices_task
 
 router = APIRouter()
 
@@ -65,13 +69,102 @@ async def get_template_preview(template_id: str):
         template_id: Template-ID
 
     Returns:
-        Preview-Bild (PNG/SVG).
+        Preview als HTML.
     """
-    # TODO: Echte Preview-Bilder generieren
-    raise HTTPException(
-        status_code=status.HTTP_501_NOT_IMPLEMENTED,
-        detail="Template preview not yet implemented",
-    )
+    # Template-Konfigurationen mit Vorschau-Daten
+    templates_preview = {
+        "T1_HANDWERK": {
+            "name": "Meister Müller Handwerk GmbH",
+            "address": "Werkstattstraße 15, 80331 München",
+            "vat_id": "DE123456789",
+            "description": "Reparaturarbeiten und Materialien",
+            "style": "traditional",
+        },
+        "T2_SUPERMARKT": {
+            "name": "Frischemarkt GmbH",
+            "address": "Marktplatz 1, 10115 Berlin",
+            "vat_id": "DE987654321",
+            "description": "Lebensmittel und Haushaltswaren",
+            "style": "receipt",
+        },
+        "T3_CORPORATE": {
+            "name": "Enterprise Solutions AG",
+            "address": "Business Tower, 60311 Frankfurt",
+            "vat_id": "DE111222333",
+            "description": "IT-Beratung und Softwareentwicklung",
+            "style": "corporate",
+        },
+        "T4_FREELANCER": {
+            "name": "Max Mustermann",
+            "address": "Homeoffice Weg 42, 50667 Köln",
+            "vat_id": "DE444555666",
+            "description": "Webdesign und Grafik",
+            "style": "minimal",
+        },
+        "T5_MINIMAL": {
+            "name": "Einfach GmbH",
+            "address": "Kurzstraße 1, 20095 Hamburg",
+            "vat_id": "DE777888999",
+            "description": "Dienstleistungen",
+            "style": "minimal",
+        },
+    }
+
+    if template_id not in templates_preview:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Template {template_id} not found",
+        )
+
+    t = templates_preview[template_id]
+
+    # HTML-Vorschau generieren
+    html_content = f"""
+    <!DOCTYPE html>
+    <html>
+    <head>
+        <meta charset="UTF-8">
+        <title>Preview: {template_id}</title>
+        <style>
+            body {{ font-family: Arial, sans-serif; padding: 20px; max-width: 600px; margin: auto; }}
+            .invoice {{ border: 1px solid #ccc; padding: 20px; background: #fff; }}
+            .header {{ border-bottom: 2px solid #333; padding-bottom: 10px; margin-bottom: 20px; }}
+            .supplier {{ font-weight: bold; font-size: 18px; }}
+            .address {{ color: #666; font-size: 12px; }}
+            .vat {{ font-size: 11px; color: #888; }}
+            .items {{ margin: 20px 0; }}
+            .item-row {{ display: flex; justify-content: space-between; padding: 5px 0; border-bottom: 1px solid #eee; }}
+            .totals {{ margin-top: 20px; text-align: right; }}
+            .total {{ font-weight: bold; font-size: 18px; }}
+        </style>
+    </head>
+    <body>
+        <div class="invoice">
+            <div class="header">
+                <div class="supplier">{t['name']}</div>
+                <div class="address">{t['address']}</div>
+                <div class="vat">USt-IdNr.: {t['vat_id']}</div>
+            </div>
+            <h2>RECHNUNG</h2>
+            <p><strong>Rechnungsnummer:</strong> 2025-XXXX</p>
+            <p><strong>Datum:</strong> TT.MM.JJJJ</p>
+            <div class="items">
+                <div class="item-row">
+                    <span>{t['description']}</span>
+                    <span>XXX,XX €</span>
+                </div>
+            </div>
+            <div class="totals">
+                <div>Netto: XXX,XX €</div>
+                <div>MwSt. 19%: XX,XX €</div>
+                <div class="total">Gesamt: XXX,XX €</div>
+            </div>
+        </div>
+    </body>
+    </html>
+    """
+
+    return HTMLResponse(content=html_content, media_type="text/html")
 
 
 @router.post("/generator/run", status_code=status.HTTP_202_ACCEPTED)
@@ -135,16 +228,17 @@ async def run_generator(
     )
 
     session.add(generator_job)
-    await session.flush()
+    await session.commit()
 
-    # TODO: Celery Task starten
-    # run_generator_task.delay(generator_job.id)
+    # Celery Task für Generator starten
+    task = generate_invoices_task.delay(generator_job.id)
 
     return {
         "generator_job_id": generator_job.id,
         "status": "RUNNING",
         "output_dir": generator_job.output_dir,
         "solutions_file": generator_job.solutions_file,
+        "task_id": task.id,
     }
 
 
@@ -213,8 +307,45 @@ async def get_generator_solutions(
             detail=f"GeneratorJob {generator_job_id} not found",
         )
 
-    # TODO: Lösungsdatei parsen
+    # Lösungsdatei parsen
+    entries = []
+
+    if job.solutions_file:
+        solutions_path = Path(job.solutions_file)
+        if solutions_path.exists():
+            try:
+                with open(solutions_path, "r", encoding="utf-8") as f:
+                    solutions_data = json.load(f)
+
+                # Einträge formatieren
+                for solution in solutions_data:
+                    entries.append({
+                        "filename": solution.get("filename"),
+                        "template": solution.get("template"),
+                        "has_error": solution.get("has_error", False),
+                        "errors": solution.get("errors", []),
+                        "invoice_data": {
+                            "invoice_number": solution.get("invoice_number"),
+                            "invoice_date": solution.get("invoice_date"),
+                            "net_amount": solution.get("net_amount"),
+                            "vat_amount": solution.get("vat_amount"),
+                            "gross_amount": solution.get("gross_amount"),
+                            "vat_rate": solution.get("vat_rate"),
+                        },
+                    })
+            except Exception as e:
+                raise HTTPException(
+                    status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                    detail=f"Error reading solutions file: {e}",
+                )
+        else:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Solutions file not found",
+            )
+
     return {
         "solutions_file": job.solutions_file,
-        "entries": [],
+        "count": len(entries),
+        "entries": entries,
     }

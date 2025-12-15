@@ -12,10 +12,12 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.database import get_async_session
-from app.models.document import Document
+from app.models.document import Document, ParseRun
 from app.models.enums import DocumentStatus, Provider
 from app.models.llm import LlmRun, LlmRunLog, PreparePayload
 from app.schemas.llm import LlmRunCreate, LlmRunLogResponse, LlmRunResponse, PreparePayloadResponse
+from app.services.rule_engine import RULESETS, FeatureCategory, RequiredLevel
+from app.worker.tasks import analyze_document_task
 
 router = APIRouter()
 
@@ -43,17 +45,42 @@ async def create_prepare_payload(
             detail=f"Document {document_id} not found",
         )
 
+    # Features aus Ruleset laden
+    ruleset_id = document.ruleset_id or "DE_USTG"
+    ruleset_features = RULESETS.get(ruleset_id, RULESETS.get("DE_USTG", {}))
+    features_list = [
+        {
+            "feature_id": fdef.feature_id,
+            "name_de": fdef.name_de,
+            "name_en": fdef.name_en,
+            "legal_basis": fdef.legal_basis,
+            "required_level": fdef.required_level.value,
+            "category": fdef.category.value,
+        }
+        for fdef in ruleset_features.values()
+    ]
+
+    # Extracted text aus ParseRun laden
+    parse_run_result = await session.execute(
+        select(ParseRun)
+        .where(ParseRun.document_id == document_id)
+        .order_by(ParseRun.created_at.desc())
+        .limit(1)
+    )
+    parse_run = parse_run_result.scalar_one_or_none()
+    extracted_text = parse_run.raw_text if parse_run else None
+
     # PreparePayload erstellen
     payload = PreparePayload(
         document_id=document_id,
         schema_version="1.0",
         ruleset={
-            "ruleset_id": document.ruleset_id or "DE_USTG",
+            "ruleset_id": ruleset_id,
             "version": document.ruleset_version or "1.0.0",
         },
         ui_language=document.ui_language,
-        features=[],  # TODO: Features aus Ruleset laden
-        extracted_text=None,  # TODO: Aus Parse-Run laden
+        features=features_list,
+        extracted_text=extracted_text,
     )
 
     session.add(payload)
@@ -216,15 +243,20 @@ async def start_llm_run(
 
     session.add(llm_run)
     document.status = DocumentStatus.LLM_RUNNING
-    await session.flush()
+    await session.commit()
 
-    # TODO: Celery Task starten
-    # run_llm_task.delay(document_id, llm_run.id)
+    # Celery Task für LLM-Analyse starten
+    task = analyze_document_task.delay(
+        document_id=document_id,
+        provider=provider.value,
+        model=model_name,
+    )
 
     return {
         "llm_run_id": llm_run.id,
         "document_id": document_id,
         "status": "RUNNING",
+        "task_id": task.id,
     }
 
 

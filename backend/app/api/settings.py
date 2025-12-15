@@ -123,9 +123,37 @@ async def update_settings(
     Returns:
         Aktualisierte Settings.
     """
-    # TODO: Settings in DB speichern
+    # Settings in DB speichern
+    update_data = data.model_dump(exclude_unset=True)
 
-    # Erstmal nur zurückgeben
+    for key, value in update_data.items():
+        if isinstance(value, dict):
+            # Verschachtelte Settings
+            for sub_key, sub_value in value.items():
+                setting_key = f"{key}.{sub_key}"
+                result = await session.execute(
+                    select(Setting).where(Setting.key == setting_key)
+                )
+                setting = result.scalar_one_or_none()
+
+                if setting:
+                    setting.value = sub_value
+                else:
+                    session.add(Setting(key=setting_key, value=sub_value))
+        else:
+            # Einfache Settings
+            result = await session.execute(
+                select(Setting).where(Setting.key == key)
+            )
+            setting = result.scalar_one_or_none()
+
+            if setting:
+                setting.value = value
+            else:
+                session.add(Setting(key=key, value=value))
+
+    await session.commit()
+
     return await get_settings_endpoint(session)
 
 
@@ -241,13 +269,114 @@ async def test_provider(
                     latency_ms=latency,
                     message="Connection successful",
                 )
+
+        elif provider_id == Provider.OPENAI:
+            # OpenAI API-Key aus DB laden
+            result = await session.execute(
+                select(ApiKey).where(ApiKey.provider == Provider.OPENAI)
+            )
+            api_key = result.scalar_one_or_none()
+
+            if not api_key and not config.openai_api_key:
+                return ProviderTestResponse(
+                    provider=provider_id,
+                    status="error",
+                    model_accessible=False,
+                    message="API key not configured",
+                )
+
+            key_to_use = config.openai_api_key or "placeholder"
+            async with httpx.AsyncClient(timeout=10.0) as client:
+                response = await client.get(
+                    "https://api.openai.com/v1/models",
+                    headers={"Authorization": f"Bearer {key_to_use}"},
+                )
+                latency = int((time.time() - start) * 1000)
+
+                return ProviderTestResponse(
+                    provider=provider_id,
+                    status="ok" if response.status_code == 200 else "error",
+                    model_accessible=response.status_code == 200,
+                    latency_ms=latency,
+                    message="API accessible" if response.status_code == 200 else f"Error: {response.status_code}",
+                )
+
+        elif provider_id == Provider.ANTHROPIC:
+            result = await session.execute(
+                select(ApiKey).where(ApiKey.provider == Provider.ANTHROPIC)
+            )
+            api_key = result.scalar_one_or_none()
+
+            if not api_key and not config.anthropic_api_key:
+                return ProviderTestResponse(
+                    provider=provider_id,
+                    status="error",
+                    model_accessible=False,
+                    message="API key not configured",
+                )
+
+            key_to_use = config.anthropic_api_key or "placeholder"
+            async with httpx.AsyncClient(timeout=10.0) as client:
+                response = await client.post(
+                    "https://api.anthropic.com/v1/messages",
+                    headers={
+                        "x-api-key": key_to_use,
+                        "anthropic-version": "2023-06-01",
+                        "Content-Type": "application/json",
+                    },
+                    json={
+                        "model": "claude-3-5-haiku-20241022",
+                        "max_tokens": 1,
+                        "messages": [{"role": "user", "content": "test"}],
+                    },
+                )
+                latency = int((time.time() - start) * 1000)
+
+                # Anthropic gibt 200 oder 401/403 bei ungültigem Key
+                is_accessible = response.status_code in [200, 400]
+                return ProviderTestResponse(
+                    provider=provider_id,
+                    status="ok" if is_accessible else "error",
+                    model_accessible=is_accessible,
+                    latency_ms=latency,
+                    message="API accessible" if is_accessible else f"Error: {response.status_code}",
+                )
+
+        elif provider_id == Provider.GEMINI:
+            result = await session.execute(
+                select(ApiKey).where(ApiKey.provider == Provider.GEMINI)
+            )
+            api_key = result.scalar_one_or_none()
+
+            if not api_key and not config.gemini_api_key:
+                return ProviderTestResponse(
+                    provider=provider_id,
+                    status="error",
+                    model_accessible=False,
+                    message="API key not configured",
+                )
+
+            key_to_use = config.gemini_api_key or "placeholder"
+            async with httpx.AsyncClient(timeout=10.0) as client:
+                response = await client.get(
+                    f"https://generativelanguage.googleapis.com/v1beta/models?key={key_to_use}",
+                )
+                latency = int((time.time() - start) * 1000)
+
+                return ProviderTestResponse(
+                    provider=provider_id,
+                    status="ok" if response.status_code == 200 else "error",
+                    model_accessible=response.status_code == 200,
+                    latency_ms=latency,
+                    message="API accessible" if response.status_code == 200 else f"Error: {response.status_code}",
+                )
+
         else:
-            # TODO: Andere Provider testen
             return ProviderTestResponse(
                 provider=provider_id,
                 status="error",
                 model_accessible=False,
-                message="Provider test not implemented",
+                message="Unknown provider",
             )
 
     except Exception as e:
@@ -271,20 +400,38 @@ async def list_ollama_models() -> OllamaModelsResponse:
 
     try:
         async with httpx.AsyncClient(timeout=10.0) as client:
+            # Modelle abrufen
             response = await client.get(f"{config.ollama_host}/api/tags")
 
-            if response.status_code == 200:
-                data = response.json()
-                models = [
-                    {
-                        "name": m.get("name"),
-                        "size_gb": m.get("size", 0) / (1024**3),
-                        "loaded": False,  # TODO: Check loaded status
-                        "modified_at": m.get("modified_at"),
-                    }
-                    for m in data.get("models", [])
-                ]
-                return OllamaModelsResponse(models=models)
+            if response.status_code != 200:
+                return OllamaModelsResponse(models=[])
+
+            data = response.json()
+
+            # Geladene Modelle prüfen (über ps-Endpoint)
+            loaded_models: set[str] = set()
+            try:
+                ps_response = await client.get(f"{config.ollama_host}/api/ps")
+                if ps_response.status_code == 200:
+                    ps_data = ps_response.json()
+                    for running_model in ps_data.get("models", []):
+                        loaded_models.add(running_model.get("name", ""))
+            except Exception:
+                pass  # Ignorieren wenn ps nicht verfügbar
+
+            models = [
+                {
+                    "name": m.get("name"),
+                    "size_gb": round(m.get("size", 0) / (1024**3), 2),
+                    "loaded": m.get("name") in loaded_models,
+                    "modified_at": m.get("modified_at"),
+                    "digest": m.get("digest", "")[:12],
+                    "parameter_size": m.get("details", {}).get("parameter_size", ""),
+                    "quantization": m.get("details", {}).get("quantization_level", ""),
+                }
+                for m in data.get("models", [])
+            ]
+            return OllamaModelsResponse(models=models)
 
     except Exception:
         pass
@@ -305,9 +452,44 @@ async def pull_ollama_model(
     Returns:
         Pull-Status.
     """
-    # TODO: Async Modell-Pull starten
-    return ModelPullResponse(
-        status="pulling",
-        model_name=data.model_name,
-        progress_url="/api/settings/providers/LOCAL_OLLAMA/models/pull/status",
-    )
+    import httpx
+
+    try:
+        # Starte Pull-Request (non-streaming)
+        async with httpx.AsyncClient(timeout=300.0) as client:
+            response = await client.post(
+                f"{config.ollama_host}/api/pull",
+                json={"name": data.model_name, "stream": False},
+            )
+
+            if response.status_code == 200:
+                return ModelPullResponse(
+                    status="completed",
+                    model_name=data.model_name,
+                    progress_url=None,
+                    message="Model successfully pulled",
+                )
+            else:
+                return ModelPullResponse(
+                    status="error",
+                    model_name=data.model_name,
+                    progress_url=None,
+                    message=f"Pull failed: {response.text}",
+                )
+
+    except httpx.TimeoutException:
+        # Bei Timeout: Pull läuft wahrscheinlich noch
+        return ModelPullResponse(
+            status="pulling",
+            model_name=data.model_name,
+            progress_url="/api/settings/providers/LOCAL_OLLAMA/models/pull/status",
+            message="Pull started, may take several minutes",
+        )
+
+    except Exception as e:
+        return ModelPullResponse(
+            status="error",
+            model_name=data.model_name,
+            progress_url=None,
+            message=str(e),
+        )

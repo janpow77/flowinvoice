@@ -6,19 +6,26 @@ Hintergrund-Tasks für Dokumentenverarbeitung und Analyse.
 """
 
 import asyncio
+import csv
 import json
 import logging
-from datetime import datetime
+import os
+import random
+import shutil
+from datetime import datetime, timedelta, timezone
+from io import StringIO
 from pathlib import Path
 from typing import Any
 
 from celery import shared_task
+from sqlalchemy import select
 
 from app.config import get_settings
 from app.database import async_session_maker
 from app.llm import InvoiceAnalysisRequest, get_llm_adapter
 from app.models.document import Document
 from app.models.enums import DocumentStatus, Provider
+from app.models.export import ExportJob, GeneratorJob
 from app.models.result import AnalysisResult
 from app.rag import get_rag_service
 from app.services.parser import get_parser
@@ -119,11 +126,7 @@ async def _process_document_async(document_id: str) -> dict[str, Any]:
             ]
 
             # Status für nächsten Schritt
-            if precheck.passed:
-                document.status = DocumentStatus.VALIDATED
-            else:
-                document.status = DocumentStatus.VALIDATED  # Auch mit Fehlern weiter
-
+            document.status = DocumentStatus.VALIDATED
             await session.commit()
 
             logger.info(f"Document {document_id} processed successfully")
@@ -267,13 +270,18 @@ async def _analyze_document_async(
             raise
 
 
-@celery_app.task(bind=True)
+# =============================================================================
+# PDF Generator Task
+# =============================================================================
+
+
+@celery_app.task(bind=True, max_retries=2)
 def generate_invoices_task(
     self,
     generator_job_id: str,
 ) -> dict[str, Any]:
     """
-    Generiert Test-Rechnungen.
+    Generiert Test-Rechnungen für Seminarbetrieb.
 
     Args:
         generator_job_id: Generator-Job-ID
@@ -283,17 +291,258 @@ def generate_invoices_task(
     """
     logger.info(f"Generating invoices for job: {generator_job_id}")
 
-    # TODO: Implementierung des PDF-Generators
-    # Dies wird in einer späteren Phase implementiert
+    try:
+        result = run_async(_generate_invoices_async(generator_job_id))
+        return result
 
-    return {
-        "status": "not_implemented",
-        "generator_job_id": generator_job_id,
-        "message": "Generator wird in Phase 3 implementiert",
+    except Exception as e:
+        logger.exception(f"Error generating invoices: {e}")
+        self.retry(exc=e, countdown=120)
+
+
+async def _generate_invoices_async(generator_job_id: str) -> dict[str, Any]:
+    """Async-Implementation der Rechnungsgenerierung."""
+    async with async_session_maker() as session:
+        # Job laden
+        job = await session.get(GeneratorJob, generator_job_id)
+        if not job:
+            raise ValueError(f"Generator job not found: {generator_job_id}")
+
+        job.status = "RUNNING"
+        await session.commit()
+
+        try:
+            # Konfiguration auslesen
+            count = job.count or 20
+            templates = job.templates_enabled or ["T1_HANDWERK", "T3_CORPORATE"]
+            error_rate = job.settings.get("error_rate_total", 5.0) if job.settings else 5.0
+            severity = job.settings.get("severity", 2) if job.settings else 2
+
+            # Ausgabeverzeichnis erstellen
+            output_dir = Path(job.output_dir or f"/data/generated/{generator_job_id}")
+            output_dir.mkdir(parents=True, exist_ok=True)
+
+            generated_files: list[str] = []
+            solutions: list[dict[str, Any]] = []
+
+            # Rechnungen generieren
+            for i in range(count):
+                template = random.choice(templates)
+                has_error = random.random() * 100 < error_rate
+
+                # Generiere Rechnungsdaten
+                invoice_data = _generate_invoice_data(
+                    template=template,
+                    index=i + 1,
+                    has_error=has_error,
+                    severity=severity,
+                    ruleset_id=job.ruleset_id,
+                )
+
+                # Dateiname
+                filename = f"invoice_{i+1:04d}_{template}.txt"
+                filepath = output_dir / filename
+
+                # Rechnungstext erstellen und speichern
+                invoice_text = _format_invoice_text(invoice_data)
+                filepath.write_text(invoice_text, encoding="utf-8")
+
+                generated_files.append(str(filepath))
+
+                # Lösung speichern
+                solutions.append({
+                    "filename": filename,
+                    "template": template,
+                    "has_error": has_error,
+                    "errors": invoice_data.get("injected_errors", []),
+                    "correct_values": invoice_data.get("correct_values", {}),
+                })
+
+            # Lösungsdatei schreiben
+            solutions_file = output_dir / "solutions.json"
+            solutions_file.write_text(
+                json.dumps(solutions, indent=2, ensure_ascii=False),
+                encoding="utf-8",
+            )
+
+            # Job aktualisieren
+            job.status = "COMPLETED"
+            job.generated_files = generated_files
+            job.solutions_file = str(solutions_file)
+            await session.commit()
+
+            logger.info(f"Generated {count} invoices for job {generator_job_id}")
+
+            return {
+                "status": "success",
+                "generator_job_id": generator_job_id,
+                "generated_count": len(generated_files),
+                "output_dir": str(output_dir),
+                "solutions_file": str(solutions_file),
+            }
+
+        except Exception as e:
+            job.status = "FAILED"
+            await session.commit()
+            raise
+
+
+def _generate_invoice_data(
+    template: str,
+    index: int,
+    has_error: bool,
+    severity: int,
+    ruleset_id: str,
+) -> dict[str, Any]:
+    """Generiert Rechnungsdaten basierend auf Template."""
+    # Basisdaten
+    today = datetime.now()
+    invoice_date = today - timedelta(days=random.randint(1, 30))
+
+    # Template-spezifische Daten
+    templates_config = {
+        "T1_HANDWERK": {
+            "supplier": "Meister Müller Handwerk GmbH",
+            "supplier_address": "Werkstraße 12, 80333 München",
+            "description": "Reparaturarbeiten und Materialkosten",
+            "net_range": (500, 5000),
+        },
+        "T2_SUPERMARKT": {
+            "supplier": "Frisch & Gut Lebensmittel",
+            "supplier_address": "Marktplatz 1, 10115 Berlin",
+            "description": "Lebensmittel und Getränke für Veranstaltung",
+            "net_range": (50, 500),
+        },
+        "T3_CORPORATE": {
+            "supplier": "TechSolutions AG",
+            "supplier_address": "Innovationsweg 42, 70173 Stuttgart",
+            "description": "IT-Beratung und Softwareentwicklung",
+            "net_range": (2000, 20000),
+        },
+        "T4_FREELANCER": {
+            "supplier": "Max Mustermann",
+            "supplier_address": "Homeoffice-Str. 7, 50667 Köln",
+            "description": "Freiberufliche Dienstleistungen",
+            "net_range": (500, 3000),
+        },
+        "T5_MINIMAL": {
+            "supplier": "Schnellservice",
+            "supplier_address": "Kurzweg 1, 60311 Frankfurt",
+            "description": "Diverse Kleinleistungen",
+            "net_range": (20, 200),
+        },
     }
 
+    config = templates_config.get(template, templates_config["T1_HANDWERK"])
 
-@celery_app.task(bind=True)
+    # Beträge berechnen
+    net_amount = round(random.uniform(*config["net_range"]), 2)
+    vat_rate = 19 if net_amount > 50 else 7
+    vat_amount = round(net_amount * vat_rate / 100, 2)
+    gross_amount = round(net_amount + vat_amount, 2)
+
+    data = {
+        "invoice_number": f"{today.year}-{index:04d}",
+        "invoice_date": invoice_date.strftime("%d.%m.%Y"),
+        "supplier_name": config["supplier"],
+        "supplier_address": config["supplier_address"],
+        "vat_id": f"DE{random.randint(100000000, 999999999)}",
+        "customer_name": "FlowAudit Testprojekt GmbH",
+        "customer_address": "Prüfstraße 1, 10117 Berlin",
+        "description": config["description"],
+        "supply_date": (invoice_date - timedelta(days=random.randint(1, 14))).strftime("%d.%m.%Y"),
+        "net_amount": f"{net_amount:,.2f}".replace(",", "X").replace(".", ",").replace("X", "."),
+        "vat_rate": vat_rate,
+        "vat_amount": f"{vat_amount:,.2f}".replace(",", "X").replace(".", ",").replace("X", "."),
+        "gross_amount": f"{gross_amount:,.2f}".replace(",", "X").replace(".", ",").replace("X", "."),
+        "iban": f"DE{random.randint(10, 99)}{random.randint(1000, 9999)}{random.randint(1000, 9999)}{random.randint(1000, 9999)}{random.randint(1000, 9999)}{random.randint(10, 99)}",
+        "template": template,
+        "injected_errors": [],
+        "correct_values": {},
+    }
+
+    # Fehler injizieren
+    if has_error:
+        data = _inject_errors(data, severity)
+
+    return data
+
+
+def _inject_errors(data: dict[str, Any], severity: int) -> dict[str, Any]:
+    """Injiziert Fehler in Rechnungsdaten."""
+    error_types = [
+        ("missing_invoice_number", lambda d: d.update({"invoice_number": "", "correct_values": {**d.get("correct_values", {}), "invoice_number": d["invoice_number"]}})),
+        ("invalid_vat_id", lambda d: d.update({"vat_id": "INVALID123", "correct_values": {**d.get("correct_values", {}), "vat_id": d["vat_id"]}})),
+        ("missing_date", lambda d: d.update({"invoice_date": "", "correct_values": {**d.get("correct_values", {}), "invoice_date": d["invoice_date"]}})),
+        ("calculation_error", lambda d: d.update({"gross_amount": str(float(d["gross_amount"].replace(".", "").replace(",", ".")) + 10).replace(".", ","), "correct_values": {**d.get("correct_values", {}), "gross_amount": d["gross_amount"]}})),
+        ("missing_description", lambda d: d.update({"description": "", "correct_values": {**d.get("correct_values", {}), "description": d["description"]}})),
+    ]
+
+    # Anzahl der Fehler basierend auf Severity
+    num_errors = min(severity, len(error_types))
+    selected_errors = random.sample(error_types, num_errors)
+
+    for error_name, error_func in selected_errors:
+        error_func(data)
+        data["injected_errors"].append(error_name)
+
+    return data
+
+
+def _format_invoice_text(data: dict[str, Any]) -> str:
+    """Formatiert Rechnungsdaten als Text."""
+    return f"""
+================================================================================
+                                    RECHNUNG
+================================================================================
+
+Rechnungsnummer: {data.get('invoice_number', '')}
+Rechnungsdatum:  {data.get('invoice_date', '')}
+
+--------------------------------------------------------------------------------
+RECHNUNGSSTELLER
+--------------------------------------------------------------------------------
+{data.get('supplier_name', '')}
+{data.get('supplier_address', '')}
+USt-IdNr.: {data.get('vat_id', '')}
+
+--------------------------------------------------------------------------------
+RECHNUNGSEMPFÄNGER
+--------------------------------------------------------------------------------
+{data.get('customer_name', '')}
+{data.get('customer_address', '')}
+
+--------------------------------------------------------------------------------
+LEISTUNG
+--------------------------------------------------------------------------------
+Leistungsdatum: {data.get('supply_date', '')}
+
+{data.get('description', '')}
+
+--------------------------------------------------------------------------------
+BETRÄGE
+--------------------------------------------------------------------------------
+Nettobetrag:                              {data.get('net_amount', '')} EUR
+MwSt. {data.get('vat_rate', '')}%:                              {data.get('vat_amount', '')} EUR
+--------------------------------------------------------------------------------
+Bruttobetrag:                             {data.get('gross_amount', '')} EUR
+================================================================================
+
+Zahlbar innerhalb von 14 Tagen.
+
+Bankverbindung:
+IBAN: {data.get('iban', '')}
+
+================================================================================
+"""
+
+
+# =============================================================================
+# Export Task
+# =============================================================================
+
+
+@celery_app.task(bind=True, max_retries=2)
 def export_results_task(
     self,
     export_job_id: str,
@@ -315,13 +564,11 @@ def export_results_task(
 
     except Exception as e:
         logger.exception(f"Error exporting results: {e}")
-        raise
+        self.retry(exc=e, countdown=60)
 
 
 async def _export_results_async(export_job_id: str) -> dict[str, Any]:
     """Async-Implementation des Exports."""
-    from app.models.export import ExportJob
-
     async with async_session_maker() as session:
         # Job laden
         export_job = await session.get(ExportJob, export_job_id)
@@ -332,18 +579,90 @@ async def _export_results_async(export_job_id: str) -> dict[str, Any]:
         await session.commit()
 
         try:
-            # Ergebnisse sammeln
-            # TODO: Implementierung des eigentlichen Exports
-            # (JSON, CSV, PDF-Report)
+            # Dokumente für Export sammeln
+            query = select(Document)
 
+            if export_job.project_id:
+                query = query.where(Document.project_id == export_job.project_id)
+
+            if export_job.document_ids:
+                query = query.where(Document.id.in_(export_job.document_ids))
+
+            result = await session.execute(query)
+            documents = result.scalars().all()
+
+            # Analyseergebnisse laden
+            export_data: list[dict[str, Any]] = []
+
+            for doc in documents:
+                # Neuestes Analyseergebnis holen
+                result_query = select(AnalysisResult).where(
+                    AnalysisResult.document_id == doc.id
+                ).order_by(AnalysisResult.created_at.desc()).limit(1)
+
+                ar_result = await session.execute(result_query)
+                analysis_result = ar_result.scalar_one_or_none()
+
+                doc_export = {
+                    "document_id": doc.id,
+                    "filename": doc.original_filename,
+                    "status": doc.status.value if doc.status else None,
+                    "uploaded_at": doc.created_at.isoformat() if doc.created_at else None,
+                    "extracted_data": doc.extracted_data,
+                    "precheck_passed": doc.precheck_passed,
+                    "precheck_errors": doc.precheck_errors,
+                }
+
+                if analysis_result:
+                    doc_export["analysis"] = {
+                        "overall_assessment": analysis_result.overall_assessment,
+                        "confidence": analysis_result.confidence,
+                        "semantic_check": analysis_result.semantic_check,
+                        "economic_check": analysis_result.economic_check,
+                        "beneficiary_match": analysis_result.beneficiary_match,
+                        "warnings": analysis_result.warnings,
+                        "provider": analysis_result.provider.value if analysis_result.provider else None,
+                        "model": analysis_result.model,
+                    }
+
+                export_data.append(doc_export)
+
+            # Export-Verzeichnis erstellen
+            export_dir = Path("/data/exports")
+            export_dir.mkdir(parents=True, exist_ok=True)
+
+            # Format bestimmen und exportieren
+            export_format = export_job.format or "json"
+
+            if export_format == "json":
+                file_path = export_dir / f"{export_job_id}.json"
+                file_path.write_text(
+                    json.dumps(export_data, indent=2, ensure_ascii=False, default=str),
+                    encoding="utf-8",
+                )
+            elif export_format == "csv":
+                file_path = export_dir / f"{export_job_id}.csv"
+                _export_to_csv(export_data, file_path)
+            else:
+                file_path = export_dir / f"{export_job_id}.json"
+                file_path.write_text(
+                    json.dumps(export_data, indent=2, ensure_ascii=False, default=str),
+                    encoding="utf-8",
+                )
+
+            # Job aktualisieren
             export_job.status = "COMPLETED"
-            export_job.file_path = f"/exports/{export_job_id}.json"
+            export_job.file_path = str(file_path)
+            export_job.record_count = len(export_data)
             await session.commit()
+
+            logger.info(f"Exported {len(export_data)} documents to {file_path}")
 
             return {
                 "status": "success",
                 "export_job_id": export_job_id,
-                "file_path": export_job.file_path,
+                "file_path": str(file_path),
+                "record_count": len(export_data),
             }
 
         except Exception as e:
@@ -353,16 +672,129 @@ async def _export_results_async(export_job_id: str) -> dict[str, Any]:
             raise
 
 
+def _export_to_csv(data: list[dict[str, Any]], file_path: Path):
+    """Exportiert Daten als CSV."""
+    if not data:
+        file_path.write_text("", encoding="utf-8")
+        return
+
+    # Flache Struktur erstellen
+    rows = []
+    for item in data:
+        row = {
+            "document_id": item.get("document_id"),
+            "filename": item.get("filename"),
+            "status": item.get("status"),
+            "uploaded_at": item.get("uploaded_at"),
+            "precheck_passed": item.get("precheck_passed"),
+        }
+
+        # Extrahierte Daten flach hinzufügen
+        if item.get("extracted_data"):
+            for key, val in item["extracted_data"].items():
+                if isinstance(val, dict):
+                    row[f"extracted_{key}"] = val.get("value")
+                else:
+                    row[f"extracted_{key}"] = val
+
+        # Analyse-Daten hinzufügen
+        if item.get("analysis"):
+            analysis = item["analysis"]
+            row["analysis_assessment"] = analysis.get("overall_assessment")
+            row["analysis_confidence"] = analysis.get("confidence")
+            row["analysis_provider"] = analysis.get("provider")
+
+        rows.append(row)
+
+    # CSV schreiben
+    if rows:
+        fieldnames = list(rows[0].keys())
+        output = StringIO()
+        writer = csv.DictWriter(output, fieldnames=fieldnames)
+        writer.writeheader()
+        writer.writerows(rows)
+        file_path.write_text(output.getvalue(), encoding="utf-8")
+
+
+# =============================================================================
+# Cleanup Task
+# =============================================================================
+
+
 @celery_app.task
 def cleanup_old_results():
     """Bereinigt alte Ergebnisse und temporäre Dateien."""
     logger.info("Running cleanup task")
 
-    # TODO: Implementierung der Bereinigung
-    # - Alte temporäre Dateien löschen
-    # - Abgelaufene Export-Jobs bereinigen
+    result = run_async(_cleanup_async())
+    return result
 
-    return {"status": "success", "message": "Cleanup completed"}
+
+async def _cleanup_async() -> dict[str, Any]:
+    """Async-Implementation der Bereinigung."""
+    cleanup_stats = {
+        "temp_files_deleted": 0,
+        "old_exports_deleted": 0,
+        "old_jobs_cleaned": 0,
+    }
+
+    # 1. Temporäre Upload-Dateien älter als 24h löschen
+    temp_dir = Path("/data/uploads/temp")
+    if temp_dir.exists():
+        cutoff_time = datetime.now() - timedelta(hours=24)
+        for temp_file in temp_dir.iterdir():
+            if temp_file.is_file():
+                file_mtime = datetime.fromtimestamp(temp_file.stat().st_mtime)
+                if file_mtime < cutoff_time:
+                    temp_file.unlink()
+                    cleanup_stats["temp_files_deleted"] += 1
+
+    # 2. Export-Dateien älter als 7 Tage löschen
+    export_dir = Path("/data/exports")
+    if export_dir.exists():
+        cutoff_time = datetime.now() - timedelta(days=7)
+        for export_file in export_dir.iterdir():
+            if export_file.is_file():
+                file_mtime = datetime.fromtimestamp(export_file.stat().st_mtime)
+                if file_mtime < cutoff_time:
+                    export_file.unlink()
+                    cleanup_stats["old_exports_deleted"] += 1
+
+    # 3. Alte Generator-Outputs älter als 30 Tage löschen
+    generated_dir = Path("/data/generated")
+    if generated_dir.exists():
+        cutoff_time = datetime.now() - timedelta(days=30)
+        for job_dir in generated_dir.iterdir():
+            if job_dir.is_dir():
+                dir_mtime = datetime.fromtimestamp(job_dir.stat().st_mtime)
+                if dir_mtime < cutoff_time:
+                    shutil.rmtree(job_dir)
+                    cleanup_stats["old_jobs_cleaned"] += 1
+
+    # 4. Datenbank-Bereinigung (abgeschlossene Jobs älter als 90 Tage)
+    async with async_session_maker() as session:
+        cutoff_date = datetime.now(timezone.utc) - timedelta(days=90)
+
+        # Alte Export-Jobs löschen
+        old_exports = await session.execute(
+            select(ExportJob).where(
+                ExportJob.status == "COMPLETED",
+                ExportJob.created_at < cutoff_date,
+            )
+        )
+        for export_job in old_exports.scalars():
+            await session.delete(export_job)
+            cleanup_stats["old_jobs_cleaned"] += 1
+
+        await session.commit()
+
+    logger.info(f"Cleanup completed: {cleanup_stats}")
+
+    return {
+        "status": "success",
+        "stats": cleanup_stats,
+        "timestamp": datetime.now(timezone.utc).isoformat(),
+    }
 
 
 # =============================================================================

@@ -14,6 +14,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.database import get_async_session
 from app.models.export import ExportJob
+from app.worker.tasks import export_results_task
 
 router = APIRouter()
 
@@ -52,14 +53,15 @@ async def create_export(
     )
 
     session.add(export_job)
-    await session.flush()
+    await session.commit()
 
-    # TODO: Celery Task starten
-    # create_export_task.delay(export_job.id)
+    # Celery Task für Export starten
+    task = export_results_task.delay(export_job.id)
 
     return {
         "export_job_id": export_job.id,
         "status": "RUNNING",
+        "task_id": task.id,
     }
 
 

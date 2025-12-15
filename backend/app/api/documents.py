@@ -29,6 +29,7 @@ from app.schemas.document import (
     ParseRunResponse,
     PrecheckRunResponse,
 )
+from app.worker.tasks import process_document_task
 
 router = APIRouter()
 settings = get_settings()
@@ -290,15 +291,16 @@ async def start_parse(
 
     session.add(parse_run)
     document.status = DocumentStatus.PARSING
-    await session.flush()
+    await session.commit()
 
-    # TODO: Celery Task starten
-    # parse_document_task.delay(document_id, parse_run.id)
+    # Celery Task für Parsing starten
+    task = process_document_task.delay(document_id)
 
     return {
         "document_id": document_id,
         "status": "PARSING",
         "parse_run_id": parse_run.id,
+        "task_id": task.id,
     }
 
 
@@ -368,24 +370,108 @@ async def start_precheck(
             detail=f"Document {document_id} not found",
         )
 
+    from datetime import timezone
+
+    from app.services.parser import ExtractedValue, ParseResult, ParsedPage
+    from app.services.rule_engine import get_rule_engine
+
+    # Parse-Run des Dokuments laden
+    parse_run_result = await session.execute(
+        select(ParseRun)
+        .where(ParseRun.document_id == document_id)
+        .order_by(ParseRun.created_at.desc())
+        .limit(1)
+    )
+    parse_run = parse_run_result.scalar_one_or_none()
+
+    if not parse_run or not parse_run.extracted:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Document must be parsed first before precheck",
+        )
+
     # Precheck-Run erstellen
     precheck_run = PrecheckRun(
         document_id=document_id,
-        status="PENDING",
+        status="RUNNING",
         checks=[],
     )
-
     session.add(precheck_run)
     await session.flush()
 
-    # TODO: Celery Task starten
-    # precheck_document_task.delay(document_id, precheck_run.id)
+    try:
+        # Parse-Result aus DB-Daten rekonstruieren
+        extracted_values = {}
+        for key, val in parse_run.extracted.items():
+            if isinstance(val, dict):
+                extracted_values[key] = ExtractedValue(
+                    value=val.get("value"),
+                    raw_text=val.get("raw_text", ""),
+                    confidence=val.get("confidence", 0.0),
+                )
 
-    return {
-        "precheck_run_id": precheck_run.id,
-        "document_id": document_id,
-        "status": "RUNNING",
-    }
+        parse_result = ParseResult(
+            raw_text=parse_run.raw_text or "",
+            pages=[
+                ParsedPage(
+                    page_number=p.get("page_number", 1),
+                    width=p.get("width", 612),
+                    height=p.get("height", 792),
+                    text=p.get("text", ""),
+                    tokens=[],
+                )
+                for p in (parse_run.pages or [])
+            ],
+            extracted=extracted_values,
+            timings_ms={},
+        )
+
+        # Rule Engine ausführen
+        rule_engine = get_rule_engine(document.ruleset_id or "DE_USTG")
+        precheck_result = rule_engine.precheck(parse_result)
+
+        # Ergebnis speichern
+        precheck_run.status = "COMPLETED"
+        precheck_run.checks = [
+            {
+                "feature_id": c.feature_id,
+                "status": c.status.value,
+                "value": str(c.value) if c.value else None,
+                "error_type": c.error_type.value if c.error_type else None,
+                "severity": c.severity.value,
+                "message": c.message,
+                "legal_basis": c.legal_basis,
+            }
+            for c in precheck_result.checks
+        ]
+        precheck_run.completed_at = datetime.now(timezone.utc)
+
+        # Dokument-Status aktualisieren
+        if precheck_result.passed:
+            document.status = DocumentStatus.PRECHECKED
+        else:
+            document.status = DocumentStatus.FAILED
+
+        await session.commit()
+
+        return {
+            "precheck_run_id": precheck_run.id,
+            "document_id": document_id,
+            "status": "COMPLETED",
+            "passed": precheck_result.passed,
+            "error_count": len(precheck_result.errors),
+            "warning_count": len(precheck_result.warnings),
+        }
+
+    except Exception as e:
+        precheck_run.status = "FAILED"
+        precheck_run.error_message = str(e)
+        await session.commit()
+
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Precheck failed: {e}",
+        )
 
 
 @router.get("/precheck-runs/{precheck_run_id}")
