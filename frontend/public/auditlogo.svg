@@ -1,133 +1,84 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 200" width="400" height="200">
   <defs>
-    <!-- Rainbow Gradient for Fish Body -->
-    <linearGradient id="rainbowGradient" x1="0%" y1="50%" x2="100%" y2="50%">
-      <stop offset="0%" stop-color="#1e40af"/>
-      <stop offset="20%" stop-color="#0ea5e9"/>
-      <stop offset="35%" stop-color="#10b981"/>
+    <!-- Rainbow Gradient -->
+    <linearGradient id="rainbow" x1="0%" y1="50%" x2="100%" y2="50%">
+      <stop offset="0%" stop-color="#1e3a8a"/>
+      <stop offset="15%" stop-color="#1d4ed8"/>
+      <stop offset="30%" stop-color="#0ea5e9"/>
+      <stop offset="45%" stop-color="#10b981"/>
+      <stop offset="55%" stop-color="#84cc16"/>
+      <stop offset="70%" stop-color="#eab308"/>
+      <stop offset="85%" stop-color="#f97316"/>
+      <stop offset="100%" stop-color="#dc2626"/>
+    </linearGradient>
+
+    <!-- Gradients for different sections -->
+    <linearGradient id="blueGreen" x1="0%" y1="50%" x2="100%" y2="50%">
+      <stop offset="0%" stop-color="#1d4ed8"/>
+      <stop offset="50%" stop-color="#0ea5e9"/>
+      <stop offset="100%" stop-color="#10b981"/>
+    </linearGradient>
+
+    <linearGradient id="greenYellow" x1="0%" y1="50%" x2="100%" y2="50%">
+      <stop offset="0%" stop-color="#10b981"/>
       <stop offset="50%" stop-color="#84cc16"/>
-      <stop offset="65%" stop-color="#eab308"/>
-      <stop offset="80%" stop-color="#f97316"/>
-      <stop offset="100%" stop-color="#ef4444"/>
+      <stop offset="100%" stop-color="#eab308"/>
     </linearGradient>
 
-    <!-- Gradient for upper fin -->
-    <linearGradient id="upperFinGradient" x1="0%" y1="0%" x2="100%" y2="0%">
-      <stop offset="0%" stop-color="#0ea5e9"/>
-      <stop offset="50%" stop-color="#10b981"/>
-      <stop offset="100%" stop-color="#84cc16"/>
-    </linearGradient>
-
-    <!-- Gradient for lower fin -->
-    <linearGradient id="lowerFinGradient" x1="0%" y1="0%" x2="100%" y2="0%">
-      <stop offset="0%" stop-color="#0ea5e9"/>
-      <stop offset="50%" stop-color="#10b981"/>
-      <stop offset="100%" stop-color="#84cc16"/>
-    </linearGradient>
-
-    <!-- Gradient for tail -->
-    <linearGradient id="tailGradient" x1="0%" y1="50%" x2="100%" y2="50%">
-      <stop offset="0%" stop-color="#f97316"/>
-      <stop offset="100%" stop-color="#ef4444"/>
-    </linearGradient>
-
-    <!-- Blue gradient for head -->
-    <linearGradient id="headGradient" x1="0%" y1="50%" x2="100%" y2="50%">
-      <stop offset="0%" stop-color="#1e40af"/>
-      <stop offset="100%" stop-color="#0ea5e9"/>
+    <linearGradient id="yellowRed" x1="0%" y1="50%" x2="100%" y2="50%">
+      <stop offset="0%" stop-color="#eab308"/>
+      <stop offset="50%" stop-color="#f97316"/>
+      <stop offset="100%" stop-color="#dc2626"/>
     </linearGradient>
   </defs>
 
-  <!-- Fish Body - Main flowing shape -->
-  <path d="M60,100
-           Q30,70 50,50
-           Q80,30 120,40
-           Q180,50 240,70
-           Q300,90 340,60
-           Q380,30 390,50
-           Q400,80 380,100
-           Q400,120 390,150
-           Q380,170 340,140
-           Q300,110 240,130
-           Q180,150 120,160
-           Q80,170 50,150
-           Q30,130 60,100 Z"
-        fill="url(#rainbowGradient)"
-        opacity="0.9"/>
+  <!-- Flowing lines - creating the wave pattern like the original -->
+  <!-- Upper flow lines (blue to green) -->
+  <path d="M50,75 Q100,45 150,55 Q200,40 250,50 Q300,35 350,55 Q380,45 395,60" fill="none" stroke="#1d4ed8" stroke-width="2.5" opacity="0.9"/>
+  <path d="M45,80 Q95,52 145,60 Q195,47 245,55 Q295,42 345,60 Q378,52 393,65" fill="none" stroke="#2563eb" stroke-width="2.2" opacity="0.85"/>
+  <path d="M42,85 Q92,58 142,65 Q192,53 242,60 Q292,48 342,65 Q376,58 391,70" fill="none" stroke="#3b82f6" stroke-width="2" opacity="0.8"/>
+  <path d="M40,90 Q90,65 140,72 Q190,60 240,67 Q290,55 340,72 Q374,65 389,78" fill="none" stroke="#0ea5e9" stroke-width="1.8" opacity="0.75"/>
+  <path d="M38,95 Q88,72 138,78 Q188,67 238,73 Q288,62 338,78 Q372,72 387,85" fill="none" stroke="#14b8a6" stroke-width="1.6" opacity="0.7"/>
 
-  <!-- Upper flowing wave -->
-  <path d="M80,60
-           Q120,30 160,45
-           Q200,35 240,50
-           Q280,45 320,35
-           Q350,25 370,45"
-        fill="none"
-        stroke="url(#upperFinGradient)"
-        stroke-width="3"
-        stroke-linecap="round"
-        opacity="0.7"/>
+  <!-- Middle flow lines (green to yellow) -->
+  <path d="M36,100 Q86,80 136,85 Q186,75 236,80 Q286,70 336,85 Q370,80 385,92" fill="none" stroke="#10b981" stroke-width="2.5" opacity="0.9"/>
+  <path d="M35,105 Q85,87 135,92 Q185,82 235,87 Q285,77 335,92 Q368,87 383,98" fill="none" stroke="#22c55e" stroke-width="2.2" opacity="0.85"/>
+  <path d="M34,110 Q84,94 134,98 Q184,89 234,93 Q284,84 334,98 Q366,94 381,105" fill="none" stroke="#84cc16" stroke-width="2" opacity="0.8"/>
+  <path d="M35,115 Q85,102 135,105 Q185,97 235,100 Q285,92 335,105 Q367,100 382,112" fill="none" stroke="#a3e635" stroke-width="1.8" opacity="0.75"/>
+  <path d="M36,120 Q86,110 136,112 Q186,105 236,108 Q286,100 336,112 Q368,108 383,118" fill="none" stroke="#eab308" stroke-width="1.6" opacity="0.7"/>
 
-  <!-- Middle wave line 1 -->
-  <path d="M70,80
-           Q110,60 150,75
-           Q190,65 230,80
-           Q270,70 310,65
-           Q350,55 380,70"
-        fill="none"
-        stroke="url(#rainbowGradient)"
-        stroke-width="2"
-        stroke-linecap="round"
-        opacity="0.5"/>
+  <!-- Lower flow lines (yellow to red) -->
+  <path d="M38,125 Q88,118 138,120 Q188,113 238,116 Q288,108 338,120 Q370,115 385,125" fill="none" stroke="#f59e0b" stroke-width="2.5" opacity="0.9"/>
+  <path d="M40,130 Q90,125 140,127 Q190,120 240,123 Q290,115 340,127 Q372,122 387,132" fill="none" stroke="#f97316" stroke-width="2.2" opacity="0.85"/>
+  <path d="M42,135 Q92,132 142,134 Q192,127 242,130 Q292,122 342,134 Q374,130 389,140" fill="none" stroke="#ea580c" stroke-width="2" opacity="0.8"/>
+  <path d="M45,140 Q95,138 145,140 Q195,134 245,137 Q295,130 345,142 Q376,138 391,148" fill="none" stroke="#dc2626" stroke-width="1.8" opacity="0.75"/>
+  <path d="M48,145 Q98,145 148,147 Q198,142 248,145 Q298,138 348,150 Q378,146 393,155" fill="none" stroke="#b91c1c" stroke-width="1.5" opacity="0.65"/>
 
-  <!-- Middle wave line 2 -->
-  <path d="M70,120
-           Q110,140 150,125
-           Q190,135 230,120
-           Q270,130 310,135
-           Q350,145 380,130"
-        fill="none"
-        stroke="url(#rainbowGradient)"
-        stroke-width="2"
-        stroke-linecap="round"
-        opacity="0.5"/>
+  <!-- Extra fine detail lines for depth -->
+  <path d="M55,70 Q105,42 155,52 Q205,38 255,48 Q305,33 355,52" fill="none" stroke="#1e3a8a" stroke-width="1.2" opacity="0.5"/>
+  <path d="M52,150 Q102,150 152,152 Q202,147 252,150 Q302,143 352,155" fill="none" stroke="#991b1b" stroke-width="1.2" opacity="0.5"/>
 
-  <!-- Lower flowing wave -->
-  <path d="M80,140
-           Q120,170 160,155
-           Q200,165 240,150
-           Q280,155 320,165
-           Q350,175 370,155"
-        fill="none"
-        stroke="url(#lowerFinGradient)"
-        stroke-width="3"
-        stroke-linecap="round"
-        opacity="0.7"/>
+  <!-- Tail fin - sweeping curves -->
+  <path d="M340,70 Q365,45 395,50" fill="none" stroke="#dc2626" stroke-width="2" opacity="0.8"/>
+  <path d="M342,80 Q367,60 395,65" fill="none" stroke="#ea580c" stroke-width="1.8" opacity="0.75"/>
+  <path d="M344,90 Q368,75 395,80" fill="none" stroke="#f97316" stroke-width="1.6" opacity="0.7"/>
+  <path d="M344,110 Q368,125 395,120" fill="none" stroke="#f97316" stroke-width="1.6" opacity="0.7"/>
+  <path d="M342,120 Q367,140 395,135" fill="none" stroke="#ea580c" stroke-width="1.8" opacity="0.75"/>
+  <path d="M340,130 Q365,155 395,150" fill="none" stroke="#dc2626" stroke-width="2" opacity="0.8"/>
 
-  <!-- Eye outer -->
-  <ellipse cx="65" cy="95" rx="18" ry="20" fill="#1e40af" opacity="0.3"/>
-  <ellipse cx="65" cy="95" rx="15" ry="17" fill="white"/>
+  <!-- Eye area - characteristic spiral eye -->
+  <ellipse cx="60" cy="100" rx="22" ry="25" fill="white" opacity="0.95"/>
+  <ellipse cx="58" cy="98" rx="18" ry="20" fill="white"/>
 
-  <!-- Eye inner (pupil) -->
-  <circle cx="62" cy="93" r="8" fill="#1e40af"/>
-  <circle cx="59" cy="90" r="3" fill="white" opacity="0.8"/>
+  <!-- Eye spiral/curve decoration -->
+  <path d="M40,85 Q48,75 65,78 Q78,82 82,95" fill="none" stroke="#1e3a8a" stroke-width="3" stroke-linecap="round" opacity="0.8"/>
+  <path d="M42,90 Q50,82 62,85 Q72,88 75,98" fill="none" stroke="#1d4ed8" stroke-width="2.5" stroke-linecap="round" opacity="0.6"/>
 
-  <!-- Eye decorative curve -->
-  <path d="M45,85 Q55,75 75,80"
-        fill="none"
-        stroke="#1e40af"
-        stroke-width="3"
-        stroke-linecap="round"
-        opacity="0.6"/>
+  <!-- Pupil -->
+  <circle cx="55" cy="95" r="10" fill="#1e3a8a"/>
+  <circle cx="52" cy="92" r="4" fill="white" opacity="0.9"/>
 
-  <!-- Tail fin detail lines -->
-  <path d="M340,70 Q360,50 385,55" fill="none" stroke="#ef4444" stroke-width="2" opacity="0.6"/>
-  <path d="M340,90 Q365,85 385,75" fill="none" stroke="#f97316" stroke-width="2" opacity="0.6"/>
-  <path d="M340,110 Q365,115 385,125" fill="none" stroke="#f97316" stroke-width="2" opacity="0.6"/>
-  <path d="M340,130 Q360,150 385,145" fill="none" stroke="#ef4444" stroke-width="2" opacity="0.6"/>
-
-  <!-- Additional flow lines for depth -->
-  <path d="M100,70 Q140,55 180,65 Q220,55 260,60"
-        fill="none" stroke="#10b981" stroke-width="1.5" opacity="0.4"/>
-  <path d="M100,130 Q140,145 180,135 Q220,145 260,140"
-        fill="none" stroke="#84cc16" stroke-width="1.5" opacity="0.4"/>
+  <!-- Additional accent lines around head -->
+  <path d="M35,95 Q25,85 30,70" fill="none" stroke="#1e3a8a" stroke-width="2" stroke-linecap="round" opacity="0.6"/>
+  <path d="M35,105 Q22,110 28,125" fill="none" stroke="#1d4ed8" stroke-width="2" stroke-linecap="round" opacity="0.5"/>
 </svg>

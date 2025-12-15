@@ -10,27 +10,27 @@ import axios from 'axios';
 const cssAnimations = `
   @keyframes fishJump {
     0% {
-      transform: translateY(150px) translateX(-80px) rotate(-30deg);
+      transform: translateY(150px) translateX(-80px) rotate(-15deg) scaleX(-1);
       opacity: 0;
     }
     15% {
       opacity: 1;
     }
     50% {
-      transform: translateY(-250px) translateX(0px) rotate(10deg);
+      transform: translateY(-200px) translateX(0px) rotate(5deg) scaleX(-1);
     }
     85% {
       opacity: 1;
     }
     100% {
-      transform: translateY(150px) translateX(80px) rotate(45deg);
+      transform: translateY(150px) translateX(80px) rotate(25deg) scaleX(-1);
       opacity: 0;
     }
   }
 
   .animate-fish-jump {
     animation: fishJump 7s cubic-bezier(0.4, 0, 0.6, 1) infinite;
-    filter: drop-shadow(0 0 20px rgba(96, 165, 250, 0.6));
+    filter: drop-shadow(0 0 25px rgba(96, 165, 250, 0.7));
   }
 
   @keyframes waveMove {
@@ -48,31 +48,19 @@ const cssAnimations = `
   }
 `;
 
-// SVG Fisch-Icon
-const FishIcon = () => (
-  <svg
-    viewBox="0 0 64 64"
-    className="w-full h-full"
-    fill="currentColor"
-  >
-    {/* Fischkörper */}
-    <ellipse cx="28" cy="32" rx="20" ry="12" className="text-blue-300" />
-    {/* Schwanzflosse */}
-    <polygon points="48,32 60,20 60,44" className="text-blue-400" />
-    {/* Rückenflosse */}
-    <polygon points="24,20 32,8 36,20" className="text-blue-400" />
-    {/* Bauchflosse */}
-    <polygon points="26,44 30,52 34,44" className="text-blue-400" />
-    {/* Auge */}
-    <circle cx="18" cy="30" r="3" className="text-white" />
-    <circle cx="17" cy="29" r="1.5" className="text-blue-900" />
-    {/* Kiemen */}
-    <path d="M22 28 Q20 32 22 36" stroke="currentColor" strokeWidth="1.5" fill="none" className="text-blue-500" />
-    {/* Schuppen-Muster */}
-    <path d="M28 26 Q32 28 28 30" stroke="currentColor" strokeWidth="1" fill="none" className="text-blue-200/50" />
-    <path d="M34 28 Q38 30 34 32" stroke="currentColor" strokeWidth="1" fill="none" className="text-blue-200/50" />
-    <path d="M28 34 Q32 36 28 38" stroke="currentColor" strokeWidth="1" fill="none" className="text-blue-200/50" />
-  </svg>
+// Springender Fisch - verwendet das echte Logo
+const JumpingFish = () => (
+  <img
+    src="/auditlogo.svg"
+    alt="Jumping Fish"
+    className="w-full h-full object-contain"
+    onError={(e) => {
+      const target = e.target as HTMLImageElement;
+      if (!target.src.endsWith('.png')) {
+        target.src = '/auditlogo.png';
+      }
+    }}
+  />
 );
 
 export default function Login() {
@@ -151,9 +139,9 @@ export default function Login() {
         </svg>
       </div>
 
-      {/* Der springende Fisch */}
-      <div className="absolute bottom-20 left-1/2 -ml-10 z-20 w-20 h-20 animate-fish-jump pointer-events-none">
-        <FishIcon />
+      {/* Der springende Fisch - das bunte Logo springt aus dem Datenwasser */}
+      <div className="absolute bottom-20 left-1/2 -ml-16 z-20 w-32 h-20 animate-fish-jump pointer-events-none">
+        <JumpingFish />
       </div>
 
       {/* --- LOGIN BEREICH (VORDERGRUND) --- */}
