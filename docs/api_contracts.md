@@ -129,7 +129,22 @@
 * `BENEFICIARY_DATA` – Fehler beim Abgleich mit Begünstigten-/Projektdaten
 * `LOCATION_VALIDATION` – Fehler bei der Standort-Validierung (Sitz ↔ Durchführungsort ↔ Leistungsort)
 
-### 1.13 Schema: Money
+### 1.13 Enum: TaxLawErrorType
+
+Detaillierte Fehlertypen für steuerrechtliche Pflichtangaben:
+
+* `MISSING` – Pflichtangabe fehlt komplett
+* `WRONG_FORMAT` – Format entspricht nicht der Vorgabe (z.B. Steuernummer ohne Trennzeichen)
+* `CONFUSED_WITH_OTHER` – Verwechslung mit anderem Feld (z.B. Kundennummer statt Steuernummer)
+* `CALCULATION_ERROR` – Rechenfehler bei Beträgen (Netto + MwSt ≠ Brutto, Rundungsdifferenz)
+* `WRONG_RATE` – Falscher Steuersatz angewendet oder erkannt
+* `NOT_UNIQUE` – Rechnungsnummer nicht eindeutig (Duplikat im Projekt)
+* `UNCLEAR` – Angabe vorhanden, aber nicht eindeutig interpretierbar
+* `OUT_OF_PROJECT_PERIOD` – Datum/Zeitraum liegt außerhalb des Projektzeitraums
+* `INVALID_CHECKSUM` – Prüfziffer ungültig (bei USt-ID)
+* `COUNTRY_MISMATCH` – Ländercode passt nicht zum Kontext
+
+### 1.14 Schema: Money
 
 ```json
 {
@@ -138,7 +153,7 @@
 }
 ```
 
-### 1.14 Schema: DateRange
+### 1.15 Schema: DateRange
 
 ```json
 {
@@ -147,7 +162,7 @@
 }
 ```
 
-### 1.15 Schema: BoundingBox (normalized)
+### 1.16 Schema: BoundingBox (normalized)
 
 ```json
 {
@@ -1155,6 +1170,56 @@ Feedback-Statistiken für Didaktik-Dashboard.
         { "feature_id": "invoice_number", "errors": 5 },
         { "feature_id": "vat_amount", "errors": 7 },
         { "feature_id": "supply_date_or_period", "errors": 4 }
+      ],
+      "detail": [
+        {
+          "feature_id": "supplier_tax_or_vat_id",
+          "name_de": "Steuer-/USt-ID Lieferant",
+          "name_en": "Supplier Tax/VAT ID",
+          "legal_basis": "§14(4) Nr.2 UStG / Art. 226 Nr. 3 MwStSystRL",
+          "total_errors": 18,
+          "error_breakdown": [
+            { "type": "MISSING", "count": 11, "label_de": "fehlend", "label_en": "missing" },
+            { "type": "WRONG_FORMAT", "count": 4, "label_de": "falsches Format", "label_en": "wrong format" },
+            { "type": "CONFUSED_WITH_OTHER", "count": 3, "label_de": "Verwechslung", "label_en": "confused with other field", "example": "Kundennr. statt Steuer-ID erkannt" }
+          ]
+        },
+        {
+          "feature_id": "vat_amount",
+          "name_de": "Steuerbetrag (MwSt)",
+          "name_en": "VAT Amount",
+          "legal_basis": "§14(4) Nr.7 UStG / Art. 226 Nr. 10 MwStSystRL",
+          "total_errors": 7,
+          "error_breakdown": [
+            { "type": "CALCULATION_ERROR", "count": 4, "label_de": "Rechenfehler", "label_en": "calculation error", "example": "Rundungsdifferenz > 0.01€" },
+            { "type": "MISSING", "count": 2, "label_de": "fehlend", "label_en": "missing" },
+            { "type": "WRONG_RATE", "count": 1, "label_de": "falscher Steuersatz", "label_en": "wrong rate", "example": "19% statt 7% erkannt" }
+          ]
+        },
+        {
+          "feature_id": "invoice_number",
+          "name_de": "Rechnungsnummer",
+          "name_en": "Invoice Number",
+          "legal_basis": "§14(4) Nr.4 UStG / Art. 226 Nr. 2 MwStSystRL",
+          "total_errors": 5,
+          "error_breakdown": [
+            { "type": "MISSING", "count": 2, "label_de": "fehlend", "label_en": "missing" },
+            { "type": "NOT_UNIQUE", "count": 2, "label_de": "nicht eindeutig", "label_en": "not unique", "example": "Duplikat im Projekt" },
+            { "type": "WRONG_FORMAT", "count": 1, "label_de": "falsches Format", "label_en": "wrong format" }
+          ]
+        },
+        {
+          "feature_id": "supply_date_or_period",
+          "name_de": "Leistungszeitraum/-datum",
+          "name_en": "Supply Date/Period",
+          "legal_basis": "§14(4) Nr.6 UStG / Art. 226 Nr. 7 MwStSystRL",
+          "total_errors": 4,
+          "error_breakdown": [
+            { "type": "UNCLEAR", "count": 2, "label_de": "unklar", "label_en": "unclear", "example": "Zeitraum nicht eindeutig interpretierbar" },
+            { "type": "MISSING", "count": 1, "label_de": "fehlend", "label_en": "missing" },
+            { "type": "OUT_OF_PROJECT_PERIOD", "count": 1, "label_de": "außerhalb Projektzeitraum", "label_en": "outside project period" }
+          ]
+        }
       ]
     },
     "BENEFICIARY_DATA": {
