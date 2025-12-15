@@ -6,7 +6,7 @@ Human-in-the-loop Feedback und RAG-Beispiele für Few-Shot-Learning.
 """
 
 from datetime import datetime
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any
 from uuid import uuid4
 
 from sqlalchemy import Boolean, DateTime, Enum, ForeignKey, Integer, String, Text
@@ -50,7 +50,7 @@ class Feedback(Base):
     comment: Mapped[str | None] = mapped_column(Text, nullable=True)
 
     # Korrekturen
-    overrides: Mapped[dict] = mapped_column(JSONB, default=list)
+    overrides: Mapped[list[dict[str, Any]]] = mapped_column(JSONB, default=list)
     """
     [
         {
@@ -89,7 +89,7 @@ class Feedback(Base):
         """Anzahl der Korrekturen."""
         return len(self.overrides)
 
-    def get_override(self, feature_id: str) -> dict | None:
+    def get_override(self, feature_id: str) -> dict[str, Any] | None:
         """
         Gibt Override für Feature zurück.
 
@@ -136,8 +136,8 @@ class RagExample(Base):
 
     # Inhalt
     original_text_snippet: Mapped[str | None] = mapped_column(Text, nullable=True)
-    original_llm_result: Mapped[dict | None] = mapped_column(JSONB, nullable=True)
-    corrected_result: Mapped[dict | None] = mapped_column(JSONB, nullable=True)
+    original_llm_result: Mapped[dict[str, Any] | None] = mapped_column(JSONB, nullable=True)
+    corrected_result: Mapped[dict[str, Any] | None] = mapped_column(JSONB, nullable=True)
 
     # Embedding (für ChromaDB-Sync)
     embedding_text: Mapped[str | None] = mapped_column(Text, nullable=True)

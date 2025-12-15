@@ -136,13 +136,15 @@ class SystemMonitor:
             for name in ["coretemp", "k10temp", "cpu_thermal", "acpitz"]:
                 if name in temps:
                     # Höchste Temperatur nehmen
-                    return max(t.current for t in temps[name])
+                    temp: float = max(t.current for t in temps[name])
+                    return temp
 
             # Fallback: Erste verfügbare Temperatur
             if temps:
                 first_sensor = list(temps.values())[0]
                 if first_sensor:
-                    return first_sensor[0].current
+                    temp_val: float = first_sensor[0].current
+                    return temp_val
 
         except Exception as e:
             logger.debug(f"CPU-Temperatur nicht verfügbar: {e}")
@@ -233,10 +235,11 @@ class SystemMonitor:
         if not self._throttle_active:
             return {"throttled": False}
 
-        result = {
+        actions: list[str] = []
+        result: dict[str, Any] = {
             "throttled": True,
             "reason": self._throttle_reason,
-            "actions": [],
+            "actions": actions,
         }
 
         try:
@@ -253,7 +256,7 @@ class SystemMonitor:
                             f"THROTTLING AKTIV: {self._throttle_reason}. "
                             f"{len(running)} Modell(e) laufen."
                         )
-                        result["actions"].append("logged_warning")
+                        actions.append("logged_warning")
                         result["running_models"] = len(running)
 
         except Exception as e:

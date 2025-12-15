@@ -49,7 +49,7 @@ def create_access_token(
         "iat": datetime.now(UTC),
     }
 
-    encoded_jwt = jwt.encode(
+    encoded_jwt: str = jwt.encode(
         to_encode,
         settings.secret_key.get_secret_value(),
         algorithm=ALGORITHM,
@@ -68,7 +68,8 @@ def verify_password(plain_password: str, hashed_password: str) -> bool:
     Returns:
         True wenn das Passwort korrekt ist
     """
-    return pwd_context.verify(plain_password, hashed_password)
+    result: bool = pwd_context.verify(plain_password, hashed_password)
+    return result
 
 
 def get_password_hash(password: str) -> str:
@@ -81,4 +82,5 @@ def get_password_hash(password: str) -> str:
     Returns:
         bcrypt-Hash des Passworts
     """
-    return pwd_context.hash(password)
+    hashed: str = pwd_context.hash(password)
+    return hashed

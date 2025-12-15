@@ -39,8 +39,9 @@ class AnthropicProvider(BaseLLMProvider):
             api_key: Anthropic API Key (default: aus Settings)
         """
         settings = get_settings()
-        self.api_key = api_key or settings.anthropic_api_key
-        self._client = AsyncAnthropic(api_key=self.api_key) if self.api_key else None
+        key = api_key or (settings.anthropic_api_key.get_secret_value() if settings.anthropic_api_key else None)
+        self.api_key = key
+        self._client = AsyncAnthropic(api_key=key) if key else None
 
     async def complete(self, request: LLMRequest) -> LLMResponse:
         """

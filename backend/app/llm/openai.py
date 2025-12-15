@@ -40,8 +40,9 @@ class OpenAIProvider(BaseLLMProvider):
             api_key: OpenAI API Key (default: aus Settings)
         """
         settings = get_settings()
-        self.api_key = api_key or settings.openai_api_key
-        self._client = AsyncOpenAI(api_key=self.api_key) if self.api_key else None
+        key = api_key or (settings.openai_api_key.get_secret_value() if settings.openai_api_key else None)
+        self.api_key = key
+        self._client = AsyncOpenAI(api_key=key) if key else None
 
     async def complete(self, request: LLMRequest) -> LLMResponse:
         """

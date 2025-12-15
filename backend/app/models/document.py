@@ -6,7 +6,7 @@ Dokumente (Rechnungen) und zugehörige Parse/Precheck-Runs.
 """
 
 from datetime import datetime
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any
 from uuid import uuid4
 
 from sqlalchemy import BigInteger, Boolean, DateTime, Enum, ForeignKey, Integer, String, Text, UniqueConstraint
@@ -62,12 +62,12 @@ class Document(Base):
 
     # Parse-Ergebnisse
     raw_text: Mapped[str | None] = mapped_column(Text, nullable=True)
-    extracted_data: Mapped[dict | None] = mapped_column(JSONB, nullable=True)
+    extracted_data: Mapped[dict[str, Any] | None] = mapped_column(JSONB, nullable=True)
     page_count: Mapped[int | None] = mapped_column(Integer, nullable=True)
 
     # Precheck-Ergebnisse
     precheck_passed: Mapped[bool | None] = mapped_column(Boolean, nullable=True)
-    precheck_errors: Mapped[list | None] = mapped_column(JSONB, nullable=True)
+    precheck_errors: Mapped[list[Any] | None] = mapped_column(JSONB, nullable=True)
 
     # Ruleset
     ruleset_id: Mapped[str | None] = mapped_column(String(50), nullable=True)
@@ -164,11 +164,11 @@ class ParseRun(Base):
 
     # Ergebnisse
     raw_text: Mapped[str | None] = mapped_column(Text, nullable=True)
-    pages: Mapped[dict | None] = mapped_column(JSONB, nullable=True)
-    extracted: Mapped[dict | None] = mapped_column(JSONB, nullable=True)
+    pages: Mapped[dict[str, Any] | None] = mapped_column(JSONB, nullable=True)
+    extracted: Mapped[dict[str, Any] | None] = mapped_column(JSONB, nullable=True)
 
     # Timing
-    timings_ms: Mapped[dict | None] = mapped_column(JSONB, nullable=True)
+    timings_ms: Mapped[dict[str, Any] | None] = mapped_column(JSONB, nullable=True)
     error_message: Mapped[str | None] = mapped_column(Text, nullable=True)
 
     # Zeitstempel
@@ -205,7 +205,7 @@ class PrecheckRun(Base):
     )
 
     status: Mapped[str] = mapped_column(String(20), default="PENDING")
-    checks: Mapped[dict] = mapped_column(JSONB, nullable=False, default=list)
+    checks: Mapped[list[dict[str, Any]]] = mapped_column(JSONB, nullable=False, default=list)
     error_message: Mapped[str | None] = mapped_column(Text, nullable=True)
 
     # Zeitstempel
@@ -223,7 +223,7 @@ class PrecheckRun(Base):
         """String-Repräsentation."""
         return f"<PrecheckRun {self.id[:8]} [{self.status}]>"
 
-    def get_check_by_id(self, check_id: str) -> dict | None:
+    def get_check_by_id(self, check_id: str) -> dict[str, Any] | None:
         """
         Findet einen Check nach ID.
 
