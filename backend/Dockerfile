@@ -30,11 +30,11 @@ RUN groupadd --gid 1000 flowaudit \
 WORKDIR /app
 
 # Copy requirements first for better caching
-COPY pyproject.toml ./
+COPY pyproject.toml README.md ./
 
 # Install Python dependencies
 RUN pip install --upgrade pip && \
-    pip install -e ".[dev]"
+    pip install ".[dev]"
 
 # Copy application code
 COPY --chown=flowaudit:flowaudit app/ ./app/
