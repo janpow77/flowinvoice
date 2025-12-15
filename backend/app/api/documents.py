@@ -597,6 +597,117 @@ async def start_precheck(
         ) from e
 
 
+@router.post("/documents/{document_id}/analyze", status_code=status.HTTP_202_ACCEPTED)
+async def analyze_document(
+    document_id: str,
+    provider: str | None = None,
+    model: str | None = None,
+    session: AsyncSession = Depends(get_async_session),
+) -> dict[str, Any]:
+    """
+    Startet KI-Analyse für ein Dokument (kombiniert prepare + run).
+
+    Args:
+        document_id: Dokument-ID
+        provider: LLM-Provider (optional, default LOCAL_OLLAMA)
+        model: Modell-Name (optional, default llama3.1:8b-instruct-q4)
+
+    Returns:
+        Analyse-Info mit Run-ID.
+    """
+    from app.models.enums import Provider
+    from app.models.llm import LlmRun, PreparePayload
+    from app.services.rule_engine import RULESETS
+
+    result = await session.execute(select(Document).where(Document.id == document_id))
+    document = result.scalar_one_or_none()
+
+    if not document:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Document {document_id} not found",
+        )
+
+    # Prüfe ob Dokument geparst wurde
+    parse_run_result = await session.execute(
+        select(ParseRun)
+        .where(ParseRun.document_id == document_id)
+        .order_by(ParseRun.created_at.desc())
+        .limit(1)
+    )
+    parse_run = parse_run_result.scalar_one_or_none()
+
+    if not parse_run or not parse_run.raw_text:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Document must be parsed first before analysis",
+        )
+
+    # PreparePayload erstellen
+    ruleset_id = document.ruleset_id or "DE_USTG"
+    ruleset_features = RULESETS.get(ruleset_id, RULESETS.get("DE_USTG", {}))
+    features_list = [
+        {
+            "feature_id": fdef.feature_id,
+            "name_de": fdef.name_de,
+            "name_en": fdef.name_en,
+            "legal_basis": fdef.legal_basis,
+            "required_level": fdef.required_level.value,
+            "category": fdef.category.value,
+        }
+        for fdef in ruleset_features.values()
+    ]
+
+    payload = PreparePayload(
+        document_id=document_id,
+        schema_version="1.0",
+        ruleset={
+            "ruleset_id": ruleset_id,
+            "version": document.ruleset_version or "1.0.0",
+        },
+        ui_language=document.ui_language,
+        features=features_list,
+        extracted_text=parse_run.raw_text,
+    )
+    session.add(payload)
+    await session.flush()
+
+    # Provider/Model bestimmen
+    llm_provider = Provider.LOCAL_OLLAMA
+    if provider:
+        try:
+            llm_provider = Provider(provider)
+        except ValueError:
+            pass  # Fallback auf LOCAL_OLLAMA
+
+    model_name = model or "llama3.1:8b-instruct-q4"
+
+    # LLM-Run erstellen
+    llm_run = LlmRun(
+        document_id=document_id,
+        payload_id=payload.id,
+        provider=llm_provider,
+        model_name=model_name,
+        status="PENDING",
+    )
+    session.add(llm_run)
+    document.status = DocumentStatus.LLM_RUNNING
+    await session.commit()
+
+    # Celery Task für LLM-Analyse starten
+    task = process_document_task.delay(document_id)
+
+    return {
+        "document_id": document_id,
+        "llm_run_id": llm_run.id,
+        "payload_id": payload.id,
+        "status": "ANALYZING",
+        "provider": llm_provider.value,
+        "model": model_name,
+        "task_id": task.id,
+    }
+
+
 @router.get("/precheck-runs/{precheck_run_id}")
 async def get_precheck_run(
     precheck_run_id: str,

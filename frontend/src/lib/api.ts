@@ -45,13 +45,24 @@ apiClient.interceptors.response.use(
 export const api = {
   // Dashboard
   getStats: async () => {
-    const response = await apiClient.get('/stats/dashboard')
+    const response = await apiClient.get('/stats/global')
     return response.data
   },
 
   getDetailedStats: async () => {
-    const response = await apiClient.get('/stats')
-    return response.data
+    // Aggregate stats from multiple endpoints
+    const [feedback, llm, rag, system] = await Promise.all([
+      apiClient.get('/stats/feedback'),
+      apiClient.get('/stats/llm'),
+      apiClient.get('/stats/rag'),
+      apiClient.get('/stats/system'),
+    ])
+    return {
+      feedback: feedback.data,
+      llm: llm.data,
+      rag: rag.data,
+      system: system.data,
+    }
   },
 
   // Projects
@@ -89,9 +100,18 @@ export const api = {
 
   // Documents
   getDocuments: async (projectId?: string) => {
-    const params = projectId ? { project_id: projectId } : {}
-    const response = await apiClient.get('/documents', { params })
-    return response.data.data
+    if (!projectId) {
+      // If no project specified, get all projects and aggregate documents
+      const projects = await apiClient.get('/projects')
+      const projectList = projects.data.data || []
+      if (projectList.length === 0) return []
+
+      // Get documents from first project for now (TODO: aggregate all)
+      const response = await apiClient.get(`/projects/${projectList[0].id}/documents`)
+      return response.data.data || []
+    }
+    const response = await apiClient.get(`/projects/${projectId}/documents`)
+    return response.data.data || []
   },
 
   getDocument: async (id: string) => {
@@ -99,14 +119,14 @@ export const api = {
     return response.data
   },
 
-  uploadDocument: async (file: File, projectId?: string) => {
-    const formData = new FormData()
-    formData.append('file', file)
-    if (projectId) {
-      formData.append('project_id', projectId)
+  uploadDocument: async (file: File, projectId: string) => {
+    if (!projectId) {
+      throw new Error('Project ID is required for document upload')
     }
+    const formData = new FormData()
+    formData.append('files', file)  // Backend expects 'files' not 'file'
 
-    const response = await apiClient.post('/documents/upload', formData, {
+    const response = await apiClient.post(`/projects/${projectId}/documents/upload`, formData, {
       headers: {
         'Content-Type': 'multipart/form-data',
       },
@@ -115,10 +135,11 @@ export const api = {
   },
 
   analyzeDocument: async (id: string, provider?: string, model?: string) => {
-    const response = await apiClient.post(`/documents/${id}/analyze`, {
-      provider,
-      model,
-    })
+    const params: Record<string, string> = {}
+    if (provider) params.provider = provider
+    if (model) params.model = model
+
+    const response = await apiClient.post(`/documents/${id}/analyze`, null, { params })
     return response.data
   },
 
