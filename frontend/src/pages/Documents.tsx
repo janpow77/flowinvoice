@@ -2,11 +2,11 @@ import { useState, useCallback } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { useTranslation } from 'react-i18next'
 import { useDropzone } from 'react-dropzone'
-import { FileText, Upload, CheckCircle, XCircle, Clock, Eye, AlertCircle, RefreshCw } from 'lucide-react'
+import { FileText, Upload, CheckCircle, XCircle, Clock, Eye, AlertCircle, RefreshCw, FolderOpen } from 'lucide-react'
 import { Link } from 'react-router-dom'
 import clsx from 'clsx'
 import { api } from '@/lib/api'
-import type { Document, DocumentStatus } from '@/lib/types'
+import type { Document, DocumentStatus, Project } from '@/lib/types'
 
 const statusConfig = {
   UPLOADED: { icon: Clock, color: 'text-gray-500', label: 'Hochgeladen' },
@@ -24,16 +24,33 @@ export default function Documents() {
   const { t } = useTranslation()
   const [uploading, setUploading] = useState(false)
   const [uploadErrors, setUploadErrors] = useState<string[]>([])
+  const [selectedProjectId, setSelectedProjectId] = useState<string | null>(null)
   const queryClient = useQueryClient()
 
+  // Fetch projects to get a project ID for uploads
+  const { data: projects } = useQuery({
+    queryKey: ['projects'],
+    queryFn: () => api.getProjects(),
+    retry: 2,
+  })
+
+  // Use selected project or first available
+  const activeProjectId = selectedProjectId || (projects && projects.length > 0 ? projects[0].id : null)
+
   const { data: documents, isLoading, error, refetch } = useQuery({
-    queryKey: ['documents'],
-    queryFn: () => api.getDocuments(),
+    queryKey: ['documents', activeProjectId],
+    queryFn: () => api.getDocuments(activeProjectId || undefined),
+    enabled: !!activeProjectId,
     retry: 2,
   })
 
   const uploadMutation = useMutation({
-    mutationFn: (file: File) => api.uploadDocument(file),
+    mutationFn: (file: File) => {
+      if (!activeProjectId) {
+        throw new Error('Kein Projekt ausgewählt')
+      }
+      return api.uploadDocument(file, activeProjectId)
+    },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['documents'] })
     },
@@ -91,8 +108,52 @@ export default function Documents() {
     )
   }
 
+  // Show message if no projects exist
+  if (projects && projects.length === 0) {
+    return (
+      <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-6">
+        <div className="flex items-center">
+          <FolderOpen className="h-6 w-6 text-yellow-600" />
+          <div className="ml-3">
+            <h3 className="text-lg font-medium text-yellow-800">Kein Projekt vorhanden</h3>
+            <p className="text-sm text-yellow-600 mt-1">
+              Bitte erstellen Sie zuerst ein Projekt, bevor Sie Dokumente hochladen.
+            </p>
+          </div>
+        </div>
+        <Link
+          to="/projects"
+          className="mt-4 inline-block px-4 py-2 bg-yellow-100 text-yellow-700 rounded-lg hover:bg-yellow-200 transition-colors"
+        >
+          Zu den Projekten
+        </Link>
+      </div>
+    )
+  }
+
   return (
     <div className="space-y-6">
+      {/* Project Selector */}
+      {projects && projects.length > 1 && (
+        <div className="flex items-center space-x-4">
+          <label htmlFor="project-select" className="text-sm font-medium text-gray-700">
+            Projekt:
+          </label>
+          <select
+            id="project-select"
+            value={activeProjectId || ''}
+            onChange={(e) => setSelectedProjectId(e.target.value)}
+            className="block w-64 px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-primary-500 focus:border-primary-500"
+          >
+            {projects.map((project: Project) => (
+              <option key={project.id} value={project.id}>
+                {project.title}
+              </option>
+            ))}
+          </select>
+        </div>
+      )}
+
       {/* Upload Zone */}
       <div
         {...getRootProps()}
@@ -101,7 +162,7 @@ export default function Documents() {
           isDragActive
             ? 'border-primary-500 bg-primary-50'
             : 'border-gray-300 hover:border-primary-400',
-          uploading && 'opacity-50 cursor-not-allowed'
+          (uploading || !activeProjectId) && 'opacity-50 cursor-not-allowed'
         )}
       >
         <input {...getInputProps()} />
