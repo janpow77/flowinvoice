@@ -63,7 +63,7 @@ services:
       retries: 3
     restart: unless-stopped
 
-  # Ollama - Local LLM Inference
+  # Ollama - Local LLM Inference (with NVIDIA GPU support)
   ollama:
     build:
       context: ./ollama
@@ -75,14 +75,27 @@ services:
       - "11434:11434"
     environment:
       - OLLAMA_HOST=0.0.0.0
-    # Uncomment for GPU support
-    # deploy:
-    #   resources:
-    #     reservations:
-    #       devices:
-    #         - driver: nvidia
-    #           count: 1
-    #           capabilities: [gpu]
+      # GPU Memory limit (0 = auto, or specify in MB, e.g., 6144 for 6GB)
+      - OLLAMA_GPU_MEMORY_FRACTION=${OLLAMA_GPU_MEMORY_FRACTION:-0.8}
+      # Number of GPU layers to offload (0 = CPU only, -1 = all layers)
+      - OLLAMA_NUM_GPU=${OLLAMA_NUM_GPU:-999}
+      # Max parallel requests
+      - OLLAMA_NUM_PARALLEL=${OLLAMA_NUM_PARALLEL:-2}
+      # Context window size (affects VRAM usage)
+      - OLLAMA_NUM_CTX=${OLLAMA_NUM_CTX:-4096}
+      # Thermal throttle threshold (Celsius)
+      - THERMAL_THROTTLE_TEMP=${THERMAL_THROTTLE_TEMP:-80}
+    # NVIDIA GPU Support for RTX 5060
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: 1
+              capabilities: [gpu]
+        limits:
+          # Memory limit for container
+          memory: ${OLLAMA_CONTAINER_MEMORY:-16G}
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:11434/api/tags"]
       interval: 30s

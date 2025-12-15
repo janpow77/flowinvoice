@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { CheckCircle, XCircle, Globe, Cpu, AlertTriangle, RefreshCw } from 'lucide-react'
+import { CheckCircle, XCircle, Globe, Cpu, AlertTriangle, RefreshCw, Thermometer, Zap } from 'lucide-react'
 import clsx from 'clsx'
 import { api } from '@/lib/api'
 import { languages, changeLanguage, getCurrentLanguage, type LanguageCode } from '@/lib/i18n'
@@ -13,6 +13,12 @@ export default function Settings() {
   const [uvicornWorkers, setUvicornWorkers] = useState<number>(4)
   const [celeryWorkers, setCeleryWorkers] = useState<number>(4)
   const [showRestartHint, setShowRestartHint] = useState(false)
+
+  // GPU Settings State
+  const [gpuMemoryFraction, setGpuMemoryFraction] = useState<number>(0.8)
+  const [numParallel, setNumParallel] = useState<number>(2)
+  const [contextSize, setContextSize] = useState<number>(4096)
+  const [thermalThrottleTemp, setThermalThrottleTemp] = useState<number>(80)
 
   const { data: providers, isLoading } = useQuery({
     queryKey: ['llm-providers'],
@@ -32,6 +38,30 @@ export default function Settings() {
       setUvicornWorkers(data.uvicorn_workers)
       setCeleryWorkers(data.celery_concurrency)
     },
+  })
+
+  // GPU Settings Query
+  const { data: gpuSettings } = useQuery({
+    queryKey: ['gpu-settings'],
+    queryFn: () => api.getGpuSettings(),
+    onSuccess: (data: {
+      gpu_memory_fraction: number
+      num_parallel: number
+      context_size: number
+      thermal_throttle_temp: number
+    }) => {
+      setGpuMemoryFraction(data.gpu_memory_fraction)
+      setNumParallel(data.num_parallel)
+      setContextSize(data.context_size)
+      setThermalThrottleTemp(data.thermal_throttle_temp)
+    },
+  })
+
+  // System Metrics (live)
+  const { data: systemMetrics } = useQuery({
+    queryKey: ['system-metrics'],
+    queryFn: () => api.getSystemMetrics(),
+    refetchInterval: 5000,
   })
 
   const setDefaultMutation = useMutation({
@@ -59,6 +89,29 @@ export default function Settings() {
     updatePerformanceMutation.mutate({
       uvicorn_workers: uvicornWorkers,
       celery_concurrency: celeryWorkers,
+    })
+  }
+
+  // GPU Settings Mutation
+  const updateGpuMutation = useMutation({
+    mutationFn: (settings: {
+      gpu_memory_fraction?: number
+      num_parallel?: number
+      context_size?: number
+      thermal_throttle_temp?: number
+    }) => api.updateGpuSettings(settings),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['gpu-settings'] })
+      setShowRestartHint(true)
+    },
+  })
+
+  const handleGpuSave = () => {
+    updateGpuMutation.mutate({
+      gpu_memory_fraction: gpuMemoryFraction,
+      num_parallel: numParallel,
+      context_size: contextSize,
+      thermal_throttle_temp: thermalThrottleTemp,
     })
   }
 
@@ -284,6 +337,164 @@ export default function Settings() {
               className="px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 disabled:opacity-50 flex items-center gap-2"
             >
               {updatePerformanceMutation.isPending && (
+                <RefreshCw className="h-4 w-4 animate-spin" />
+              )}
+              {t('common.save')}
+            </button>
+          </div>
+        </div>
+      </div>
+
+      {/* GPU & Thermal Settings */}
+      <div className="bg-white rounded-lg border border-gray-200 p-6">
+        <div className="flex items-center gap-2 mb-4">
+          <Zap className="h-5 w-5 text-orange-600" />
+          <h3 className="text-lg font-semibold text-gray-900">{t('settings.gpuSettings')}</h3>
+        </div>
+        <p className="text-sm text-gray-500 mb-4">
+          {t('settings.gpuDescription')}
+        </p>
+
+        {/* Live System Status */}
+        {systemMetrics && (
+          <div className="mb-4 p-3 bg-gray-50 rounded-lg">
+            <div className="flex items-center gap-2 mb-2">
+              <Thermometer className="h-4 w-4 text-gray-600" />
+              <span className="text-sm font-medium text-gray-700">{t('settings.liveStatus')}</span>
+              <span className={clsx(
+                'text-xs px-2 py-0.5 rounded-full',
+                systemMetrics.status === 'healthy' ? 'bg-green-100 text-green-700' :
+                systemMetrics.status === 'warning' ? 'bg-amber-100 text-amber-700' :
+                'bg-red-100 text-red-700'
+              )}>
+                {systemMetrics.status === 'healthy' ? t('settings.statusHealthy') :
+                 systemMetrics.status === 'warning' ? t('settings.statusWarning') :
+                 t('settings.statusCritical')}
+              </span>
+            </div>
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-3 text-xs">
+              <div>
+                <span className="text-gray-500">CPU</span>
+                <p className="font-medium">{systemMetrics.cpu?.percent?.toFixed(1)}%</p>
+                {systemMetrics.cpu?.temperature && (
+                  <p className={clsx(
+                    systemMetrics.cpu.temperature > 80 ? 'text-red-600' : 'text-gray-600'
+                  )}>{systemMetrics.cpu.temperature.toFixed(1)}°C</p>
+                )}
+              </div>
+              <div>
+                <span className="text-gray-500">RAM</span>
+                <p className="font-medium">{systemMetrics.ram?.percent?.toFixed(1)}%</p>
+                <p className="text-gray-600">{systemMetrics.ram?.used_gb?.toFixed(1)} / {systemMetrics.ram?.total_gb?.toFixed(1)} GB</p>
+              </div>
+              {systemMetrics.gpu?.percent !== null && (
+                <>
+                  <div>
+                    <span className="text-gray-500">GPU</span>
+                    <p className="font-medium">{systemMetrics.gpu?.percent?.toFixed(1)}%</p>
+                    {systemMetrics.gpu?.temperature && (
+                      <p className={clsx(
+                        systemMetrics.gpu.temperature > thermalThrottleTemp ? 'text-red-600' : 'text-gray-600'
+                      )}>{systemMetrics.gpu.temperature.toFixed(1)}°C</p>
+                    )}
+                  </div>
+                  <div>
+                    <span className="text-gray-500">VRAM</span>
+                    <p className="font-medium">
+                      {systemMetrics.gpu?.memory_used_mb ? (systemMetrics.gpu.memory_used_mb / 1024).toFixed(1) : '?'} GB
+                    </p>
+                    <p className="text-gray-600">
+                      / {systemMetrics.gpu?.memory_total_mb ? (systemMetrics.gpu.memory_total_mb / 1024).toFixed(1) : '?'} GB
+                    </p>
+                  </div>
+                </>
+              )}
+            </div>
+            {systemMetrics.throttle?.active && (
+              <div className="mt-2 p-2 bg-red-100 rounded text-xs text-red-700">
+                <strong>{t('settings.throttleActive')}:</strong> {systemMetrics.throttle.reason}
+              </div>
+            )}
+          </div>
+        )}
+
+        <div className="space-y-4">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="font-medium text-gray-900">{t('settings.gpuMemory')}</p>
+              <p className="text-sm text-gray-500">{t('settings.gpuMemoryDescription')}</p>
+            </div>
+            <select
+              value={gpuMemoryFraction}
+              onChange={(e) => setGpuMemoryFraction(Number(e.target.value))}
+              className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500"
+            >
+              <option value={0.5}>50%</option>
+              <option value={0.6}>60%</option>
+              <option value={0.7}>70%</option>
+              <option value={0.8}>80%</option>
+              <option value={0.9}>90%</option>
+              <option value={1.0}>100%</option>
+            </select>
+          </div>
+
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="font-medium text-gray-900">{t('settings.parallelRequests')}</p>
+              <p className="text-sm text-gray-500">{t('settings.parallelRequestsDescription')}</p>
+            </div>
+            <select
+              value={numParallel}
+              onChange={(e) => setNumParallel(Number(e.target.value))}
+              className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500"
+            >
+              {[1, 2, 3, 4].map((n) => (
+                <option key={n} value={n}>{n}</option>
+              ))}
+            </select>
+          </div>
+
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="font-medium text-gray-900">{t('settings.contextSize')}</p>
+              <p className="text-sm text-gray-500">{t('settings.contextSizeDescription')}</p>
+            </div>
+            <select
+              value={contextSize}
+              onChange={(e) => setContextSize(Number(e.target.value))}
+              className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500"
+            >
+              <option value={2048}>2048</option>
+              <option value={4096}>4096</option>
+              <option value={8192}>8192</option>
+            </select>
+          </div>
+
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="font-medium text-gray-900">{t('settings.thermalThrottle')}</p>
+              <p className="text-sm text-gray-500">{t('settings.thermalThrottleDescription')}</p>
+            </div>
+            <select
+              value={thermalThrottleTemp}
+              onChange={(e) => setThermalThrottleTemp(Number(e.target.value))}
+              className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500"
+            >
+              <option value={70}>70°C ({t('settings.conservative')})</option>
+              <option value={75}>75°C</option>
+              <option value={80}>80°C ({t('settings.default')})</option>
+              <option value={85}>85°C</option>
+              <option value={90}>90°C ({t('settings.aggressive')})</option>
+            </select>
+          </div>
+
+          <div className="pt-4 border-t border-gray-200">
+            <button
+              onClick={handleGpuSave}
+              disabled={updateGpuMutation.isPending}
+              className="px-4 py-2 bg-orange-600 text-white rounded-lg hover:bg-orange-700 disabled:opacity-50 flex items-center gap-2"
+            >
+              {updateGpuMutation.isPending && (
                 <RefreshCw className="h-4 w-4 animate-spin" />
               )}
               {t('common.save')}
