@@ -140,6 +140,27 @@ export const api = {
     return response.data
   },
 
+  // Performance Settings
+  getPerformanceSettings: async () => {
+    const response = await apiClient.get('/settings/performance')
+    return response.data
+  },
+
+  updatePerformanceSettings: async (settings: {
+    uvicorn_workers?: number
+    celery_concurrency?: number
+  }) => {
+    const params = new URLSearchParams()
+    if (settings.uvicorn_workers !== undefined) {
+      params.append('uvicorn_workers', settings.uvicorn_workers.toString())
+    }
+    if (settings.celery_concurrency !== undefined) {
+      params.append('celery_concurrency', settings.celery_concurrency.toString())
+    }
+    const response = await apiClient.put(`/settings/performance?${params.toString()}`)
+    return response.data
+  },
+
   // Rulesets
   getRulesets: async () => {
     const response = await apiClient.get('/rulesets')

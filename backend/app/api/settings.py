@@ -93,6 +93,10 @@ async def get_settings_endpoint(
         "logging": {
             "verbose": config.debug,
         },
+        "performance": {
+            "uvicorn_workers": config.uvicorn_workers,
+            "celery_concurrency": config.celery_concurrency,
+        },
     }
 
     # API-Keys aus DB laden
@@ -437,6 +441,88 @@ async def list_ollama_models() -> OllamaModelsResponse:
         pass
 
     return OllamaModelsResponse(models=[])
+
+
+@router.get("/settings/performance")
+async def get_performance_settings() -> dict[str, Any]:
+    """
+    Gibt aktuelle Performance-Einstellungen zurück.
+
+    Returns:
+        Performance-Settings (Worker-Anzahl).
+    """
+    return {
+        "uvicorn_workers": config.uvicorn_workers,
+        "celery_concurrency": config.celery_concurrency,
+        "min_workers": 1,
+        "max_workers": 8,
+    }
+
+
+@router.put("/settings/performance")
+async def update_performance_settings(
+    uvicorn_workers: int | None = None,
+    celery_concurrency: int | None = None,
+) -> dict[str, Any]:
+    """
+    Aktualisiert Performance-Einstellungen.
+
+    Schreibt Werte in .env Datei, die beim nächsten Neustart geladen werden.
+    Hinweis: Erfordert Neustart der Container für Änderungen.
+
+    Args:
+        uvicorn_workers: Anzahl Uvicorn Worker (1-8)
+        celery_concurrency: Anzahl Celery Worker (1-8)
+
+    Returns:
+        Aktualisierte Settings + Hinweis auf Neustart.
+    """
+    import os
+    from pathlib import Path
+
+    # Validierung
+    if uvicorn_workers is not None and not (1 <= uvicorn_workers <= 8):
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="uvicorn_workers must be between 1 and 8",
+        )
+    if celery_concurrency is not None and not (1 <= celery_concurrency <= 8):
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="celery_concurrency must be between 1 and 8",
+        )
+
+    # .env Datei aktualisieren (im Docker-Verzeichnis)
+    env_path = Path("/data/.env.performance")
+    env_vars = {}
+
+    # Existierende Werte laden
+    if env_path.exists():
+        with open(env_path) as f:
+            for line in f:
+                if "=" in line:
+                    key, val = line.strip().split("=", 1)
+                    env_vars[key] = val
+
+    # Neue Werte setzen
+    if uvicorn_workers is not None:
+        env_vars["UVICORN_WORKERS"] = str(uvicorn_workers)
+    if celery_concurrency is not None:
+        env_vars["CELERY_CONCURRENCY"] = str(celery_concurrency)
+
+    # Datei schreiben
+    with open(env_path, "w") as f:
+        for key, val in env_vars.items():
+            f.write(f"{key}={val}\n")
+
+    return {
+        "uvicorn_workers": int(env_vars.get("UVICORN_WORKERS", config.uvicorn_workers)),
+        "celery_concurrency": int(env_vars.get("CELERY_CONCURRENCY", config.celery_concurrency)),
+        "min_workers": 1,
+        "max_workers": 8,
+        "restart_required": True,
+        "message": "Einstellungen gespeichert. Neustart der Container erforderlich.",
+    }
 
 
 @router.post("/settings/providers/LOCAL_OLLAMA/models/pull")

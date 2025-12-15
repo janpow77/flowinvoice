@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { CheckCircle, XCircle, Globe } from 'lucide-react'
+import { CheckCircle, XCircle, Globe, Cpu, AlertTriangle, RefreshCw } from 'lucide-react'
 import clsx from 'clsx'
 import { api } from '@/lib/api'
 import { languages, changeLanguage, getCurrentLanguage, type LanguageCode } from '@/lib/i18n'
@@ -10,6 +10,9 @@ export default function Settings() {
   const { t } = useTranslation()
   const queryClient = useQueryClient()
   const [currentLang, setCurrentLang] = useState<LanguageCode>(getCurrentLanguage())
+  const [uvicornWorkers, setUvicornWorkers] = useState<number>(4)
+  const [celeryWorkers, setCeleryWorkers] = useState<number>(4)
+  const [showRestartHint, setShowRestartHint] = useState(false)
 
   const { data: providers, isLoading } = useQuery({
     queryKey: ['llm-providers'],
@@ -22,6 +25,15 @@ export default function Settings() {
     refetchInterval: 30000,
   })
 
+  const { data: performanceSettings } = useQuery({
+    queryKey: ['performance-settings'],
+    queryFn: () => api.getPerformanceSettings(),
+    onSuccess: (data: { uvicorn_workers: number; celery_concurrency: number }) => {
+      setUvicornWorkers(data.uvicorn_workers)
+      setCeleryWorkers(data.celery_concurrency)
+    },
+  })
+
   const setDefaultMutation = useMutation({
     mutationFn: (provider: string) => api.setDefaultProvider(provider),
     onSuccess: () => {
@@ -29,9 +41,25 @@ export default function Settings() {
     },
   })
 
+  const updatePerformanceMutation = useMutation({
+    mutationFn: (settings: { uvicorn_workers?: number; celery_concurrency?: number }) =>
+      api.updatePerformanceSettings(settings),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['performance-settings'] })
+      setShowRestartHint(true)
+    },
+  })
+
   const handleLanguageChange = (lng: LanguageCode) => {
     changeLanguage(lng)
     setCurrentLang(lng)
+  }
+
+  const handlePerformanceSave = () => {
+    updatePerformanceMutation.mutate({
+      uvicorn_workers: uvicornWorkers,
+      celery_concurrency: celeryWorkers,
+    })
   }
 
   if (isLoading) {
@@ -184,6 +212,82 @@ export default function Settings() {
               <option value="5">5 {t('settings.examples')}</option>
               <option value="10">10 {t('settings.examples')}</option>
             </select>
+          </div>
+        </div>
+      </div>
+
+      {/* Performance Settings */}
+      <div className="bg-white rounded-lg border border-gray-200 p-6">
+        <div className="flex items-center gap-2 mb-4">
+          <Cpu className="h-5 w-5 text-primary-600" />
+          <h3 className="text-lg font-semibold text-gray-900">{t('settings.performance')}</h3>
+        </div>
+        <p className="text-sm text-gray-500 mb-4">
+          {t('settings.performanceDescription')}
+        </p>
+
+        {showRestartHint && (
+          <div className="mb-4 p-3 bg-amber-50 border border-amber-200 rounded-lg flex items-start gap-2">
+            <AlertTriangle className="h-5 w-5 text-amber-600 mt-0.5" />
+            <div>
+              <p className="text-sm font-medium text-amber-800">{t('settings.restartRequired')}</p>
+              <p className="text-xs text-amber-600">{t('settings.restartHint')}</p>
+            </div>
+          </div>
+        )}
+
+        <div className="space-y-4">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="font-medium text-gray-900">{t('settings.apiWorkers')}</p>
+              <p className="text-sm text-gray-500">
+                {t('settings.apiWorkersDescription')}
+              </p>
+            </div>
+            <select
+              value={uvicornWorkers}
+              onChange={(e) => setUvicornWorkers(Number(e.target.value))}
+              className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500"
+            >
+              {[1, 2, 3, 4, 5, 6, 7, 8].map((n) => (
+                <option key={n} value={n}>
+                  {n} {t('settings.workers')}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="font-medium text-gray-900">{t('settings.backgroundWorkers')}</p>
+              <p className="text-sm text-gray-500">
+                {t('settings.backgroundWorkersDescription')}
+              </p>
+            </div>
+            <select
+              value={celeryWorkers}
+              onChange={(e) => setCeleryWorkers(Number(e.target.value))}
+              className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500"
+            >
+              {[1, 2, 3, 4, 5, 6, 7, 8].map((n) => (
+                <option key={n} value={n}>
+                  {n} {t('settings.workers')}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          <div className="pt-4 border-t border-gray-200">
+            <button
+              onClick={handlePerformanceSave}
+              disabled={updatePerformanceMutation.isPending}
+              className="px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 disabled:opacity-50 flex items-center gap-2"
+            >
+              {updatePerformanceMutation.isPending && (
+                <RefreshCw className="h-4 w-4 animate-spin" />
+              )}
+              {t('common.save')}
+            </button>
           </div>
         </div>
       </div>

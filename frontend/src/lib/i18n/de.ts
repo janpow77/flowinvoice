@@ -157,6 +157,15 @@ export const de = {
     redis: 'Redis',
     contact: 'Kontakt',
     contactPerson: 'Ansprechpartner',
+    performance: 'Performance',
+    performanceDescription: 'Anzahl der Worker für API und Hintergrundprozesse (1-8)',
+    apiWorkers: 'API-Worker',
+    apiWorkersDescription: 'Parallele HTTP-Anfragen verarbeiten',
+    backgroundWorkers: 'Hintergrund-Worker',
+    backgroundWorkersDescription: 'PDF-Verarbeitung und LLM-Analysen',
+    workers: 'Worker',
+    restartRequired: 'Neustart erforderlich',
+    restartHint: 'Änderungen werden nach Neustart der Docker-Container wirksam',
   },
 
   // Rulesets

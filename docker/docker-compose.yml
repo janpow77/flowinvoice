@@ -107,6 +107,7 @@ services:
       - SECRET_KEY=${SECRET_KEY:-flowaudit_dev_secret_key_change_in_production}
       - DEBUG=${DEBUG:-false}
       - LOG_LEVEL=${LOG_LEVEL:-INFO}
+      - UVICORN_WORKERS=${UVICORN_WORKERS:-4}
     volumes:
       - ../data:/data
       - ../backend/app:/app/app:ro
@@ -134,7 +135,7 @@ services:
       context: ../backend
       dockerfile: Dockerfile
     container_name: flowaudit-worker
-    command: celery -A app.worker.celery_app worker --loglevel=info --concurrency=4 -Q documents,llm,generator,export
+    command: celery -A app.worker.celery_app worker --loglevel=info --concurrency=${CELERY_CONCURRENCY:-4} -Q documents,llm,generator,export
     environment:
       - DATABASE_URL=postgresql+asyncpg://flowaudit:${POSTGRES_PASSWORD:-flowaudit_secret}@db:5432/flowaudit
       - REDIS_URL=redis://redis:6379/0
@@ -143,6 +144,7 @@ services:
       - CHROMA_TOKEN=${CHROMA_TOKEN:-flowaudit_chroma_token}
       - OLLAMA_HOST=http://ollama:11434
       - STORAGE_PATH=/data
+      - CELERY_CONCURRENCY=${CELERY_CONCURRENCY:-4}
     volumes:
       - ../data:/data
     depends_on:
