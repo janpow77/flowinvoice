@@ -177,3 +177,112 @@ class ExtractionType(str, Enum):
     MONEY = "MONEY"
     PERCENTAGE = "PERCENTAGE"
     NUMBER = "NUMBER"
+
+
+# ============================================================
+# Improvement Catalog Enums (Phase 1)
+# ============================================================
+
+
+class ErrorSource(str, Enum):
+    """Fehlerquelle für Nachvollziehbarkeit."""
+
+    RULE = "RULE"  # Regelbasierte Prüfung
+    LLM = "LLM"  # KI-Analyse
+    USER = "USER"  # Manuelle Korrektur
+    SYSTEM = "SYSTEM"  # Systemfehler
+
+
+class Severity(str, Enum):
+    """Schweregrad eines Fehlers."""
+
+    INFO = "INFO"  # Hinweis, keine Aktion erforderlich
+    LOW = "LOW"  # Geringer Schweregrad
+    MEDIUM = "MEDIUM"  # Mittlerer Schweregrad
+    HIGH = "HIGH"  # Hoher Schweregrad
+    CRITICAL = "CRITICAL"  # Kritisch, blockiert Verarbeitung
+
+
+class AnalysisStatus(str, Enum):
+    """Analysestatus inkl. Fehler- und Abbruchzustände."""
+
+    # Erfolgreiche Zustände
+    COMPLETED = "COMPLETED"  # Analyse erfolgreich abgeschlossen
+    REVIEW_NEEDED = "REVIEW_NEEDED"  # Manuelle Prüfung erforderlich
+
+    # Fehlerzustände (fachlich relevant)
+    DOCUMENT_UNREADABLE = "DOCUMENT_UNREADABLE"  # Dokument nicht lesbar
+    INSUFFICIENT_TEXT = "INSUFFICIENT_TEXT"  # Zu wenig Text extrahiert
+    RULESET_NOT_APPLICABLE = "RULESET_NOT_APPLICABLE"  # Ruleset nicht anwendbar
+    ANALYSIS_ABORTED = "ANALYSIS_ABORTED"  # Analyse abgebrochen
+    TIMEOUT = "TIMEOUT"  # Zeitüberschreitung
+
+    # Systemfehler
+    SYSTEM_ERROR = "SYSTEM_ERROR"  # Allgemeiner Systemfehler
+
+
+class GrantPurposeDimension(str, Enum):
+    """Prüfdimensionen für Zuwendungszweckprüfung."""
+
+    SUBJECT_RELATION = "SUBJECT_RELATION"  # Sachlicher Zusammenhang
+    TEMPORAL_RELATION = "TEMPORAL_RELATION"  # Zeitlicher Zusammenhang
+    ORGANIZATIONAL_RELATION = "ORGANIZATIONAL_RELATION"  # Organisatorischer Zusammenhang
+    ECONOMIC_PLAUSIBILITY = "ECONOMIC_PLAUSIBILITY"  # Wirtschaftliche Plausibilität
+
+
+class DimensionResult(str, Enum):
+    """Bewertungsergebnis pro Prüfdimension."""
+
+    PASS = "PASS"  # Kriterium erfüllt
+    FAIL = "FAIL"  # Kriterium nicht erfüllt
+    UNCLEAR = "UNCLEAR"  # Nicht eindeutig bewertbar
+
+
+class ConflictStatus(str, Enum):
+    """Konfliktstatus zwischen verschiedenen Quellen."""
+
+    NO_CONFLICT = "NO_CONFLICT"  # Übereinstimmung aller Quellen
+    CONFLICT_RULE_LLM = "CONFLICT_RULE_LLM"  # Widerspruch zwischen Regel und KI
+    CONFLICT_RULE_USER = "CONFLICT_RULE_USER"  # Manuelle Überschreibung von Regel
+    CONFLICT_LLM_USER = "CONFLICT_LLM_USER"  # Manuelle Überschreibung von KI
+
+
+class BeneficiaryMatchStatus(str, Enum):
+    """Status des Begünstigtenabgleichs."""
+
+    EXACT_MATCH = "EXACT_MATCH"  # Exakte Übereinstimmung
+    ALIAS_MATCH = "ALIAS_MATCH"  # Übereinstimmung mit Alias
+    LIKELY_MATCH = "LIKELY_MATCH"  # Wahrscheinliche Übereinstimmung (Fuzzy)
+    MISMATCH = "MISMATCH"  # Keine Übereinstimmung
+    NOT_CHECKED = "NOT_CHECKED"  # Nicht geprüft
+
+
+class UnclearReason(str, Enum):
+    """Gründe für UNCLEAR-Status (Begründungspflicht)."""
+
+    MISSING_INFORMATION = "MISSING_INFORMATION"  # Relevante Informationen fehlen
+    AMBIGUOUS_DATA = "AMBIGUOUS_DATA"  # Vorhandene Informationen mehrdeutig
+    MULTIPLE_INTERPRETATIONS = "MULTIPLE_INTERPRETATIONS"  # Mehrere plausible Interpretationen
+    INSUFFICIENT_CONTEXT = "INSUFFICIENT_CONTEXT"  # Kontext nicht ausreichend
+    CONFLICTING_SOURCES = "CONFLICTING_SOURCES"  # Quellen widersprechen sich
+
+
+class RiskIndicator(str, Enum):
+    """Risikoindikatoren für didaktische Hinweise."""
+
+    HIGH_AMOUNT = "HIGH_AMOUNT"  # Ungewöhnlich hoher Einzelbetrag
+    VENDOR_CLUSTERING = "VENDOR_CLUSTERING"  # Auffällige Lieferantenhäufung
+    MISSING_PERIOD = "MISSING_PERIOD"  # Fehlender Leistungszeitraum
+    ROUND_AMOUNT = "ROUND_AMOUNT"  # Runder Pauschalbetrag ohne Erläuterung
+    OUTSIDE_PROJECT_PERIOD = "OUTSIDE_PROJECT_PERIOD"  # Leistung außerhalb Projektzeitraum
+    NO_PROJECT_REFERENCE = "NO_PROJECT_REFERENCE"  # Leistungsbeschreibung ohne Projektbezug
+    RECIPIENT_MISMATCH = "RECIPIENT_MISMATCH"  # Rechnungsempfänger ≠ Begünstigter
+
+
+class DataClassification(str, Enum):
+    """Datenklassifikation für Speicherung und Löschung."""
+
+    INVOICE_DOCUMENT = "INVOICE_DOCUMENT"  # Rechnungsdokumente
+    EXTRACTED_TEXT = "EXTRACTED_TEXT"  # Extrahierter Text
+    ANALYSIS_RESULT = "ANALYSIS_RESULT"  # Analyseergebnisse (Audit-Trail)
+    TRAINING_DATA = "TRAINING_DATA"  # Trainings-/Beispieldaten (RAG)

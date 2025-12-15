@@ -315,6 +315,130 @@ export const de = {
     uploadFailed: 'Upload fehlgeschlagen',
     processingFailed: 'Verarbeitung fehlgeschlagen',
   },
+
+  // Grant Purpose Audit (Zuwendungszweckprüfung)
+  grantPurpose: {
+    title: 'Zuwendungszweckprüfung',
+    subtitle: 'Prüfung des Förderbezugs',
+    dimensions: {
+      subject: 'Sachlicher Zusammenhang',
+      temporal: 'Zeitlicher Zusammenhang',
+      organizational: 'Organisatorischer Zusammenhang',
+      economic: 'Wirtschaftliche Plausibilität',
+    },
+    results: {
+      pass: 'Erfüllt',
+      fail: 'Nicht erfüllt',
+      unclear: 'Unklar',
+    },
+    negativeIndicators: {
+      noProjectReference: 'Leistungsbeschreibung ohne Projektbezug',
+      outsidePeriod: 'Leistung außerhalb Förderperiode',
+      recipientMismatch: 'Empfänger entspricht nicht dem Begünstigten',
+      genericService: 'Pauschale Allgemeinleistungen',
+      highAmount: 'Ungewöhnlich hoher Betrag',
+      missingPeriod: 'Fehlender Leistungszeitraum',
+    },
+    overallResult: 'Gesamtergebnis',
+    reasoning: 'Begründung',
+    evidence: 'Nachweise',
+  },
+
+  // Conflict Resolution
+  conflict: {
+    title: 'Konfliktauflösung',
+    status: {
+      noConflict: 'Keine Konflikte',
+      ruleVsLlm: 'Konflikt: Regel vs. KI',
+      ruleVsUser: 'Konflikt: Regel vs. Manuell',
+      llmVsUser: 'Konflikt: KI vs. Manuell',
+    },
+    priority: {
+      description: 'Prioritätsreihenfolge',
+      rule: '1. Regelbasiert (höchste Priorität)',
+      llm: '2. KI-Analyse',
+      user: '3. Manuelle Korrektur (übersteuert alles)',
+    },
+    resolvedBy: 'Aufgelöst durch',
+  },
+
+  // Risk Assessment
+  risk: {
+    title: 'Risikobewertung',
+    disclaimer: 'HINWEIS: Mögliches Risiko erkannt – keine rechtliche Bewertung',
+    indicators: {
+      highAmount: 'Ungewöhnlich hoher Betrag',
+      vendorClustering: 'Auffällige Lieferantenhäufung',
+      missingPeriod: 'Fehlender Leistungszeitraum',
+      roundAmount: 'Runder Pauschalbetrag',
+      outsidePeriod: 'Leistung außerhalb Projektzeitraum',
+      noReference: 'Fehlender Projektbezug',
+      recipientMismatch: 'Empfänger-Abweichung',
+    },
+    severity: {
+      info: 'Information',
+      low: 'Gering',
+      medium: 'Mittel',
+      high: 'Hoch',
+      critical: 'Kritisch',
+    },
+    score: 'Risiko-Score',
+    findings: 'Erkannte Risiken',
+    noRisks: 'Keine besonderen Risiken erkannt',
+  },
+
+  // Analysis Status
+  analysisStatus: {
+    completed: 'Abgeschlossen',
+    reviewNeeded: 'Prüfung erforderlich',
+    documentUnreadable: 'Dokument nicht lesbar',
+    insufficientText: 'Zu wenig Text extrahiert',
+    rulesetNotApplicable: 'Regelwerk nicht anwendbar',
+    analysisAborted: 'Analyse abgebrochen',
+    timeout: 'Zeitüberschreitung',
+    systemError: 'Systemfehler',
+  },
+
+  // UNCLEAR Status
+  unclearStatus: {
+    title: 'Unklarer Status',
+    reasons: {
+      missingInfo: 'Relevante Informationen fehlen',
+      ambiguousData: 'Mehrdeutige Informationen',
+      multipleInterpretations: 'Mehrere Interpretationen möglich',
+      insufficientContext: 'Unzureichender Kontext',
+      conflictingSources: 'Widersprüchliche Quellen',
+    },
+    requiredClarification: 'Benötigte Klärung',
+    affectedFields: 'Betroffene Felder',
+  },
+
+  // Metadata / Versioning
+  metadata: {
+    title: 'Analyse-Metadaten',
+    documentFingerprint: 'Dokument-Fingerprint',
+    rulesetVersion: 'Regelwerk-Version',
+    promptVersion: 'Prompt-Version',
+    modelId: 'Modell-ID',
+    analysisTimestamp: 'Analysezeitpunkt',
+    systemVersion: 'System-Version',
+    invalidMetadata: 'Ungültige Metadaten',
+  },
+
+  // QA Scenarios
+  qaScenarios: {
+    title: 'QA-Referenzszenarien',
+    refCorrect: 'Korrekte Rechnung',
+    refMissingField: 'Fehlende Pflichtangabe',
+    refUnclearPurpose: 'Unklarer Zuwendungszweck',
+    refWrongRecipient: 'Falscher Empfänger',
+    refOutsidePeriod: 'Außerhalb Projektzeitraum',
+    refHighAmount: 'Ungewöhnlich hoher Betrag',
+    expectedResult: 'Erwartetes Ergebnis',
+    actualResult: 'Tatsächliches Ergebnis',
+    testPassed: 'Test bestanden',
+    testFailed: 'Test nicht bestanden',
+  },
 };
 
 export default de;

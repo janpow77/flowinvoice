@@ -315,6 +315,130 @@ export const en = {
     uploadFailed: 'Upload failed',
     processingFailed: 'Processing failed',
   },
+
+  // Grant Purpose Audit
+  grantPurpose: {
+    title: 'Grant Purpose Audit',
+    subtitle: 'Funding Eligibility Check',
+    dimensions: {
+      subject: 'Subject Relation',
+      temporal: 'Temporal Relation',
+      organizational: 'Organizational Relation',
+      economic: 'Economic Plausibility',
+    },
+    results: {
+      pass: 'Pass',
+      fail: 'Fail',
+      unclear: 'Unclear',
+    },
+    negativeIndicators: {
+      noProjectReference: 'Service description without project reference',
+      outsidePeriod: 'Service outside funding period',
+      recipientMismatch: 'Recipient does not match beneficiary',
+      genericService: 'Generic services without specifics',
+      highAmount: 'Unusually high amount',
+      missingPeriod: 'Missing service period',
+    },
+    overallResult: 'Overall Result',
+    reasoning: 'Reasoning',
+    evidence: 'Evidence',
+  },
+
+  // Conflict Resolution
+  conflict: {
+    title: 'Conflict Resolution',
+    status: {
+      noConflict: 'No Conflicts',
+      ruleVsLlm: 'Conflict: Rule vs. AI',
+      ruleVsUser: 'Conflict: Rule vs. Manual',
+      llmVsUser: 'Conflict: AI vs. Manual',
+    },
+    priority: {
+      description: 'Priority Order',
+      rule: '1. Rule-based (highest priority)',
+      llm: '2. AI Analysis',
+      user: '3. Manual Override (overrides all)',
+    },
+    resolvedBy: 'Resolved by',
+  },
+
+  // Risk Assessment
+  risk: {
+    title: 'Risk Assessment',
+    disclaimer: 'NOTE: Potential risk detected – not a legal assessment',
+    indicators: {
+      highAmount: 'Unusually high amount',
+      vendorClustering: 'Notable vendor concentration',
+      missingPeriod: 'Missing service period',
+      roundAmount: 'Round lump sum amount',
+      outsidePeriod: 'Service outside project period',
+      noReference: 'Missing project reference',
+      recipientMismatch: 'Recipient mismatch',
+    },
+    severity: {
+      info: 'Information',
+      low: 'Low',
+      medium: 'Medium',
+      high: 'High',
+      critical: 'Critical',
+    },
+    score: 'Risk Score',
+    findings: 'Risk Findings',
+    noRisks: 'No notable risks detected',
+  },
+
+  // Analysis Status
+  analysisStatus: {
+    completed: 'Completed',
+    reviewNeeded: 'Review Needed',
+    documentUnreadable: 'Document Unreadable',
+    insufficientText: 'Insufficient Text Extracted',
+    rulesetNotApplicable: 'Ruleset Not Applicable',
+    analysisAborted: 'Analysis Aborted',
+    timeout: 'Timeout',
+    systemError: 'System Error',
+  },
+
+  // UNCLEAR Status
+  unclearStatus: {
+    title: 'Unclear Status',
+    reasons: {
+      missingInfo: 'Relevant information missing',
+      ambiguousData: 'Ambiguous information',
+      multipleInterpretations: 'Multiple interpretations possible',
+      insufficientContext: 'Insufficient context',
+      conflictingSources: 'Conflicting sources',
+    },
+    requiredClarification: 'Required Clarification',
+    affectedFields: 'Affected Fields',
+  },
+
+  // Metadata / Versioning
+  metadata: {
+    title: 'Analysis Metadata',
+    documentFingerprint: 'Document Fingerprint',
+    rulesetVersion: 'Ruleset Version',
+    promptVersion: 'Prompt Version',
+    modelId: 'Model ID',
+    analysisTimestamp: 'Analysis Timestamp',
+    systemVersion: 'System Version',
+    invalidMetadata: 'Invalid Metadata',
+  },
+
+  // QA Scenarios
+  qaScenarios: {
+    title: 'QA Reference Scenarios',
+    refCorrect: 'Correct Invoice',
+    refMissingField: 'Missing Required Field',
+    refUnclearPurpose: 'Unclear Grant Purpose',
+    refWrongRecipient: 'Wrong Recipient',
+    refOutsidePeriod: 'Outside Project Period',
+    refHighAmount: 'Unusually High Amount',
+    expectedResult: 'Expected Result',
+    actualResult: 'Actual Result',
+    testPassed: 'Test Passed',
+    testFailed: 'Test Failed',
+  },
 };
 
 export default en;

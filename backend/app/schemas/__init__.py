@@ -35,7 +35,23 @@ from app.schemas.project import (
     ProjectSchema,
 )
 from app.schemas.rag import RagExampleResponse, RagRetrieveRequest, RagRetrieveResponse
-from app.schemas.result import FinalResultResponse
+from app.schemas.result import (
+    AnalysisMetadata,
+    FinalResultResponse,
+    UnclearStatus,
+)
+from app.schemas.grant_purpose import (
+    DimensionAssessment,
+    GrantPurposeAuditRequest,
+    GrantPurposeAuditResult,
+    NegativeIndicator,
+)
+from app.schemas.risk import (
+    RiskAssessmentRequest,
+    RiskAssessmentResult,
+    RiskContext,
+    RiskFinding,
+)
 from app.schemas.ruleset import FeatureSchema, RulesetResponse
 from app.schemas.settings import (
     ApiKeyResponse,
@@ -83,6 +99,18 @@ __all__ = [
     "LlmRunLogResponse",
     # Result
     "FinalResultResponse",
+    "AnalysisMetadata",
+    "UnclearStatus",
+    # Grant Purpose Audit
+    "GrantPurposeAuditRequest",
+    "GrantPurposeAuditResult",
+    "DimensionAssessment",
+    "NegativeIndicator",
+    # Risk Assessment
+    "RiskAssessmentRequest",
+    "RiskAssessmentResult",
+    "RiskContext",
+    "RiskFinding",
     # Feedback
     "FeedbackCreate",
     "FeedbackResponse",
