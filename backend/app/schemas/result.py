@@ -2,15 +2,116 @@
 """
 FlowAudit Result Schemas
 
-Schemas für finale Prüfergebnisse.
+Schemas für finale Prüfergebnisse inkl. Versionierungs-Metadaten.
 """
 
 from datetime import datetime
-from typing import Any
+from typing import Any, Optional
 
 from pydantic import BaseModel, ConfigDict, Field
 
+from app.models.enums import AnalysisStatus, ConflictStatus
 from app.schemas.common import Money
+
+
+class AnalysisMetadata(BaseModel):
+    """
+    Pflicht-Metadaten für Nachvollziehbarkeit und Reproduzierbarkeit.
+
+    Ergebnisse ohne vollständige Metadaten sind als INVALID zu markieren.
+    """
+
+    model_config = ConfigDict(from_attributes=True)
+
+    # Dokument-Fingerprint
+    document_fingerprint: str = Field(
+        ..., description="SHA-256 Hash des Dokuments"
+    )
+
+    # Ruleset-Versionierung
+    ruleset_id: str = Field(
+        ..., description="Regelwerk-ID (z.B. DE_USTG)"
+    )
+    ruleset_version: str = Field(
+        ..., description="Regelwerk-Version (z.B. 2024.1)"
+    )
+
+    # Prompt-Versionierung
+    prompt_version: str = Field(
+        default="1.0.0", description="Version des LLM-Prompts"
+    )
+
+    # Model-Info
+    model_id: str = Field(
+        ..., description="LLM-Model-ID (z.B. gpt-4-turbo)"
+    )
+    model_provider: str = Field(
+        default="", description="LLM-Provider (z.B. OPENAI)"
+    )
+
+    # Zeitstempel
+    analysis_timestamp: str = Field(
+        ..., description="Zeitstempel der Analyse (ISO 8601)"
+    )
+
+    # System-Version
+    system_version: str = Field(
+        default="1.0.0", description="FlowAudit System-Version"
+    )
+
+    # Optional: Zusätzliche Metadaten
+    extra: dict[str, Any] = Field(
+        default_factory=dict, description="Zusätzliche Metadaten"
+    )
+
+    @classmethod
+    def create_now(
+        cls,
+        document_fingerprint: str,
+        ruleset_id: str,
+        ruleset_version: str,
+        model_id: str,
+        model_provider: str = "",
+        prompt_version: str = "1.0.0",
+        system_version: str = "1.0.0",
+    ) -> "AnalysisMetadata":
+        """Factory-Methode für neue Metadaten."""
+        return cls(
+            document_fingerprint=document_fingerprint,
+            ruleset_id=ruleset_id,
+            ruleset_version=ruleset_version,
+            model_id=model_id,
+            model_provider=model_provider,
+            prompt_version=prompt_version,
+            analysis_timestamp=datetime.utcnow().isoformat() + "Z",
+            system_version=system_version,
+        )
+
+
+class UnclearStatus(BaseModel):
+    """
+    UNCLEAR-Status mit Begründungspflicht.
+
+    Kriterien für UNCLEAR:
+    1. Relevante Informationen fehlen vollständig
+    2. Vorhandene Informationen sind mehrdeutig
+    3. Mehrere fachlich plausible Interpretationen möglich
+    """
+
+    model_config = ConfigDict(from_attributes=True)
+
+    is_unclear: bool = Field(
+        default=False, description="UNCLEAR-Status aktiv"
+    )
+    unclear_reason: Optional[str] = Field(
+        default=None, description="Beschreibung der Unklarheit"
+    )
+    required_clarification: Optional[str] = Field(
+        default=None, description="Benötigte Information zur Klärung"
+    )
+    affected_fields: list[str] = Field(
+        default_factory=list, description="Betroffene Felder"
+    )
 
 
 class ComputedAmounts(BaseModel):
@@ -75,7 +176,7 @@ class Overall(BaseModel):
 
 
 class FinalResultResponse(BaseModel):
-    """Finales Prüfergebnis."""
+    """Finales Prüfergebnis mit vollständigen Metadaten."""
 
     model_config = ConfigDict(from_attributes=True)
 
@@ -83,11 +184,43 @@ class FinalResultResponse(BaseModel):
     document_id: str = Field(..., description="Dokument-ID")
     llm_run_id: str | None = Field(default=None, description="LLM-Run-ID")
     status: str = Field(..., description="Status")
+
+    # Analysestatus (inkl. Fehlerzustände)
+    analysis_status: AnalysisStatus = Field(
+        default=AnalysisStatus.COMPLETED,
+        description="Detaillierter Analysestatus",
+    )
+
+    # Berechnete Werte
     computed: Computed | None = Field(default=None, description="Berechnete Werte")
     fields: list[FieldResult] = Field(default_factory=list, description="Felder")
     overall: Overall | None = Field(default=None, description="Gesamtbewertung")
+
+    # Versionierungs-Metadaten (Pflicht für Reproduzierbarkeit)
+    metadata: AnalysisMetadata | None = Field(
+        default=None,
+        description="Analyse-Metadaten für Nachvollziehbarkeit",
+    )
+
+    # UNCLEAR-Status
+    unclear_status: UnclearStatus | None = Field(
+        default=None,
+        description="UNCLEAR-Status mit Begründung",
+    )
+
+    # Zeitstempel
     created_at: datetime = Field(..., description="Erstellt")
     updated_at: datetime | None = Field(default=None, description="Aktualisiert")
+
+    def is_valid(self) -> bool:
+        """Prüft ob Ergebnis valide ist (alle Pflicht-Metadaten vorhanden)."""
+        if not self.metadata:
+            return False
+        return bool(
+            self.metadata.document_fingerprint
+            and self.metadata.ruleset_id
+            and self.metadata.model_id
+        )
 
 
 class FinalizeRequest(BaseModel):

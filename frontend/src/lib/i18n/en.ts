@@ -203,6 +203,98 @@ export const en = {
     calculationError: 'Calculation Error',
   },
 
+  // Beneficiary (Grant Recipient)
+  beneficiary: {
+    title: 'Beneficiary',
+    subtitle: 'Grant Recipient',
+    name: 'Beneficiary Name',
+    legalForm: 'Legal Form',
+    street: 'Street and Number',
+    zip: 'Postal Code',
+    city: 'City',
+    country: 'Country',
+    vatId: 'VAT Identification Number',
+    taxNumber: 'Tax Number',
+    aliases: 'Alternative Names',
+    inputTaxDeductible: 'Input Tax Deductible',
+    // Matching status
+    matching: {
+      title: 'Beneficiary Matching',
+      exactMatch: 'Exact Match',
+      aliasMatch: 'Alias Match',
+      likelyMatch: 'Likely Match',
+      mismatch: 'No Match',
+      notChecked: 'Not Checked',
+    },
+    // Error messages
+    errors: {
+      mismatch: 'Invoice recipient does not match beneficiary',
+      aliasUsed: 'Recipient matches beneficiary alias',
+      wrongAddress: 'Address differs from beneficiary',
+      nameTypo: 'Possible typo in recipient name',
+    },
+  },
+
+  // Project Context
+  projectContext: {
+    title: 'Project Context',
+    projectId: 'Project ID',
+    projectName: 'Project Name',
+    fileReference: 'File Reference',
+    projectPeriod: 'Project Period',
+    fundingType: 'Funding Type',
+    fundingRate: 'Funding Rate',
+    totalBudget: 'Total Budget',
+    eligibleCosts: 'Eligible Costs',
+    approvalDate: 'Approval Date',
+    approvingAuthority: 'Approving Authority',
+    implementationLocation: 'Implementation Location',
+  },
+
+  // Quality Assurance
+  quality: {
+    title: 'Quality Assurance',
+    traceability: 'Traceability',
+    plausibility: 'Plausibility',
+    consistency: 'Consistency',
+    truthSource: {
+      rule: 'Rule-based',
+      llm: 'AI-based',
+      user: 'Manual',
+    },
+    checks: {
+      formal: 'Formal Check',
+      semantic: 'Semantic Check',
+      organizational: 'Organizational Consistency',
+      temporal: 'Temporal Consistency',
+      economic: 'Economic Viability',
+    },
+  },
+
+  // Generator
+  generator: {
+    title: 'Test Data Generator',
+    description: 'Creates test invoices for training purposes',
+    count: 'Count',
+    templates: 'Templates',
+    errorRate: 'Error Rate',
+    severity: 'Severity',
+    useBeneficiaryData: 'Use Beneficiary Data',
+    beneficiaryDataHint: 'Generated invoices will consistently use the specified beneficiary data',
+    noDummyMarkers: 'No dummy markers allowed',
+    errorTypes: {
+      missingInvoiceNumber: 'Missing Invoice Number',
+      invalidVatId: 'Invalid VAT ID',
+      missingDate: 'Missing Date',
+      calculationError: 'Calculation Error',
+      missingDescription: 'Missing Description',
+      beneficiaryNameTypo: 'Recipient Name Typo',
+      beneficiaryAliasUsed: 'Alias Used Instead of Main Name',
+      beneficiaryWrongAddress: 'Wrong Address',
+      beneficiaryCompletelyWrong: 'Completely Wrong Recipient',
+    },
+  },
+
   // Processing Steps
   processing: {
     upload: 'Upload File',
@@ -222,6 +314,130 @@ export const en = {
     serverError: 'Server error',
     uploadFailed: 'Upload failed',
     processingFailed: 'Processing failed',
+  },
+
+  // Grant Purpose Audit
+  grantPurpose: {
+    title: 'Grant Purpose Audit',
+    subtitle: 'Funding Eligibility Check',
+    dimensions: {
+      subject: 'Subject Relation',
+      temporal: 'Temporal Relation',
+      organizational: 'Organizational Relation',
+      economic: 'Economic Plausibility',
+    },
+    results: {
+      pass: 'Pass',
+      fail: 'Fail',
+      unclear: 'Unclear',
+    },
+    negativeIndicators: {
+      noProjectReference: 'Service description without project reference',
+      outsidePeriod: 'Service outside funding period',
+      recipientMismatch: 'Recipient does not match beneficiary',
+      genericService: 'Generic services without specifics',
+      highAmount: 'Unusually high amount',
+      missingPeriod: 'Missing service period',
+    },
+    overallResult: 'Overall Result',
+    reasoning: 'Reasoning',
+    evidence: 'Evidence',
+  },
+
+  // Conflict Resolution
+  conflict: {
+    title: 'Conflict Resolution',
+    status: {
+      noConflict: 'No Conflicts',
+      ruleVsLlm: 'Conflict: Rule vs. AI',
+      ruleVsUser: 'Conflict: Rule vs. Manual',
+      llmVsUser: 'Conflict: AI vs. Manual',
+    },
+    priority: {
+      description: 'Priority Order',
+      rule: '1. Rule-based (highest priority)',
+      llm: '2. AI Analysis',
+      user: '3. Manual Override (overrides all)',
+    },
+    resolvedBy: 'Resolved by',
+  },
+
+  // Risk Assessment
+  risk: {
+    title: 'Risk Assessment',
+    disclaimer: 'NOTE: Potential risk detected – not a legal assessment',
+    indicators: {
+      highAmount: 'Unusually high amount',
+      vendorClustering: 'Notable vendor concentration',
+      missingPeriod: 'Missing service period',
+      roundAmount: 'Round lump sum amount',
+      outsidePeriod: 'Service outside project period',
+      noReference: 'Missing project reference',
+      recipientMismatch: 'Recipient mismatch',
+    },
+    severity: {
+      info: 'Information',
+      low: 'Low',
+      medium: 'Medium',
+      high: 'High',
+      critical: 'Critical',
+    },
+    score: 'Risk Score',
+    findings: 'Risk Findings',
+    noRisks: 'No notable risks detected',
+  },
+
+  // Analysis Status
+  analysisStatus: {
+    completed: 'Completed',
+    reviewNeeded: 'Review Needed',
+    documentUnreadable: 'Document Unreadable',
+    insufficientText: 'Insufficient Text Extracted',
+    rulesetNotApplicable: 'Ruleset Not Applicable',
+    analysisAborted: 'Analysis Aborted',
+    timeout: 'Timeout',
+    systemError: 'System Error',
+  },
+
+  // UNCLEAR Status
+  unclearStatus: {
+    title: 'Unclear Status',
+    reasons: {
+      missingInfo: 'Relevant information missing',
+      ambiguousData: 'Ambiguous information',
+      multipleInterpretations: 'Multiple interpretations possible',
+      insufficientContext: 'Insufficient context',
+      conflictingSources: 'Conflicting sources',
+    },
+    requiredClarification: 'Required Clarification',
+    affectedFields: 'Affected Fields',
+  },
+
+  // Metadata / Versioning
+  metadata: {
+    title: 'Analysis Metadata',
+    documentFingerprint: 'Document Fingerprint',
+    rulesetVersion: 'Ruleset Version',
+    promptVersion: 'Prompt Version',
+    modelId: 'Model ID',
+    analysisTimestamp: 'Analysis Timestamp',
+    systemVersion: 'System Version',
+    invalidMetadata: 'Invalid Metadata',
+  },
+
+  // QA Scenarios
+  qaScenarios: {
+    title: 'QA Reference Scenarios',
+    refCorrect: 'Correct Invoice',
+    refMissingField: 'Missing Required Field',
+    refUnclearPurpose: 'Unclear Grant Purpose',
+    refWrongRecipient: 'Wrong Recipient',
+    refOutsidePeriod: 'Outside Project Period',
+    refHighAmount: 'Unusually High Amount',
+    expectedResult: 'Expected Result',
+    actualResult: 'Actual Result',
+    testPassed: 'Test Passed',
+    testFailed: 'Test Failed',
   },
 };
 
