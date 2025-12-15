@@ -1,12 +1,15 @@
 import { useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { CheckCircle, XCircle, RefreshCw } from 'lucide-react'
+import { CheckCircle, XCircle, Globe } from 'lucide-react'
 import clsx from 'clsx'
 import { api } from '@/lib/api'
+import { languages, changeLanguage, getCurrentLanguage, type LanguageCode } from '@/lib/i18n'
 
 export default function Settings() {
+  const { t } = useTranslation()
   const queryClient = useQueryClient()
-  const [selectedProvider, setSelectedProvider] = useState('LOCAL_OLLAMA')
+  const [currentLang, setCurrentLang] = useState<LanguageCode>(getCurrentLanguage())
 
   const { data: providers, isLoading } = useQuery({
     queryKey: ['llm-providers'],
@@ -16,7 +19,7 @@ export default function Settings() {
   const { data: health } = useQuery({
     queryKey: ['llm-health'],
     queryFn: () => api.getLLMHealth(),
-    refetchInterval: 30000, // Alle 30 Sekunden
+    refetchInterval: 30000,
   })
 
   const setDefaultMutation = useMutation({
@@ -26,19 +29,61 @@ export default function Settings() {
     },
   })
 
+  const handleLanguageChange = (lng: LanguageCode) => {
+    changeLanguage(lng)
+    setCurrentLang(lng)
+  }
+
   if (isLoading) {
-    return <div className="animate-pulse">Lade Einstellungen...</div>
+    return <div className="animate-pulse">{t('common.loading')}</div>
   }
 
   return (
     <div className="space-y-6">
-      <h2 className="text-xl font-semibold text-gray-900">Einstellungen</h2>
+      <h2 className="text-xl font-semibold text-gray-900">{t('settings.title')}</h2>
+
+      {/* Language Selection */}
+      <div className="bg-white rounded-lg border border-gray-200 p-6">
+        <div className="flex items-center gap-2 mb-4">
+          <Globe className="h-5 w-5 text-primary-600" />
+          <h3 className="text-lg font-semibold text-gray-900">{t('settings.language')}</h3>
+        </div>
+        <p className="text-sm text-gray-500 mb-4">
+          {t('settings.languageDescription')}
+        </p>
+
+        <div className="flex gap-4">
+          {languages.map((lang) => (
+            <button
+              key={lang.code}
+              onClick={() => handleLanguageChange(lang.code)}
+              className={clsx(
+                'flex items-center gap-3 px-4 py-3 rounded-lg border-2 transition-colors',
+                currentLang === lang.code
+                  ? 'border-primary-500 bg-primary-50'
+                  : 'border-gray-200 hover:border-gray-300'
+              )}
+            >
+              <span className="text-2xl">{lang.flag}</span>
+              <span className={clsx(
+                'font-medium',
+                currentLang === lang.code ? 'text-primary-700' : 'text-gray-700'
+              )}>
+                {lang.name}
+              </span>
+              {currentLang === lang.code && (
+                <CheckCircle className="h-5 w-5 text-primary-600" />
+              )}
+            </button>
+          ))}
+        </div>
+      </div>
 
       {/* LLM Provider */}
       <div className="bg-white rounded-lg border border-gray-200 p-6">
-        <h3 className="text-lg font-semibold text-gray-900 mb-4">LLM-Provider</h3>
+        <h3 className="text-lg font-semibold text-gray-900 mb-4">{t('settings.llmProvider')}</h3>
         <p className="text-sm text-gray-500 mb-4">
-          Wählen Sie den Provider für die KI-Analyse aus.
+          {t('settings.llmProviderDescription')}
         </p>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -70,7 +115,7 @@ export default function Settings() {
                     )}
                     {isSelected && (
                       <span className="text-xs bg-primary-500 text-white px-2 py-1 rounded">
-                        Aktiv
+                        {t('common.active')}
                       </span>
                     )}
                   </div>
@@ -94,31 +139,31 @@ export default function Settings() {
 
       {/* Ruleset Settings */}
       <div className="bg-white rounded-lg border border-gray-200 p-6">
-        <h3 className="text-lg font-semibold text-gray-900 mb-4">Standard-Regelwerk</h3>
+        <h3 className="text-lg font-semibold text-gray-900 mb-4">{t('settings.defaultRuleset')}</h3>
         <p className="text-sm text-gray-500 mb-4">
-          Wählen Sie das Standard-Regelwerk für neue Dokumente.
+          {t('settings.defaultRulesetDescription')}
         </p>
 
         <select className="w-full md:w-64 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500">
-          <option value="DE_USTG">Deutschland (UStG)</option>
-          <option value="EU_VAT">EU (MwSt-Richtlinie)</option>
-          <option value="UK_VAT">UK (HMRC VAT)</option>
+          <option value="DE_USTG">{t('rulesets.DE_USTG')}</option>
+          <option value="EU_VAT">{t('rulesets.EU_VAT')}</option>
+          <option value="UK_VAT">{t('rulesets.UK_VAT')}</option>
         </select>
       </div>
 
       {/* RAG Settings */}
       <div className="bg-white rounded-lg border border-gray-200 p-6">
-        <h3 className="text-lg font-semibold text-gray-900 mb-4">RAG-Einstellungen</h3>
+        <h3 className="text-lg font-semibold text-gray-900 mb-4">{t('settings.ragSettings')}</h3>
         <p className="text-sm text-gray-500 mb-4">
-          Einstellungen für das Few-Shot-Learning mit ChromaDB.
+          {t('settings.ragDescription')}
         </p>
 
         <div className="space-y-4">
           <div className="flex items-center justify-between">
             <div>
-              <p className="font-medium text-gray-900">Automatisches Lernen</p>
+              <p className="font-medium text-gray-900">{t('settings.autoLearning')}</p>
               <p className="text-sm text-gray-500">
-                Validierte Rechnungen automatisch in RAG aufnehmen
+                {t('settings.autoLearningDescription')}
               </p>
             </div>
             <label className="relative inline-flex items-center cursor-pointer">
@@ -129,15 +174,15 @@ export default function Settings() {
 
           <div className="flex items-center justify-between">
             <div>
-              <p className="font-medium text-gray-900">Few-Shot-Beispiele</p>
+              <p className="font-medium text-gray-900">{t('settings.fewShotExamples')}</p>
               <p className="text-sm text-gray-500">
-                Anzahl der Beispiele im LLM-Prompt
+                {t('settings.fewShotDescription')}
               </p>
             </div>
             <select className="px-3 py-2 border border-gray-300 rounded-lg">
-              <option value="3">3 Beispiele</option>
-              <option value="5">5 Beispiele</option>
-              <option value="10">10 Beispiele</option>
+              <option value="3">3 {t('settings.examples')}</option>
+              <option value="5">5 {t('settings.examples')}</option>
+              <option value="10">10 {t('settings.examples')}</option>
             </select>
           </div>
         </div>
@@ -145,23 +190,23 @@ export default function Settings() {
 
       {/* System Info */}
       <div className="bg-white rounded-lg border border-gray-200 p-6">
-        <h3 className="text-lg font-semibold text-gray-900 mb-4">System-Information</h3>
+        <h3 className="text-lg font-semibold text-gray-900 mb-4">{t('settings.systemInfo')}</h3>
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
           <div>
-            <p className="text-gray-500">Version</p>
+            <p className="text-gray-500">{t('settings.version')}</p>
             <p className="font-medium">0.1.0</p>
           </div>
           <div>
-            <p className="text-gray-500">Backend</p>
-            <p className="font-medium text-green-600">Online</p>
+            <p className="text-gray-500">{t('settings.backend')}</p>
+            <p className="font-medium text-green-600">{t('common.online')}</p>
           </div>
           <div>
-            <p className="text-gray-500">ChromaDB</p>
-            <p className="font-medium text-green-600">Online</p>
+            <p className="text-gray-500">{t('settings.chromadb')}</p>
+            <p className="font-medium text-green-600">{t('common.online')}</p>
           </div>
           <div>
-            <p className="text-gray-500">Redis</p>
-            <p className="font-medium text-green-600">Online</p>
+            <p className="text-gray-500">{t('settings.redis')}</p>
+            <p className="font-medium text-green-600">{t('common.online')}</p>
           </div>
         </div>
       </div>

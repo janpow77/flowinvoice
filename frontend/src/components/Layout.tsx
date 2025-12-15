@@ -1,5 +1,6 @@
 import { ReactNode } from 'react'
 import { Link, useLocation } from 'react-router-dom'
+import { useTranslation } from 'react-i18next'
 import {
   LayoutDashboard,
   FolderOpen,
@@ -13,16 +14,18 @@ interface LayoutProps {
   children: ReactNode
 }
 
+// Navigation items with translation keys
 const navigation = [
-  { name: 'Dashboard', href: '/', icon: LayoutDashboard },
-  { name: 'Projekte', href: '/projects', icon: FolderOpen },
-  { name: 'Dokumente', href: '/documents', icon: FileText },
-  { name: 'Statistik', href: '/statistics', icon: BarChart3 },
-  { name: 'Einstellungen', href: '/settings', icon: Settings },
+  { key: 'dashboard', href: '/', icon: LayoutDashboard },
+  { key: 'projects', href: '/projects', icon: FolderOpen },
+  { key: 'documents', href: '/documents', icon: FileText },
+  { key: 'statistics', href: '/statistics', icon: BarChart3 },
+  { key: 'settings', href: '/settings', icon: Settings },
 ]
 
 export default function Layout({ children }: LayoutProps) {
   const location = useLocation()
+  const { t } = useTranslation()
 
   return (
     <div className="min-h-screen flex">
@@ -31,13 +34,17 @@ export default function Layout({ children }: LayoutProps) {
         {/* Logo */}
         <Link to="/" className="h-16 flex items-center px-4 border-b border-gray-200 hover:bg-gray-50 transition-colors">
           <img
-            src="/auditlogo.png"
+            src="/auditlogo.svg"
             alt="FlowAudit Logo"
             className="h-10 w-10 object-contain"
             onError={(e) => {
-              // Fallback zu Text wenn Logo nicht gefunden
+              // Fallback: Try PNG if SVG fails
               const target = e.target as HTMLImageElement;
-              target.style.display = 'none';
+              if (!target.src.endsWith('.png')) {
+                target.src = '/auditlogo.png';
+              } else {
+                target.style.display = 'none';
+              }
             }}
           />
           <span className="ml-3 text-xl font-bold text-gray-900">FlowAudit</span>
@@ -51,7 +58,7 @@ export default function Layout({ children }: LayoutProps) {
 
             return (
               <Link
-                key={item.name}
+                key={item.key}
                 to={item.href}
                 className={clsx(
                   'flex items-center px-3 py-2 rounded-lg text-sm font-medium transition-colors',
@@ -64,7 +71,7 @@ export default function Layout({ children }: LayoutProps) {
                   'h-5 w-5 mr-3',
                   isActive ? 'text-primary-600' : 'text-gray-400'
                 )} />
-                {item.name}
+                {t(`nav.${item.key}`)}
               </Link>
             )
           })}
@@ -85,17 +92,17 @@ export default function Layout({ children }: LayoutProps) {
         {/* Header */}
         <header className="h-16 bg-white border-b border-gray-200 flex items-center justify-between px-6">
           <h1 className="text-lg font-semibold text-gray-900">
-            {navigation.find(n =>
+            {t(`nav.${navigation.find(n =>
               location.pathname === n.href ||
               (n.href !== '/' && location.pathname.startsWith(n.href))
-            )?.name || 'FlowAudit'}
+            )?.key || 'dashboard'}`)}
           </h1>
 
           <div className="flex items-center space-x-4">
             {/* Provider Status */}
             <div className="flex items-center text-sm text-gray-500">
               <span className="w-2 h-2 bg-green-500 rounded-full mr-2"></span>
-              Ollama Online
+              Ollama {t('common.online')}
             </div>
           </div>
         </header>
