@@ -92,7 +92,7 @@ class AnthropicProvider(BaseLLMProvider):
             if request.temperature > 0:
                 params["temperature"] = request.temperature
 
-            response = await self._client.messages.create(**params)
+            response = await self._client.messages.create(**params)  # type: ignore[call-overload]
             latency_ms = int((time.time() - start_time) * 1000)
 
             content = ""

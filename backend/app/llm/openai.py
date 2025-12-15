@@ -83,7 +83,7 @@ class OpenAIProvider(BaseLLMProvider):
             if request.json_mode:
                 params["response_format"] = {"type": "json_object"}
 
-            response = await self._client.chat.completions.create(**params)
+            response = await self._client.chat.completions.create(**params)  # type: ignore[call-overload]
             latency_ms = int((time.time() - start_time) * 1000)
 
             return LLMResponse(
