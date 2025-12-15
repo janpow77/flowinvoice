@@ -12,7 +12,7 @@ from typing import Any
 from fastapi import APIRouter, HTTPException, status
 
 from app.config import get_settings
-from app.services.system_monitor import get_system_monitor, SystemStatus
+from app.services.system_monitor import SystemStatus, get_system_monitor
 
 router = APIRouter()
 config = get_settings()

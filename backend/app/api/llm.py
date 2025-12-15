@@ -16,7 +16,7 @@ from app.models.document import Document, ParseRun
 from app.models.enums import DocumentStatus, Provider
 from app.models.llm import LlmRun, LlmRunLog, PreparePayload
 from app.schemas.llm import LlmRunCreate, LlmRunLogResponse, LlmRunResponse, PreparePayloadResponse
-from app.services.rule_engine import RULESETS, FeatureCategory, RequiredLevel
+from app.services.rule_engine import RULESETS
 from app.worker.tasks import analyze_document_task
 
 router = APIRouter()

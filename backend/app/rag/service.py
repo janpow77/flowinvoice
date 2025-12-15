@@ -10,9 +10,9 @@ from dataclasses import dataclass
 from typing import Any
 
 from app.services.parser import ParseResult
-from app.services.rule_engine import FeatureCheck, PrecheckResult
+from app.services.rule_engine import PrecheckResult
 
-from .vectorstore import SearchResult, VectorStore, get_vectorstore
+from .vectorstore import VectorStore, get_vectorstore
 
 logger = logging.getLogger(__name__)
 

@@ -6,7 +6,7 @@ Endpoints für Dokumente (Rechnungen), Upload, Parse, Precheck.
 """
 
 import hashlib
-from datetime import datetime
+from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
 from uuid import uuid4
@@ -31,7 +31,7 @@ from app.schemas.document import (
     ParseRunResponse,
     PrecheckRunResponse,
 )
-from app.services.audit import AuditEventType, get_audit_service
+from app.services.audit import get_audit_service
 from app.worker.tasks import process_document_task
 
 router = APIRouter()
@@ -147,7 +147,7 @@ async def upload_documents(
             raise HTTPException(
                 status_code=status.HTTP_409_CONFLICT,
                 detail="Ein oder mehrere Dokumente existieren bereits in diesem Projekt (Duplikat anhand SHA-256 erkannt).",
-            )
+            ) from None
         raise
 
     return DocumentUploadResponse(data=uploaded)
@@ -494,9 +494,8 @@ async def start_precheck(
             detail=f"Document {document_id} not found",
         )
 
-    from datetime import timezone
 
-    from app.services.parser import ExtractedValue, ParseResult, ParsedPage
+    from app.services.parser import ExtractedValue, ParsedPage, ParseResult
     from app.services.rule_engine import get_rule_engine
 
     # Parse-Run des Dokuments laden
@@ -568,7 +567,7 @@ async def start_precheck(
             }
             for c in precheck_result.checks
         ]
-        precheck_run.completed_at = datetime.now(timezone.utc)
+        precheck_run.completed_at = datetime.now(UTC)
 
         # Dokument-Status aktualisieren
         if precheck_result.passed:
@@ -595,7 +594,7 @@ async def start_precheck(
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Precheck failed: {e}",
-        )
+        ) from e
 
 
 @router.get("/precheck-runs/{precheck_run_id}")

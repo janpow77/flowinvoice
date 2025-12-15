@@ -7,7 +7,7 @@ Haupteinstiegspunkt für die Backend-API.
 
 import logging
 from contextlib import asynccontextmanager
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from typing import Any
 
 from fastapi import FastAPI, Request, status
@@ -118,7 +118,7 @@ async def global_exception_handler(request: Request, exc: Exception) -> JSONResp
             "status": 500,
             "detail": str(exc) if config.debug else "An unexpected error occurred",
             "instance": str(request.url),
-            "timestamp": datetime.now(timezone.utc).isoformat(),
+            "timestamp": datetime.now(UTC).isoformat(),
         },
     )
 

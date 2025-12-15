@@ -5,7 +5,7 @@ FlowAudit Health & Meta API
 Endpoints für Health-Check und Metadaten.
 """
 
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from typing import Any
 
 from fastapi import APIRouter, Depends
@@ -71,7 +71,7 @@ async def health_check(
 
     return {
         "status": overall_status,
-        "time_utc": datetime.now(timezone.utc).isoformat(),
+        "time_utc": datetime.now(UTC).isoformat(),
         "version": __version__,
         "services": services,
     }

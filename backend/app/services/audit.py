@@ -7,7 +7,7 @@ Erfüllt DSGVO-Anforderungen für Nachvollziehbarkeit.
 """
 
 import logging
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from enum import Enum
 from typing import Any
 
@@ -96,7 +96,7 @@ class AuditService:
             entity_id=entity_id,
             user_role=user_role,
             data=data,
-            timestamp=datetime.now(timezone.utc),
+            timestamp=datetime.now(UTC),
         )
 
         if session:

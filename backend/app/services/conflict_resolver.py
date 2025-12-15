@@ -8,7 +8,7 @@ KI-Analysen (LLM) und manuellen Korrekturen (USER).
 
 from dataclasses import dataclass
 from datetime import datetime
-from typing import Any, Optional
+from typing import Any
 
 from app.models.enums import ConflictStatus, TruthSource
 
@@ -20,8 +20,8 @@ class SourceValue:
     source: TruthSource
     value: Any
     confidence: float = 1.0
-    timestamp: Optional[str] = None
-    reasoning: Optional[str] = None
+    timestamp: str | None = None
+    reasoning: str | None = None
 
 
 @dataclass
@@ -57,9 +57,9 @@ class ConflictResolver:
 
     def resolve(
         self,
-        rule_value: Optional[SourceValue] = None,
-        llm_value: Optional[SourceValue] = None,
-        user_value: Optional[SourceValue] = None,
+        rule_value: SourceValue | None = None,
+        llm_value: SourceValue | None = None,
+        user_value: SourceValue | None = None,
     ) -> ResolvedValue:
         """
         Löst Konflikt zwischen Quellen auf.
@@ -188,7 +188,7 @@ class ConflictResolver:
         self,
         rule_results: dict[str, Any],
         llm_results: dict[str, Any],
-        user_overrides: Optional[dict[str, Any]] = None,
+        user_overrides: dict[str, Any] | None = None,
     ) -> dict[str, ResolvedValue]:
         """
         Führt komplette Ergebnismengen zusammen.

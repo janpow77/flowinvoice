@@ -20,7 +20,13 @@ from app.schemas.document import (
     ParseRunResponse,
     PrecheckRunResponse,
 )
-from app.schemas.feedback import FeedbackCreate, FeedbackResponse, FeedbackOverride
+from app.schemas.feedback import FeedbackCreate, FeedbackOverride, FeedbackResponse
+from app.schemas.grant_purpose import (
+    DimensionAssessment,
+    GrantPurposeAuditRequest,
+    GrantPurposeAuditResult,
+    NegativeIndicator,
+)
 from app.schemas.llm import (
     LlmRunCreate,
     LlmRunLogResponse,
@@ -39,12 +45,6 @@ from app.schemas.result import (
     AnalysisMetadata,
     FinalResultResponse,
     UnclearStatus,
-)
-from app.schemas.grant_purpose import (
-    DimensionAssessment,
-    GrantPurposeAuditRequest,
-    GrantPurposeAuditResult,
-    NegativeIndicator,
 )
 from app.schemas.risk import (
     RiskAssessmentRequest,

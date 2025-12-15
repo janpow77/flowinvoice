@@ -15,6 +15,7 @@ from app.models.result import FinalResult
 from app.models.ruleset import Ruleset
 from app.models.settings import ApiKey, Setting
 from app.models.training import ModelRegistry, TrainingDataset, TrainingExample, TrainingRun
+from app.models.user import User
 
 __all__ = [
     # Core
@@ -45,4 +46,6 @@ __all__ = [
     "GeneratorJob",
     # Audit
     "AuditEvent",
+    # User
+    "User",
 ]

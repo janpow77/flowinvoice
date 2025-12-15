@@ -6,8 +6,7 @@ Prüft den sachlichen, zeitlichen, organisatorischen und wirtschaftlichen
 Zusammenhang einer Rechnung mit dem Förderzweck.
 """
 
-from datetime import date, datetime
-from typing import Optional
+from datetime import datetime
 
 from app.models.enums import (
     DimensionResult,
@@ -15,11 +14,11 @@ from app.models.enums import (
     UnclearReason,
 )
 from app.schemas.grant_purpose import (
+    NEGATIVE_INDICATORS,
     DimensionAssessment,
     GrantPurposeAuditRequest,
     GrantPurposeAuditResult,
     NegativeIndicator,
-    NEGATIVE_INDICATORS,
 )
 
 

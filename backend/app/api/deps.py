@@ -7,7 +7,7 @@ Gemäß Nutzerkonzept Abschnitt 4.4.
 """
 
 import logging
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 from typing import Annotated
 
 from fastapi import Depends, HTTPException, status
@@ -70,7 +70,7 @@ async def get_current_user(
             raise credentials_exception
     except JWTError as e:
         logger.debug(f"JWT validation error: {e}")
-        raise credentials_exception
+        raise credentials_exception from None
 
     # Benutzer aus Datenbank laden
     result = await session.execute(
@@ -89,7 +89,7 @@ async def get_current_user(
         )
 
     # --- Throttled Activity Tracking ---
-    now = datetime.now(timezone.utc)
+    now = datetime.now(UTC)
     should_update = False
 
     if user.last_active_at is None:

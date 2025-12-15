@@ -6,9 +6,8 @@ Definiert Referenzszenarien für die Qualitätssicherung.
 Bei identischem Szenario müssen Ergebnisse vergleichbar sein.
 """
 
-from datetime import date
 from enum import Enum
-from typing import Any, Optional
+from typing import Any
 
 from pydantic import BaseModel, Field
 
@@ -46,7 +45,7 @@ class ExpectedResult(BaseModel):
         default_factory=list,
         description="Erwartete Warnungs-IDs",
     )
-    grant_purpose_result: Optional[str] = Field(
+    grant_purpose_result: str | None = Field(
         default=None,
         description="Erwartetes Grant Purpose Ergebnis: PASS | FAIL | UNCLEAR",
     )
@@ -378,7 +377,7 @@ class ScenarioTestResult(BaseModel):
         default_factory=list,
         description="Abweichungsnotizen",
     )
-    model_effect: Optional[str] = Field(
+    model_effect: str | None = Field(
         default=None,
         description="Erkannter Modell-/Prompt-Effekt bei Abweichung",
     )

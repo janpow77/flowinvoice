@@ -6,11 +6,11 @@ Schemas für finale Prüfergebnisse inkl. Versionierungs-Metadaten.
 """
 
 from datetime import datetime
-from typing import Any, Optional
+from typing import Any
 
 from pydantic import BaseModel, ConfigDict, Field
 
-from app.models.enums import AnalysisStatus, ConflictStatus
+from app.models.enums import AnalysisStatus
 from app.schemas.common import Money
 
 
@@ -103,10 +103,10 @@ class UnclearStatus(BaseModel):
     is_unclear: bool = Field(
         default=False, description="UNCLEAR-Status aktiv"
     )
-    unclear_reason: Optional[str] = Field(
+    unclear_reason: str | None = Field(
         default=None, description="Beschreibung der Unklarheit"
     )
-    required_clarification: Optional[str] = Field(
+    required_clarification: str | None = Field(
         default=None, description="Benötigte Information zur Klärung"
     )
     affected_fields: list[str] = Field(
