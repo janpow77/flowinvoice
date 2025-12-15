@@ -1,68 +1,102 @@
 # FlowAudit Universal GUI Installer
 
-**Version:** 3.0
-**Ziel:** Stabiler, thread-sicherer, plattformtauglicher Installer für FlowAudit
-**Primär:** Ubuntu Desktop / ASUS NUC 15
+**Version:** 3.0 – Excellent Edition
+**Zielplattform:** Ubuntu Desktop / ASUS NUC 15 (primär), Windows/macOS (best effort)
 
-## Features
+---
 
-- Thread-sicheres Logging (Queue + UI-Poller)
-- Docker Compose Abstraktion (`docker compose` vs `docker-compose`)
-- Robuste Readiness-Checks (Container Status/Health/Polling)
-- Sichere Admin-Erstellung (JSON-Escaping)
-- Schönes UI mit Logo, Stepper, Status-Karten, Progressbar
-- GPU-Einstellungen für NVIDIA RTX
-- Cloudflare Tunnel Integration (optional)
-- Ollama Model Pull (optional)
+## 🎯 Übersicht
 
-## Voraussetzungen
+Der FlowAudit Installer ist eine grafische Benutzeroberfläche (GUI) zur vollautomatischen Installation und Konfiguration von FlowAudit auf lokalen Systemen. Er führt durch alle Schritte – vom Klonen des Repositories bis zum laufenden System mit Admin-Account.
 
-### Ubuntu/Debian
+```
+┌─────────────────────────────────────────────────────────────────┐
+│  FlowAudit Installer - Excellent Edition v3.0                   │
+├─────────────────────────────────────────────────────────────────┤
+│  [Logo]  FlowAudit Installer                                    │
+│          Git → Konfiguration → Docker → Admin → Cloudflare      │
+├─────────────┬───────────────────────────────────────────────────┤
+│  Status     │  Tabs: System | Repo | Konfiguration | Deployment │
+│  ────────── │  ─────────────────────────────────────────────────│
+│  ● System   │  [Tab-Inhalt je nach Auswahl]                     │
+│  ○ Repo     │                                                    │
+│  ○ Config   │                                                    │
+│  ○ Deploy   │                                                    │
+├─────────────┴───────────────────────────────────────────────────┤
+│  [═══════════════════════════] 45%    [Beenden] [Nächster →]    │
+└─────────────────────────────────────────────────────────────────┘
+```
+
+---
+
+## ✨ Features
+
+| Feature | Beschreibung |
+|---------|--------------|
+| **Thread-sicheres Logging** | Echtzeit-Log-Ausgabe über Queue + UI-Poller |
+| **Docker Compose Abstraktion** | Erkennt automatisch `docker compose` vs `docker-compose` |
+| **Robuste Readiness-Checks** | Container Status, Health-Checks, HTTP-Polling |
+| **Sichere Admin-Erstellung** | JSON-Escaping verhindert Injection |
+| **Logo-Integration** | Zeigt das FlowAudit-Logo in der GUI |
+| **GPU-Unterstützung** | NVIDIA RTX Settings für Ollama |
+| **Cloudflare Tunnel** | Optionaler sicherer Remote-Zugriff |
+| **Ollama Model Pull** | Lädt lokale KI-Modelle automatisch |
+
+---
+
+## 📋 Voraussetzungen
+
+### System-Anforderungen
+
+| Komponente | Minimum | Empfohlen |
+|------------|---------|-----------|
+| RAM | 16 GB | 32+ GB |
+| Storage | 50 GB SSD | 100+ GB NVMe |
+| GPU | - | NVIDIA RTX (12+ GB VRAM) |
+| OS | Ubuntu 22.04+ | Ubuntu 24.04 LTS |
+
+### Software-Abhängigkeiten
 
 ```bash
-# Python + Tkinter
+# Ubuntu/Debian - Alle Abhängigkeiten installieren
 sudo apt-get update
-sudo apt-get install -y python3 python3-tk python3-pip
+sudo apt-get install -y python3 python3-tk python3-pip git
 
 # Optional: PIL für Logo-Anzeige
 pip3 install pillow
 
-# Git
-sudo apt-get install -y git
-
 # Docker Engine + Compose Plugin
-# (Installer kann Docker auch installieren)
+# (Der Installer kann Docker auch automatisch installieren)
 ```
 
-### Docker ohne sudo
+### Docker ohne sudo (wichtig!)
 
 ```bash
 sudo usermod -aG docker $USER
-# Danach abmelden/neu anmelden oder reboot
+# Danach abmelden und neu anmelden ODER:
+newgrp docker
 ```
 
-## Schnellstart
+---
 
-### Option A: Nur Installer downloaden (empfohlen)
+## 🚀 Schnellstart
+
+### Option A: Nur Installer downloaden (empfohlen für Neuinstallation)
 
 ```bash
-# 1. Voraussetzungen installieren
-sudo apt-get update
-sudo apt-get install -y python3 python3-tk python3-pip git
-pip3 install pillow
+# 1. Verzeichnis erstellen
+mkdir ~/FlowAudit && cd ~/FlowAudit
 
 # 2. Installer herunterladen
-mkdir ~/FlowAudit && cd ~/FlowAudit
 curl -O https://raw.githubusercontent.com/janpow77/flowinvoice/main/installer/flowaudit_installer.py
 
 # 3. Installer starten
 python3 flowaudit_installer.py
 
 # 4. Im GUI: "Alles in einem Schritt" klicken
-#    → Klont Repo, konfiguriert, startet Container
 ```
 
-### Option B: Ganzes Repo klonen
+### Option B: Ganzes Repo klonen (für Entwickler)
 
 ```bash
 # 1. Repo klonen
@@ -73,98 +107,255 @@ cd flowinvoice/installer
 python3 flowaudit_installer.py
 ```
 
-## Verwendung
+---
 
-1. **System prüfen** - Überprüft Python, Git, Docker, Compose, GPU
-2. **Repo klonen/aktualisieren** - Klont das Repository oder aktualisiert es
-3. **Konfiguration generieren** - Erstellt `.env` mit Secrets
-4. **Deployment starten** - Baut und startet alle Container, erstellt Admin-User
+## 📖 Schritt-für-Schritt Anleitung
 
-### Quick Actions
+### Schritt 1: System prüfen
 
-- **Alles in einem Schritt** - Führt alle Schritte automatisch aus
-- **Container Status** - Zeigt den Status aller Container
+Der Installer prüft automatisch:
 
-## Konfigurationsoptionen
+| Prüfung | Beschreibung |
+|---------|--------------|
+| Python | Version ≥ 3.10 |
+| Git | Installation vorhanden |
+| Docker | Engine läuft |
+| Compose | Plugin oder Standalone |
+| GPU | NVIDIA Treiber + nvidia-smi |
+
+**Status-Anzeige:**
+- 🟢 **OK** – Komponente verfügbar
+- 🟡 **WARN** – Funktioniert, aber mit Einschränkungen
+- 🔴 **FEHLER** – Muss behoben werden
+
+### Schritt 2: Repository klonen/aktualisieren
+
+- **Neu:** Klont das Repository in das gewählte Verzeichnis
+- **Bestehend:** Führt `git pull` aus, um Updates zu holen
+- **Auto-Erkennung:** Erkennt, wenn bereits im Repo-Verzeichnis
+
+### Schritt 3: Konfiguration generieren
+
+Der Installer erstellt automatisch:
+
+**`.env` Datei mit:**
+```env
+# Automatisch generierte Secrets
+POSTGRES_PASSWORD=<zufällig>
+JWT_SECRET_KEY=<zufällig>
+CHROMA_SERVER_AUTHN_CREDENTIALS=<zufällig>
+
+# Optional konfigurierbar
+OPENAI_API_KEY=...
+GEMINI_API_KEY=...
+ANTHROPIC_API_KEY=...
+CLOUDFLARE_TUNNEL_TOKEN=...
+
+# GPU-Einstellungen
+GPU_MEMORY_FRACTION=0.8
+OLLAMA_NUM_GPU=999
+```
+
+**`docker-compose.override.yml` für:**
+- GPU-Reservierung für Ollama
+- Memory-Limits
+- Cloudflare Tunnel Service
+
+### Schritt 4: Deployment starten
+
+Der Installer führt aus:
+
+1. `docker compose build` – Images bauen
+2. `docker compose up -d` – Container starten
+3. Warten auf Container-Readiness
+4. Admin-User erstellen via Backend-CLI
+5. Optional: Ollama-Modell pullen
+
+---
+
+## ⚙️ Konfigurationsoptionen
 
 ### Sicherheit & Datenbank
-- DB Passwort (automatisch generiert)
-- JWT Secret (automatisch generiert)
-- Chroma Token (automatisch generiert)
 
-### Cloudflare Tunnel (optional)
-- Sicherer Zugriff von außen ohne Portfreigabe
-- Token aus dem Cloudflare Dashboard
+| Option | Beschreibung | Standard |
+|--------|--------------|----------|
+| DB Passwort | PostgreSQL Passwort | Auto-generiert (24 Hex) |
+| JWT Secret | Token-Signierung | Auto-generiert (64 Hex) |
+| Chroma Token | Vector-DB Auth | Auto-generiert (24 Hex) |
 
 ### KI API Keys (optional)
-- OpenAI
-- Google Gemini
-- Anthropic Claude
 
-### GPU Einstellungen (NVIDIA RTX)
-- GPU Memory Fraction (Standard: 0.8)
-- GPU Layers (Standard: 999 = alle)
-- Container Memory Limit (Standard: 16G)
+| Provider | Für | Empfehlung |
+|----------|-----|------------|
+| OpenAI | GPT-4, GPT-3.5 | Production |
+| Gemini | Google AI | Alternative |
+| Anthropic | Claude | Premium |
+
+> **Hinweis:** Ohne API-Keys läuft FlowAudit mit lokalem Ollama-Modell.
+
+### GPU Einstellungen (NVIDIA)
+
+| Option | Beschreibung | Standard |
+|--------|--------------|----------|
+| GPU Memory Fraction | Anteil VRAM für Ollama | 0.8 (80%) |
+| GPU Layers | Anzahl Layers auf GPU | 999 (alle) |
+| Container Memory | Max RAM für Ollama | 16G |
 
 ### Lokales KI-Modell (Ollama)
-- Qwen 2.5 32B (Empfohlen für NUC)
-- Qwen 2.5 14B (Schneller)
-- Llama 3.1 70B (High-End)
-- Mistral Small 22B
-- Keines (nur Cloud APIs)
 
-## Docker Services
+| Modell | Parameter | VRAM | Empfehlung |
+|--------|-----------|------|------------|
+| **Qwen 2.5 32B** | 32B | 20+ GB | ⭐ NUC 15 mit RTX |
+| Qwen 2.5 14B | 14B | 10+ GB | Schneller |
+| Llama 3.1 70B | 70B | 40+ GB | High-End |
+| Mistral Small 22B | 22B | 14+ GB | Gut balanciert |
+| Keines | - | - | Nur Cloud APIs |
 
-| Service | Port | Beschreibung |
-|---------|------|--------------|
-| frontend | 3000 | React Frontend |
-| backend | 8000 | FastAPI Backend |
-| db | 5432 | PostgreSQL |
-| redis | 6379 | Task Queue & Cache |
-| chromadb | 8001 | Vector Store |
-| ollama | 11434 | Local LLM |
-| worker | - | Celery Worker |
+### Cloudflare Tunnel (optional)
 
-## Dateien
+Ermöglicht sicheren Zugriff von außen ohne Portfreigabe:
+
+1. Cloudflare Dashboard → Zero Trust → Tunnels
+2. Neuen Tunnel erstellen
+3. Token kopieren
+4. Im Installer einfügen
+
+---
+
+## 🐳 Docker Services
+
+| Service | Port | Beschreibung | Health-Check |
+|---------|------|--------------|--------------|
+| **frontend** | 3000 | React Web-UI | HTTP / |
+| **backend** | 8000 | FastAPI REST API | HTTP /health |
+| **db** | 5432 | PostgreSQL 16 | pg_isready |
+| **redis** | 6379 | Task Queue & Cache | redis-cli ping |
+| **chromadb** | 8001 | Vector Store (RAG) | HTTP /api/v1/heartbeat |
+| **ollama** | 11434 | Local LLM Server | HTTP /api/tags |
+| **worker** | - | Celery Background Jobs | - |
+
+---
+
+## 🔧 Quick Actions
+
+| Button | Funktion |
+|--------|----------|
+| **Alles in einem Schritt** | Führt Schritte 1-4 automatisch aus |
+| **Container Status** | Zeigt `docker compose ps` |
+| **Docker Logs** | Öffnet Log-Viewer für alle Services |
+| **Nächster Schritt →** | Geht zum nächsten Tab |
+| **Log öffnen** | Öffnet `installer.log` |
+
+---
+
+## 📁 Dateistruktur
 
 ```
 installer/
-├── flowaudit_installer.py   # Hauptinstaller
-├── auditlogo.png            # Logo für UI (optional, wird aus Repo geladen)
-└── README.md                # Diese Datei
+├── flowaudit_installer.py   # Hauptinstaller (Python/Tkinter)
+├── README.md                # Diese Dokumentation
+└── installer.log            # Log-Datei (nach Start)
+
+docker/
+├── docker-compose.yml       # Haupt-Compose-Datei
+├── .env                     # Generierte Konfiguration
+└── docker-compose.override.yml  # GPU/Cloudflare Overrides
 ```
 
-## Troubleshooting
+---
+
+## 🔍 Troubleshooting
 
 ### Docker Permission Denied
+
 ```bash
 sudo usermod -aG docker $USER
 newgrp docker
+# ODER: Komplett abmelden und neu anmelden
 ```
 
 ### NVIDIA GPU nicht erkannt
+
 ```bash
-# NVIDIA Container Toolkit installieren
+# 1. NVIDIA Treiber prüfen
+nvidia-smi
+
+# 2. Container Toolkit installieren
 distribution=$(. /etc/os-release;echo $ID$VERSION_ID)
 curl -s -L https://nvidia.github.io/nvidia-docker/gpgkey | sudo apt-key add -
-curl -s -L https://nvidia.github.io/nvidia-docker/$distribution/nvidia-docker.list | sudo tee /etc/apt/sources.list.d/nvidia-docker.list
+curl -s -L https://nvidia.github.io/nvidia-docker/$distribution/nvidia-docker.list | \
+    sudo tee /etc/apt/sources.list.d/nvidia-docker.list
 sudo apt-get update
 sudo apt-get install -y nvidia-container-toolkit
 sudo systemctl restart docker
 ```
 
+### Container startet nicht
+
+```bash
+# Logs prüfen
+docker compose -f docker/docker-compose.yml logs <service>
+
+# Container neu starten
+docker compose -f docker/docker-compose.yml restart <service>
+
+# Alles neu bauen
+docker compose -f docker/docker-compose.yml down
+docker compose -f docker/docker-compose.yml build --no-cache
+docker compose -f docker/docker-compose.yml up -d
+```
+
 ### Modell-Download langsam
-Große Modelle wie Qwen 32B oder Llama 70B können mehrere GB groß sein. Der Download kann je nach Internetverbindung lange dauern.
 
-## Sicherheitshinweise
+Große Modelle können mehrere GB groß sein:
 
-- `.env` enthält Secrets → **nicht committen**
-- Admin-Passwort nach Erststart ändern
-- Bei Cloudflare Tunnel: Token wie Passwort behandeln
+| Modell | Größe |
+|--------|-------|
+| Qwen 2.5 32B Q4 | ~18 GB |
+| Llama 3.1 70B Q4 | ~40 GB |
 
-## Support
+**Tipp:** Download läuft im Hintergrund weiter, auch wenn der Installer geschlossen wird.
+
+### Backend nicht erreichbar
+
+```bash
+# Health-Check
+curl http://localhost:8000/health
+
+# Logs prüfen
+docker compose -f docker/docker-compose.yml logs backend
+```
+
+---
+
+## 🔒 Sicherheitshinweise
+
+| ⚠️ Wichtig |
+|-----------|
+| `.env` enthält Secrets → **Niemals committen!** |
+| Admin-Passwort nach Erststart ändern |
+| Cloudflare Token wie Passwort behandeln |
+| Bei Produktiveinsatz: HTTPS aktivieren |
+
+---
+
+## 📞 Support
 
 Bei Problemen:
-1. Log-Datei prüfen: `installer.log`
-2. Container-Logs prüfen: Docker Logs Button im Installer
-3. Issue im Repository erstellen
+
+1. **Log-Datei prüfen:** `installer.log` im Installer-Verzeichnis
+2. **Container-Logs:** "Docker Logs" Button im Installer
+3. **Issue erstellen:** [GitHub Issues](https://github.com/janpow77/flowinvoice/issues)
+
+---
+
+## 🎉 Nach der Installation
+
+Nach erfolgreicher Installation:
+
+1. **Frontend öffnen:** http://localhost:3000
+2. **Mit Admin einloggen:** admin@local / admin123
+3. **Passwort ändern!**
+4. **API testen:** http://localhost:8000/docs
+
+**Viel Erfolg mit FlowAudit! 🐟**
