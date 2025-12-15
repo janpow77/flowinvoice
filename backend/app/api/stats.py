@@ -5,17 +5,20 @@ FlowAudit Statistics API
 Endpoints für Dashboard-Statistiken.
 """
 
+from datetime import datetime, timedelta, timezone
 from typing import Any
 
 from fastapi import APIRouter, Depends
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.api.deps import CurrentAdmin
 from app.database import get_async_session
 from app.models.document import Document
 from app.models.feedback import Feedback, RagExample
 from app.models.llm import LlmRun
 from app.models.project import Project
+from app.models.user import User
 from app.schemas.stats import (
     FeedbackStatsResponse,
     GlobalStatsResponse,
@@ -24,6 +27,7 @@ from app.schemas.stats import (
     RagStatsResponse,
     SystemStatsResponse,
 )
+from app.schemas.user import ActiveUsersResponse
 
 router = APIRouter()
 
@@ -299,3 +303,33 @@ async def get_system_stats(
         },
         "activity_log": [],
     }
+
+
+@router.get("/stats/users/active", response_model=ActiveUsersResponse)
+async def get_active_user_count(
+    session: AsyncSession = Depends(get_async_session),
+    admin: CurrentAdmin = None,
+) -> ActiveUsersResponse:
+    """
+    Zählt aktuell aktive Benutzer (Admin-only).
+
+    Aktiv = last_active_at innerhalb der letzten 10 Minuten.
+    Gemäß Nutzerkonzept Abschnitt 4.5.
+
+    Returns:
+        Anzahl aktiver Benutzer und Zeitstempel.
+    """
+    # Zeitfenster: 10 Minuten (entspricht Inaktivitäts-Timeout)
+    cutoff = datetime.now(timezone.utc) - timedelta(minutes=10)
+
+    count = await session.scalar(
+        select(func.count(User.id)).where(
+            User.last_active_at >= cutoff,
+            User.is_active == True,
+        )
+    ) or 0
+
+    return ActiveUsersResponse(
+        active_users=count,
+        timestamp=datetime.now(timezone.utc).isoformat(),
+    )
