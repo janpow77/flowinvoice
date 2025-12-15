@@ -3,11 +3,15 @@
 FlowAudit PDF Parser
 
 Extrahiert Text und strukturierte Daten aus PDF-Rechnungen.
-Verwendet pdfplumber für OCR-freies Parsing.
+Verwendet pdfplumber für digitale PDFs und Tesseract OCR als Fallback
+für gescannte Dokumente.
 """
 
 import logging
+import os
 import re
+import subprocess
+import tempfile
 import time
 from dataclasses import dataclass, field
 from datetime import date, datetime
@@ -17,7 +21,39 @@ from typing import Any
 
 import pdfplumber
 
+# Optionale OCR-Imports
+try:
+    from pdf2image import convert_from_path
+    import pytesseract
+    _PDF2IMAGE_AVAILABLE = True
+except ImportError:
+    _PDF2IMAGE_AVAILABLE = False
+
 logger = logging.getLogger(__name__)
+
+# OCR-Verfügbarkeit prüfen
+_TESSERACT_AVAILABLE: bool | None = None
+
+
+def _check_tesseract() -> bool:
+    """Prüft ob Tesseract installiert ist."""
+    global _TESSERACT_AVAILABLE
+    if _TESSERACT_AVAILABLE is None:
+        try:
+            result = subprocess.run(
+                ["tesseract", "--version"],
+                capture_output=True,
+                timeout=5,
+            )
+            _TESSERACT_AVAILABLE = result.returncode == 0
+            if _TESSERACT_AVAILABLE:
+                logger.info("Tesseract OCR verfügbar")
+            else:
+                logger.warning("Tesseract OCR nicht verfügbar - gescannte PDFs können nicht verarbeitet werden")
+        except (FileNotFoundError, subprocess.TimeoutExpired):
+            _TESSERACT_AVAILABLE = False
+            logger.warning("Tesseract OCR nicht installiert - gescannte PDFs können nicht verarbeitet werden")
+    return _TESSERACT_AVAILABLE
 
 
 @dataclass
@@ -200,7 +236,7 @@ class PDFParser:
                 # Seiten verarbeiten
                 extract_start = time.time()
                 for i, page in enumerate(pdf.pages[: self.max_pages]):
-                    parsed_page = self._parse_page(page, i + 1)
+                    parsed_page = self._parse_page(page, i + 1, file_path)
                     pages.append(parsed_page)
                     all_text_parts.append(parsed_page.text)
 
@@ -232,13 +268,16 @@ class PDFParser:
                 error=str(e),
             )
 
-    def _parse_page(self, page: Any, page_number: int) -> ParsedPage:
+    def _parse_page(
+        self, page: Any, page_number: int, file_path: Path | None = None
+    ) -> ParsedPage:
         """
         Parst eine einzelne Seite.
 
         Args:
             page: pdfplumber Page-Objekt
             page_number: Seitennummer (1-basiert)
+            file_path: Pfad zur PDF für OCR-Fallback
 
         Returns:
             ParsedPage
@@ -248,6 +287,11 @@ class PDFParser:
 
         # Text extrahieren
         text = page.extract_text() or ""
+
+        # OCR-Fallback wenn kein Text gefunden (gescannte PDF)
+        if not text.strip() and file_path:
+            logger.info(f"Seite {page_number}: Kein Text, versuche OCR...")
+            text = self._ocr_page(file_path, page_number)
 
         # Tokens mit Positionen
         tokens: list[ExtractedToken] = []
@@ -271,6 +315,50 @@ class PDFParser:
             text=text,
             tokens=tokens,
         )
+
+    def _ocr_page(self, file_path: Path, page_number: int) -> str:
+        """
+        OCR-Fallback für gescannte Seiten.
+
+        Args:
+            file_path: Pfad zur PDF-Datei
+            page_number: Seitennummer (1-basiert)
+
+        Returns:
+            Extrahierter Text oder leerer String
+        """
+        if not _PDF2IMAGE_AVAILABLE or not _check_tesseract():
+            logger.warning(
+                f"OCR nicht verfügbar für Seite {page_number}. "
+                "Installieren Sie pdf2image und tesseract-ocr."
+            )
+            return ""
+
+        try:
+            # Nur die benötigte Seite konvertieren
+            images = convert_from_path(
+                file_path,
+                first_page=page_number,
+                last_page=page_number,
+                dpi=300,
+            )
+
+            if not images:
+                return ""
+
+            # OCR auf das Bild anwenden
+            text = pytesseract.image_to_string(
+                images[0],
+                lang="deu+eng",  # Deutsch + Englisch
+                config="--psm 6",  # Assume uniform block of text
+            )
+
+            logger.debug(f"OCR für Seite {page_number}: {len(text)} Zeichen extrahiert")
+            return text.strip()
+
+        except Exception as e:
+            logger.warning(f"OCR-Fehler für Seite {page_number}: {e}")
+            return ""
 
     def _extract_structured_data(
         self, text: str, pages: list[ParsedPage]

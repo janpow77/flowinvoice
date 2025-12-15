@@ -14,6 +14,7 @@ from uuid import uuid4
 import aiofiles
 from fastapi import APIRouter, Depends, File, HTTPException, Query, UploadFile, status
 from sqlalchemy import func, select
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.config import get_settings
@@ -22,6 +23,7 @@ from app.models.document import Document, ParseRun, PrecheckRun
 from app.models.enums import DocumentStatus
 from app.models.project import Project
 from app.schemas.document import (
+    DocumentDeleteResponse,
     DocumentListItem,
     DocumentResponse,
     DocumentUploadItem,
@@ -29,9 +31,11 @@ from app.schemas.document import (
     ParseRunResponse,
     PrecheckRunResponse,
 )
+from app.services.audit import AuditEventType, get_audit_service
 from app.worker.tasks import process_document_task
 
 router = APIRouter()
+audit = get_audit_service()
 settings = get_settings()
 
 
@@ -122,7 +126,29 @@ async def upload_documents(
             )
         )
 
-    await session.flush()
+    try:
+        await session.flush()
+
+        # Audit-Logging für alle Uploads
+        for item in uploaded:
+            await audit.log_document_access(
+                document_id=item.document_id,
+                filename=item.filename,
+                action="uploaded",
+                session=session,
+            )
+
+        await session.commit()
+
+    except IntegrityError as e:
+        await session.rollback()
+        # Race Condition: Dokument wurde bereits hochgeladen
+        if "uq_document_project_sha256" in str(e):
+            raise HTTPException(
+                status_code=status.HTTP_409_CONFLICT,
+                detail="Ein oder mehrere Dokumente existieren bereits in diesem Projekt (Duplikat anhand SHA-256 erkannt).",
+            )
+        raise
 
     return DocumentUploadResponse(data=uploaded)
 
@@ -203,6 +229,13 @@ async def get_document(
             detail=f"Document {document_id} not found",
         )
 
+    # Audit: Dokument wurde angesehen
+    await audit.log_document_access(
+        document_id=document_id,
+        filename=document.original_filename,
+        action="viewed",
+    )
+
     return DocumentResponse(
         id=document.id,
         project_id=document.project_id,
@@ -252,10 +285,101 @@ async def get_document_file(
             detail="File not found on disk",
         )
 
+    # Audit: Dokument wurde heruntergeladen
+    await audit.log_document_access(
+        document_id=document_id,
+        filename=document.original_filename,
+        action="downloaded",
+    )
+
     return FileResponse(
         path=file_path,
         media_type="application/pdf",
         filename=document.original_filename,
+    )
+
+
+@router.delete("/documents/{document_id}", status_code=status.HTTP_200_OK)
+async def delete_document(
+    document_id: str,
+    session: AsyncSession = Depends(get_async_session),
+) -> DocumentDeleteResponse:
+    """
+    Löscht ein Dokument inklusive Datei (DSGVO-Compliance).
+
+    Args:
+        document_id: Dokument-ID
+
+    Returns:
+        Löschbestätigung.
+    """
+    import os
+
+    result = await session.execute(select(Document).where(Document.id == document_id))
+    document = result.scalar_one_or_none()
+
+    if not document:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Document {document_id} not found",
+        )
+
+    original_filename = document.original_filename
+    storage_path = document.storage_path
+
+    # Datei vom Dateisystem löschen
+    file_deleted = False
+    if storage_path:
+        file_path = Path(storage_path)
+        if file_path.exists():
+            try:
+                os.remove(file_path)
+                file_deleted = True
+            except OSError as e:
+                # Fehler loggen, aber Löschung fortsetzen
+                import logging
+                logging.getLogger(__name__).error(
+                    f"Konnte Datei nicht löschen: {file_path} - {e}"
+                )
+
+    # Zugehörige Parse-Runs löschen
+    await session.execute(
+        select(ParseRun).where(ParseRun.document_id == document_id)
+    )
+    parse_runs = await session.execute(
+        select(ParseRun).where(ParseRun.document_id == document_id)
+    )
+    for pr in parse_runs.scalars().all():
+        await session.delete(pr)
+
+    # Zugehörige Precheck-Runs löschen
+    precheck_runs = await session.execute(
+        select(PrecheckRun).where(PrecheckRun.document_id == document_id)
+    )
+    for pcr in precheck_runs.scalars().all():
+        await session.delete(pcr)
+
+    # Dokument aus DB löschen
+    await session.delete(document)
+
+    # Audit-Log
+    await audit.log_document_access(
+        document_id=document_id,
+        filename=original_filename,
+        action="deleted",
+        session=session,
+    )
+
+    await session.commit()
+
+    return DocumentDeleteResponse(
+        document_id=document_id,
+        filename=original_filename,
+        deleted=True,
+        file_deleted=file_deleted,
+        message="Dokument und zugehörige Daten erfolgreich gelöscht"
+        if file_deleted
+        else "Dokument gelöscht, Datei konnte nicht entfernt werden",
     )
 
 

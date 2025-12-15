@@ -38,6 +38,9 @@ class AuditEvent(Base):
     """
     Mögliche Typen:
     - DOCUMENT_UPLOADED
+    - DOCUMENT_VIEWED
+    - DOCUMENT_DOWNLOADED
+    - DOCUMENT_DELETED
     - DOCUMENT_PARSED
     - DOCUMENT_PRECHECKED
     - LLM_RUN_STARTED
@@ -51,6 +54,9 @@ class AuditEvent(Base):
     - SETTINGS_CHANGED
     - EXPORT_CREATED
     - GENERATOR_RUN
+    - PROJECT_CREATED
+    - PROJECT_UPDATED
+    - PROJECT_DELETED
     """
 
     # Entität
