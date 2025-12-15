@@ -51,6 +51,26 @@ class DocumentCreate(BaseModel):
     ui_language: str = Field(default="de", description="UI-Sprache")
 
 
+class AnalysisResultResponse(BaseModel):
+    """Analyse-Ergebnis für Frontend."""
+
+    model_config = ConfigDict(from_attributes=True)
+
+    id: str = Field(..., description="Analyse-ID")
+    provider: str = Field(..., description="LLM-Provider")
+    model: str = Field(..., description="Modellname")
+    overall_assessment: str = Field(..., description="Gesamtbewertung")
+    confidence: float = Field(..., description="Konfidenz (0-1)")
+    semantic_check: dict[str, Any] | None = Field(default=None, description="Semantik-Prüfung")
+    economic_check: dict[str, Any] | None = Field(default=None, description="Wirtschaftlichkeit")
+    beneficiary_match: dict[str, Any] | None = Field(default=None, description="Begünstigten-Match")
+    warnings: list[str] = Field(default_factory=list, description="Warnungen")
+    input_tokens: int | None = Field(default=None, description="Input-Tokens")
+    output_tokens: int | None = Field(default=None, description="Output-Tokens")
+    latency_ms: int | None = Field(default=None, description="Latenz in ms")
+    created_at: datetime = Field(..., description="Erstellt")
+
+
 class DocumentResponse(BaseModel):
     """Dokument-Response."""
 
@@ -69,6 +89,12 @@ class DocumentResponse(BaseModel):
     error_message: str | None = Field(default=None, description="Fehlermeldung")
     created_at: datetime = Field(..., description="Erstellt")
     updated_at: datetime | None = Field(default=None, description="Aktualisiert")
+
+    # Erweiterte Felder für Frontend
+    extracted_data: dict[str, Any] | None = Field(default=None, description="Extrahierte Daten")
+    precheck_passed: bool | None = Field(default=None, description="Precheck bestanden")
+    precheck_errors: list[dict[str, Any]] | None = Field(default=None, description="Precheck-Fehler")
+    analysis_result: AnalysisResultResponse | None = Field(default=None, description="Analyse-Ergebnis")
 
 
 class DocumentListItem(BaseModel):

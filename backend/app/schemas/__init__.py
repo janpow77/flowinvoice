@@ -14,6 +14,7 @@ from app.schemas.common import (
     ProblemDetail,
 )
 from app.schemas.document import (
+    AnalysisResultResponse,
     DocumentCreate,
     DocumentResponse,
     DocumentUploadResponse,
@@ -87,6 +88,7 @@ __all__ = [
     "BeneficiarySchema",
     "ImplementationSchema",
     # Document
+    "AnalysisResultResponse",
     "DocumentCreate",
     "DocumentResponse",
     "DocumentUploadResponse",

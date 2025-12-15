@@ -218,8 +218,11 @@ async def get_document(
         document_id: Dokument-ID
 
     Returns:
-        Dokument-Details.
+        Dokument-Details inkl. Extraktion, Precheck und Analyse.
     """
+    from app.models.result import AnalysisResult
+    from app.schemas.document import AnalysisResultResponse
+
     result = await session.execute(select(Document).where(Document.id == document_id))
     document = result.scalar_one_or_none()
 
@@ -236,6 +239,58 @@ async def get_document(
         action="viewed",
     )
 
+    # Neuestes Analyse-Ergebnis laden
+    analysis_result_response = None
+    analysis_query = await session.execute(
+        select(AnalysisResult)
+        .where(AnalysisResult.document_id == document_id)
+        .order_by(AnalysisResult.created_at.desc())
+        .limit(1)
+    )
+    analysis_result = analysis_query.scalar_one_or_none()
+
+    if analysis_result:
+        analysis_result_response = AnalysisResultResponse(
+            id=analysis_result.id,
+            provider=analysis_result.provider.value if analysis_result.provider else "unknown",
+            model=analysis_result.model,
+            overall_assessment=analysis_result.overall_assessment,
+            confidence=analysis_result.confidence,
+            semantic_check=analysis_result.semantic_check,
+            economic_check=analysis_result.economic_check,
+            beneficiary_match=analysis_result.beneficiary_match,
+            warnings=analysis_result.warnings or [],
+            input_tokens=analysis_result.input_tokens,
+            output_tokens=analysis_result.output_tokens,
+            latency_ms=analysis_result.latency_ms,
+            created_at=analysis_result.created_at,
+        )
+
+    # Precheck-Fehler aus letztem PrecheckRun laden
+    precheck_errors = None
+    precheck_passed = document.precheck_passed
+
+    precheck_query = await session.execute(
+        select(PrecheckRun)
+        .where(PrecheckRun.document_id == document_id)
+        .order_by(PrecheckRun.created_at.desc())
+        .limit(1)
+    )
+    precheck_run = precheck_query.scalar_one_or_none()
+
+    if precheck_run and precheck_run.checks:
+        # Nur Fehler und Warnungen extrahieren (status != OK)
+        precheck_errors = [
+            {
+                "feature_id": check.get("feature_id", "unknown"),
+                "severity": check.get("severity", "LOW"),
+                "message": check.get("message", ""),
+                "status": check.get("status", "UNKNOWN"),
+            }
+            for check in precheck_run.checks
+            if check.get("status") in ("FAIL", "WARN", "ERROR")
+        ]
+
     return DocumentResponse(
         id=document.id,
         project_id=document.project_id,
@@ -250,6 +305,11 @@ async def get_document(
         error_message=document.error_message,
         created_at=document.created_at,
         updated_at=document.updated_at,
+        # Erweiterte Felder
+        extracted_data=document.extracted_data,
+        precheck_passed=precheck_passed,
+        precheck_errors=precheck_errors,
+        analysis_result=analysis_result_response,
     )
 
 
