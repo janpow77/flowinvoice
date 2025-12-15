@@ -210,6 +210,21 @@ export default function Settings() {
           </div>
         </div>
       </div>
+
+      {/* Contact */}
+      <div className="bg-white rounded-lg border border-gray-200 p-6">
+        <h3 className="text-lg font-semibold text-gray-900 mb-4">{t('settings.contact')}</h3>
+        <div className="text-sm">
+          <p className="text-gray-500 mb-1">{t('settings.contactPerson')}</p>
+          <p className="font-medium text-gray-900">Jan Riener</p>
+          <a
+            href="mailto:jan.riener@vwvg.de"
+            className="text-primary-600 hover:text-primary-700 hover:underline"
+          >
+            jan.riener@vwvg.de
+          </a>
+        </div>
+      </div>
     </div>
   )
 }

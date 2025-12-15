@@ -154,6 +154,8 @@ export const en = {
     backend: 'Backend',
     chromadb: 'ChromaDB',
     redis: 'Redis',
+    contact: 'Contact',
+    contactPerson: 'Contact Person',
   },
 
   // Rulesets
