@@ -159,8 +159,19 @@ export default function Login() {
       {/* --- LOGIN BEREICH (VORDERGRUND) --- */}
       <div className="relative z-30 sm:mx-auto sm:w-full sm:max-w-md px-4">
 
-        {/* Große Überschrift */}
+        {/* Logo und Überschrift */}
         <div className="text-center mb-8">
+          <img
+            src="/auditlogo.svg"
+            alt="FlowAudit Logo"
+            className="h-24 w-auto mx-auto mb-4 drop-shadow-lg"
+            onError={(e) => {
+              const target = e.target as HTMLImageElement;
+              if (!target.src.endsWith('.png')) {
+                target.src = '/auditlogo.png';
+              }
+            }}
+          />
           <h1 className="text-5xl sm:text-6xl font-extrabold text-white drop-shadow-lg tracking-tight">
             flowaudit
           </h1>
