@@ -1,0 +1,421 @@
+# Pfad: /backend/app/llm/adapter.py
+"""
+FlowAudit LLM Adapter
+
+Zentraler Adapter für alle LLM-Provider.
+Ermöglicht transparenten Provider-Wechsel.
+"""
+
+import json
+import logging
+from dataclasses import dataclass
+from typing import Any
+
+from app.models.enums import Provider
+from app.services.parser import ParseResult
+from app.services.rule_engine import PrecheckResult
+
+from .anthropic import AnthropicProvider
+from .base import BaseLLMProvider, LLMMessage, LLMRequest, LLMResponse
+from .gemini import GeminiProvider
+from .ollama import OllamaProvider
+from .openai import OpenAIProvider
+
+logger = logging.getLogger(__name__)
+
+
+@dataclass
+class InvoiceAnalysisRequest:
+    """Request für Rechnungsanalyse."""
+
+    parse_result: ParseResult
+    precheck_result: PrecheckResult
+    ruleset_id: str = "DE_USTG"
+    project_context: dict[str, Any] | None = None
+    beneficiary_context: dict[str, Any] | None = None
+    rag_examples: list[dict[str, Any]] | None = None
+
+
+@dataclass
+class InvoiceAnalysisResult:
+    """Ergebnis der LLM-Analyse."""
+
+    semantic_check: dict[str, Any]
+    economic_check: dict[str, Any]
+    beneficiary_match: dict[str, Any]
+    warnings: list[dict[str, Any]]
+    overall_assessment: str
+    confidence: float
+    llm_response: LLMResponse
+    raw_json: dict[str, Any] | None = None
+
+
+class LLMAdapter:
+    """
+    Zentraler LLM-Adapter.
+
+    Verwaltet alle Provider und ermöglicht:
+    - Provider-Auswahl
+    - Fallback bei Fehlern
+    - Einheitliche Schnittstelle
+    """
+
+    def __init__(self):
+        """Initialisiert Adapter mit allen Providern."""
+        self._providers: dict[Provider, BaseLLMProvider] = {}
+        self._default_provider = Provider.LOCAL_OLLAMA
+
+    def register_provider(self, provider: BaseLLMProvider):
+        """
+        Registriert Provider.
+
+        Args:
+            provider: Provider-Instanz
+        """
+        self._providers[provider.provider] = provider
+        logger.info(f"Registered LLM provider: {provider.provider}")
+
+    def get_provider(self, provider_type: Provider) -> BaseLLMProvider | None:
+        """
+        Gibt Provider zurück.
+
+        Args:
+            provider_type: Provider-Typ
+
+        Returns:
+            Provider oder None
+        """
+        return self._providers.get(provider_type)
+
+    def set_default_provider(self, provider_type: Provider):
+        """
+        Setzt Standard-Provider.
+
+        Args:
+            provider_type: Provider-Typ
+        """
+        if provider_type in self._providers:
+            self._default_provider = provider_type
+        else:
+            logger.warning(f"Provider {provider_type} not registered")
+
+    async def complete(
+        self,
+        request: LLMRequest,
+        provider_type: Provider | None = None,
+    ) -> LLMResponse:
+        """
+        Führt Completion durch.
+
+        Args:
+            request: LLMRequest
+            provider_type: Provider (default: Standard-Provider)
+
+        Returns:
+            LLMResponse
+        """
+        provider_type = provider_type or self._default_provider
+        provider = self._providers.get(provider_type)
+
+        if not provider:
+            return LLMResponse(
+                content="",
+                model="",
+                provider=provider_type,
+                error=f"Provider {provider_type} nicht verfügbar",
+            )
+
+        return await provider.complete(request)
+
+    async def analyze_invoice(
+        self,
+        analysis_request: InvoiceAnalysisRequest,
+        provider_type: Provider | None = None,
+        model: str | None = None,
+    ) -> InvoiceAnalysisResult:
+        """
+        Analysiert Rechnung mit LLM.
+
+        Args:
+            analysis_request: Analyse-Request
+            provider_type: Provider
+            model: Modell-ID
+
+        Returns:
+            InvoiceAnalysisResult
+        """
+        provider_type = provider_type or self._default_provider
+        provider = self._providers.get(provider_type)
+
+        if not provider:
+            return InvoiceAnalysisResult(
+                semantic_check={},
+                economic_check={},
+                beneficiary_match={},
+                warnings=[],
+                overall_assessment="error",
+                confidence=0.0,
+                llm_response=LLMResponse(
+                    content="",
+                    model="",
+                    provider=provider_type,
+                    error=f"Provider {provider_type} nicht verfügbar",
+                ),
+            )
+
+        # Prompts erstellen
+        system_prompt = self._build_system_prompt(
+            analysis_request.ruleset_id,
+            analysis_request.precheck_result,
+            analysis_request.rag_examples,
+        )
+
+        user_prompt = self._build_user_prompt(
+            analysis_request.parse_result,
+            analysis_request.project_context,
+            analysis_request.beneficiary_context,
+        )
+
+        # LLM-Request
+        llm_request = LLMRequest(
+            messages=[
+                LLMMessage(role="system", content=system_prompt),
+                LLMMessage(role="user", content=user_prompt),
+            ],
+            model=model,
+            temperature=0.0,
+            max_tokens=4096,
+            json_mode=True,
+        )
+
+        # Completion durchführen
+        response = await provider.complete(llm_request)
+
+        # Response parsen
+        return self._parse_analysis_response(response)
+
+    def _build_system_prompt(
+        self,
+        ruleset_id: str,
+        precheck_result: PrecheckResult,
+        rag_examples: list[dict[str, Any]] | None,
+    ) -> str:
+        """Erstellt System-Prompt."""
+        prompt_parts = [
+            "Du bist ein Experte für steuerliche Rechnungsprüfung.",
+            f"Deine Aufgabe ist die Prüfung von Rechnungen nach dem Regelwerk {ruleset_id}.",
+            "",
+            "WICHTIG:",
+            "- Antworte IMMER auf Deutsch",
+            "- Antworte im JSON-Format",
+            "- Sei präzise und verweise auf konkrete Rechtsgrundlagen",
+            "- Die Rechnung wurde bereits vorgeprüft. Du führst die semantische Analyse durch.",
+            "",
+        ]
+
+        # Vorprüfungsergebnisse einfügen
+        if precheck_result.errors:
+            prompt_parts.append("VORPRÜFUNG - Gefundene Fehler:")
+            for err in precheck_result.errors:
+                prompt_parts.append(f"- {err.feature_id}: {err.message}")
+            prompt_parts.append("")
+
+        if precheck_result.is_small_amount:
+            prompt_parts.append("HINWEIS: Kleinbetragsrechnung (§ 33 UStDV)")
+            prompt_parts.append("")
+
+        # RAG-Beispiele einfügen (Few-Shot)
+        if rag_examples:
+            prompt_parts.append("REFERENZBEISPIELE für ähnliche Fälle:")
+            for i, example in enumerate(rag_examples[:3], 1):
+                prompt_parts.append(f"\nBeispiel {i}:")
+                prompt_parts.append(f"Fehler: {example.get('error_type', 'N/A')}")
+                prompt_parts.append(f"Bewertung: {example.get('assessment', 'N/A')}")
+                prompt_parts.append(f"Begründung: {example.get('reasoning', 'N/A')}")
+            prompt_parts.append("")
+
+        return "\n".join(prompt_parts)
+
+    def _build_user_prompt(
+        self,
+        parse_result: ParseResult,
+        project_context: dict[str, Any] | None,
+        beneficiary_context: dict[str, Any] | None,
+    ) -> str:
+        """Erstellt User-Prompt."""
+        prompt_parts = [
+            "Bitte analysiere die folgende Rechnung:",
+            "",
+            "--- EXTRAHIERTE DATEN ---",
+        ]
+
+        # Extrahierte Felder
+        for field, ext_val in parse_result.extracted.items():
+            prompt_parts.append(f"{field}: {ext_val.value} (Roh: {ext_val.raw_text})")
+
+        prompt_parts.extend([
+            "--- ENDE EXTRAHIERTE DATEN ---",
+            "",
+            "--- RECHNUNGSTEXT (Auszug) ---",
+            parse_result.raw_text[:6000],
+            "--- ENDE RECHNUNGSTEXT ---",
+        ])
+
+        # Projektkontext
+        if project_context:
+            prompt_parts.extend([
+                "",
+                "--- PROJEKTKONTEXT ---",
+                f"Projekttitel: {project_context.get('title', 'N/A')}",
+                f"Projektzeitraum: {project_context.get('start_date', 'N/A')} - {project_context.get('end_date', 'N/A')}",
+                f"Projektbeschreibung: {project_context.get('description', 'N/A')}",
+                "--- ENDE PROJEKTKONTEXT ---",
+            ])
+
+        # Begünstigtenkontext
+        if beneficiary_context:
+            prompt_parts.extend([
+                "",
+                "--- BEGÜNSTIGTENKONTEXT ---",
+                f"Name: {beneficiary_context.get('name', 'N/A')}",
+                f"Adresse: {beneficiary_context.get('address', 'N/A')}",
+                f"Aliase: {', '.join(beneficiary_context.get('aliases', []))}",
+                f"Durchführungsort: {beneficiary_context.get('implementation_location', 'N/A')}",
+                "--- ENDE BEGÜNSTIGTENKONTEXT ---",
+            ])
+
+        prompt_parts.extend([
+            "",
+            "Antworte im folgenden JSON-Format:",
+            """{
+  "semantic_check": {
+    "supply_fits_project": "yes|partial|unclear|no",
+    "supply_description_quality": "clear|vague|missing",
+    "reasoning": "..."
+  },
+  "economic_check": {
+    "reasonable": "yes|questionable|no",
+    "reasoning": "..."
+  },
+  "beneficiary_match": {
+    "matches": "yes|partial|no",
+    "detected_name": "...",
+    "reasoning": "..."
+  },
+  "warnings": [
+    {"type": "...", "message": "...", "severity": "low|medium|high"}
+  ],
+  "overall_assessment": "ok|review_needed|reject",
+  "confidence": 0.0-1.0
+}""",
+        ])
+
+        return "\n".join(prompt_parts)
+
+    def _parse_analysis_response(self, response: LLMResponse) -> InvoiceAnalysisResult:
+        """Parst LLM-Response zu strukturiertem Ergebnis."""
+        # Default-Werte für Fehlerfall
+        default_result = InvoiceAnalysisResult(
+            semantic_check={
+                "supply_fits_project": "unclear",
+                "supply_description_quality": "unclear",
+                "reasoning": "Analyse fehlgeschlagen",
+            },
+            economic_check={"reasonable": "unclear", "reasoning": "Analyse fehlgeschlagen"},
+            beneficiary_match={"matches": "unclear", "detected_name": "", "reasoning": ""},
+            warnings=[],
+            overall_assessment="review_needed",
+            confidence=0.0,
+            llm_response=response,
+        )
+
+        if response.error or not response.content:
+            return default_result
+
+        try:
+            # JSON parsen
+            data = json.loads(response.content)
+
+            return InvoiceAnalysisResult(
+                semantic_check=data.get("semantic_check", {}),
+                economic_check=data.get("economic_check", {}),
+                beneficiary_match=data.get("beneficiary_match", {}),
+                warnings=data.get("warnings", []),
+                overall_assessment=data.get("overall_assessment", "review_needed"),
+                confidence=float(data.get("confidence", 0.5)),
+                llm_response=response,
+                raw_json=data,
+            )
+
+        except json.JSONDecodeError as e:
+            logger.warning(f"Failed to parse LLM response as JSON: {e}")
+            return default_result
+
+    async def health_check_all(self) -> dict[str, bool]:
+        """
+        Prüft alle Provider.
+
+        Returns:
+            Dict mit Provider-Status
+        """
+        results = {}
+        for provider_type, provider in self._providers.items():
+            results[provider_type.value] = await provider.health_check()
+        return results
+
+    def get_available_providers(self) -> list[dict[str, Any]]:
+        """
+        Gibt verfügbare Provider zurück.
+
+        Returns:
+            Liste mit Provider-Info
+        """
+        return [
+            {
+                "provider": p.provider.value,
+                "default_model": p.default_model,
+                "models": p.get_available_models(),
+                "is_default": p.provider == self._default_provider,
+            }
+            for p in self._providers.values()
+        ]
+
+
+# =============================================================================
+# Factory
+# =============================================================================
+
+_adapter: LLMAdapter | None = None
+
+
+def get_llm_adapter() -> LLMAdapter:
+    """
+    Gibt LLM-Adapter-Singleton zurück.
+
+    Returns:
+        LLMAdapter-Instanz
+    """
+    global _adapter
+    if _adapter is None:
+        _adapter = LLMAdapter()
+
+        # Provider registrieren
+        _adapter.register_provider(OllamaProvider())
+        _adapter.register_provider(OpenAIProvider())
+        _adapter.register_provider(AnthropicProvider())
+        _adapter.register_provider(GeminiProvider())
+
+    return _adapter
+
+
+async def init_llm_adapter() -> LLMAdapter:
+    """
+    Initialisiert LLM-Adapter und prüft Provider.
+
+    Returns:
+        LLMAdapter-Instanz
+    """
+    adapter = get_llm_adapter()
+    health = await adapter.health_check_all()
+    logger.info(f"LLM Provider Status: {health}")
+    return adapter
