@@ -161,6 +161,34 @@ export const de = {
     DE_USTG: 'Deutschland (UStG)',
     EU_VAT: 'EU (MwSt-Richtlinie)',
     UK_VAT: 'UK (HMRC VAT)',
+    legalBasis: 'Rechtsgrundlage',
+    requiredFeatures: 'Pflichtmerkmale',
+    conditionalFeatures: 'Bedingte Merkmale',
+    smallAmountInvoice: 'Kleinbetragsrechnung',
+    reducedRequirements: 'Reduzierte Anforderungen',
+  },
+
+  // Tax Selector
+  taxSelector: {
+    title: 'Steuersystem auswählen',
+    description: 'Wählen Sie das Steuersystem für die Rechnungsprüfung',
+    confirm: 'Auswahl bestätigen',
+    hint: 'Die Sprachwahl (DE/EN) der Benutzeroberfläche ist unabhängig vom Steuersystem',
+    currentSystem: 'Aktuelles Steuersystem',
+    changeSystem: 'Steuersystem ändern',
+    requiredFields: 'Pflichtangaben',
+    conditionalFields: 'Bedingte Angaben',
+    smallAmountLimit: 'Kleinbetragsgrenze',
+    legalReferences: 'Rechtsgrundlagen',
+    categories: {
+      IDENTITY: 'Identifikation',
+      DATE: 'Datumsangaben',
+      AMOUNT: 'Beträge',
+      TAX: 'Steuerangaben',
+      TEXT: 'Textfelder',
+      SEMANTIC: 'Semantik',
+      PROJECT: 'Projektbezug',
+    },
   },
 
   // Audit Results

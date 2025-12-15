@@ -161,6 +161,34 @@ export const en = {
     DE_USTG: 'Germany (UStG)',
     EU_VAT: 'EU (VAT Directive)',
     UK_VAT: 'UK (HMRC VAT)',
+    legalBasis: 'Legal Basis',
+    requiredFeatures: 'Required Features',
+    conditionalFeatures: 'Conditional Features',
+    smallAmountInvoice: 'Small Amount Invoice',
+    reducedRequirements: 'Reduced Requirements',
+  },
+
+  // Tax Selector
+  taxSelector: {
+    title: 'Select Tax System',
+    description: 'Choose the tax system for invoice auditing',
+    confirm: 'Confirm Selection',
+    hint: 'The UI language selection (DE/EN) is independent of the tax system',
+    currentSystem: 'Current Tax System',
+    changeSystem: 'Change Tax System',
+    requiredFields: 'Required Fields',
+    conditionalFields: 'Conditional Fields',
+    smallAmountLimit: 'Small Amount Limit',
+    legalReferences: 'Legal References',
+    categories: {
+      IDENTITY: 'Identification',
+      DATE: 'Date Information',
+      AMOUNT: 'Amounts',
+      TAX: 'Tax Information',
+      TEXT: 'Text Fields',
+      SEMANTIC: 'Semantic',
+      PROJECT: 'Project Context',
+    },
   },
 
   // Audit Results
