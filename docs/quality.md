@@ -1,279 +1,301 @@
-# Qualitätssicherung (Quality Assurance)
+# Verbesserungskatalog für das KI-gestützte Rechnungsauswertungssystem  
+## Schwerpunkt: fachliche Robustheit, Nachvollziehbarkeit und didaktische Qualität
 
-Dieses Dokument beschreibt die Qualitätskriterien für das FlowAudit-System zur Rechnungsprüfung im öffentlichen Sektor.
+Dieser Verbesserungskatalog beschreibt gezielte Weiterentwicklungsmaßnahmen für das KI-gestützte System zur Analyse von Rechnungen im Kontext von Förder-, Prüf- und Schulungsszenarien.  
+Er basiert auf einer systematischen Analyse der bestehenden Konzeption, Architektur und Dokumentation und adressiert ausschließlich identifizierte Schwächen.
 
----
-
-## 1. Grundprinzipien
-
-### 1.1 Nachvollziehbarkeit (Traceability)
-
-Jede Prüfentscheidung muss nachvollziehbar sein:
-
-| Kriterium | Beschreibung | Umsetzung |
-|-----------|--------------|-----------|
-| **Entscheidungsherkunft** | Quelle jeder Prüfaussage dokumentiert | `TruthSource`: RULE, LLM, USER |
-| **Audit-Trail** | Vollständige Prüfhistorie | `FeedbackEntry`, `AnalysisResult` |
-| **Versionierung** | Ruleset-Version bei Prüfung gespeichert | `ruleset_id` + `version` |
-| **Zeitstempel** | Alle Aktionen mit Zeitstempel | `created_at`, `updated_at` |
-
-### 1.2 Plausibilität (Plausibility)
-
-Geprüfte Werte müssen plausibel sein:
-
-- **Betragsplausibilität**: Netto + MwSt = Brutto (Toleranz: 0.01 EUR)
-- **Datumsplausibilität**: Rechnungsdatum innerhalb Projektzeitraum
-- **Identitätsplausibilität**: Empfänger = Begünstigter (mit Aliase-Toleranz)
-
-### 1.3 Konsistenz (Consistency)
-
-Daten müssen über alle Prüfebenen konsistent sein:
-
-- **Organisatorische Konsistenz**: Rechnungsempfänger ≈ Begünstigter
-- **Zeitliche Konsistenz**: Leistungsdatum ≤ Rechnungsdatum ≤ Projektenddatum
-- **Betragskonsistenz**: Summen stimmen überein
+Der Katalog versteht sich nicht als Kritik, sondern als **Qualitätssicherungs- und Reifegradinstrument**, das die fachliche Belastbarkeit, Transparenz und didaktische Eignung des Systems weiter erhöht.
 
 ---
 
-## 2. Prüfebenen
+## 1. Zuwendungszweckprüfung: fehlende fachliche Operationalisierung
 
-### 2.1 Deterministische Prüfung (Rule Engine)
+### Ausgangslage
 
-Regelbasierte Prüfungen ohne KI-Unterstützung:
+Die Prüfung des Vorhabenzusammenhangs (Zuwendungszweck) ist konzeptionell korrekt angelegt, bleibt jedoch auf einer beschreibenden Ebene.  
+Es fehlt eine feste Struktur, anhand derer die KI ihre Bewertung nachvollziehbar, konsistent und prüfungslogisch ableitet.
 
-```
-┌─────────────────────────────────────────────────────────────────┐
-│ STUFE 1: FORMALE PRÜFUNG                                        │
-├─────────────────────────────────────────────────────────────────┤
-│ ✓ Pflichtfelder vorhanden (UStG §14 / EU VAT / HMRC)           │
-│ ✓ Formatvalidierung (USt-IdNr, IBAN, Datumsformate)            │
-│ ✓ Prüfziffern korrekt (USt-IdNr, IBAN)                         │
-│ ✓ Betragsrechnung korrekt (Netto × MwSt-Satz = MwSt-Betrag)    │
-└─────────────────────────────────────────────────────────────────┘
-```
+Insbesondere ist derzeit nicht eindeutig erkennbar:
+- nach welchen Kriterien der Zusammenhang geprüft wird,
+- wann ein Zusammenhang als gegeben, nicht gegeben oder unklar gilt,
+- wie einzelne Teilbewertungen zur Gesamtaussage führen.
 
-**Fehlerquellen-Kategorisierung:**
+### Verbesserungsziel
 
-| Kategorie | Fehlertypen | Beispiel |
-|-----------|-------------|----------|
-| `TAX_LAW` | MISSING, WRONG_FORMAT, CALCULATION_ERROR | Fehlende Rechnungsnummer |
-| `BENEFICIARY_DATA` | NAME_MISMATCH, ADDRESS_MISMATCH | Empfänger ≠ Begünstigter |
-| `LOCATION_VALIDATION` | INVALID_ZIP, COUNTRY_MISMATCH | PLZ nicht zum Ort passend |
+Die Zuwendungszweckprüfung soll von einer abstrakten Beschreibung zu einem **klar strukturierten, regelhaften Prüfvorgang** weiterentwickelt werden, der auch didaktisch vermittelbar ist.
 
-### 2.2 Semantische Prüfung (LLM)
+### Maßnahmen
 
-KI-gestützte Prüfungen für komplexe Zusammenhänge:
+**1.1 Einführung eines verbindlichen Prüfrasters**
 
-```
-┌─────────────────────────────────────────────────────────────────┐
-│ STUFE 2: SEMANTISCHE PRÜFUNG                                    │
-├─────────────────────────────────────────────────────────────────┤
-│ ✓ Leistungsbeschreibung plausibel zum Projekt                  │
-│ ✓ Wirtschaftlichkeit der Beträge                                │
-│ ✓ Begünstigtenabgleich (auch bei Schreibweisen-Varianten)      │
-│ ✓ Kontextuelle Warnsignale erkennen                            │
-└─────────────────────────────────────────────────────────────────┘
-```
+Die Prüfung des Zuwendungszwecks erfolgt stets anhand eines festen Rasters mit vier Dimensionen:
+- sachlicher Zusammenhang,
+- zeitlicher Zusammenhang,
+- organisatorischer Zusammenhang,
+- wirtschaftliche Plausibilität.
 
-### 2.3 Manuelle Prüfung (User Override)
+Jede Dimension wird separat geprüft und dokumentiert.
 
-Prüfer-Entscheidung bei Konflikten:
+**1.2 Standardisierte Einzelbewertung**
 
-- LLM und Rule Engine widersprechen sich
-- Grenzfälle bei Namensabweichungen
-- Fachliche Einschätzung erforderlich
+Für jede Prüfdimension gibt das System zwingend aus:
+- ein Prüfergebnis (`PASS`, `FAIL`, `UNCLEAR`),
+- eine kurze, fachlich formulierte Begründung,
+- die herangezogene Text- oder Dokumentenevidenz.
 
----
+Freiformulierungen ohne Bezug auf dieses Raster sind zu vermeiden.
 
-## 3. Begünstigtendaten (Beneficiary Master Data)
+**1.3 Algorithmische Gesamtaussage**
 
-### 3.1 Pflichtfelder
+Die Gesamtbewertung des Zuwendungszwecks wird nicht frei formuliert, sondern logisch aus den Einzelbewertungen abgeleitet.  
+Dabei gilt:
+- mindestens ein `FAIL` → Gesamtbewertung `FAIL`,
+- kein `FAIL`, aber mindestens ein `UNCLEAR` → Gesamtbewertung `UNCLEAR`,
+- ausschließlich `PASS` → Gesamtbewertung `PASS`.
 
-| Feld | Beschreibung | Validierung |
-|------|--------------|-------------|
-| `beneficiary_name` | Name des Zuwendungsempfängers | Nicht leer, keine Dummy-Marker |
-| `legal_form` | Rechtsform (GmbH, e.V., etc.) | Optional, Enum-validiert |
-| `street` | Straße und Hausnummer | Nicht leer |
-| `zip` | Postleitzahl | Format-validiert (DE: 5 Ziffern) |
-| `city` | Stadt | Nicht leer |
-| `country` | Ländercode | ISO 3166-1 alpha-2 |
+Die Herleitung der Gesamtaussage muss für Schulungszwecke explizit erkennbar sein.
 
-### 3.2 Optionale Felder
+**1.4 Explizite Negativindikatoren**
 
-| Feld | Beschreibung | Verwendung |
-|------|--------------|------------|
-| `vat_id` | USt-Identifikationsnummer | Prüfziffernvalidierung |
-| `tax_number` | Steuernummer | Format-Prüfung |
-| `aliases` | Alternative Schreibweisen | Fuzzy-Matching |
-| `input_tax_deductible` | Vorsteuerabzugsberechtigt | Wirtschaftlichkeitsprüfung |
+Das System benennt typische Negativindikatoren ausdrücklich, z. B.:
+- Leistungsbeschreibung ohne erkennbaren Projektbezug,
+- Leistungszeitraum außerhalb der Förderperiode,
+- Rechnungsempfänger nicht identisch mit dem Begünstigten,
+- pauschale Allgemeinleistungen ohne Projektzuordnung.
 
-### 3.3 Abgleichlogik
-
-```
-Rechnungsempfänger ("customer_name" auf Rechnung)
-         │
-         ▼
-┌─────────────────────────────────────────────┐
-│ MATCHING-ALGORITHMUS                         │
-├─────────────────────────────────────────────┤
-│ 1. Exakter Match: beneficiary_name          │
-│ 2. Alias-Match: aliases[]                   │
-│ 3. Fuzzy-Match: Levenshtein ≤ 3            │
-│ 4. Enthaltener Match: Name in Empfänger     │
-└─────────────────────────────────────────────┘
-         │
-         ▼
-    MATCH_SCORE (0.0 - 1.0)
-
-    ≥ 0.95: EXACT_MATCH (grün)
-    ≥ 0.80: LIKELY_MATCH (gelb)
-    < 0.80: MISMATCH (rot)
-```
+Diese Indikatoren sind nicht automatisch als Verstoß zu werten, müssen aber als solche kenntlich gemacht werden.
 
 ---
 
-## 4. Testdaten-Generator
+## 2. Konfliktauflösung zwischen Regelprüfung und KI-Analyse
 
-### 4.1 Anforderungen an generierte Rechnungen
+### Ausgangslage
 
-**Verbotene Muster:**
-- Keine Dummy-Marker: "TEST", "XXX", "DUMMY", "Lorem Ipsum"
-- Keine offensichtlichen Platzhalter
-- Keine unrealistischen Beträge (0.00 EUR, 999999.99 EUR)
+Die Systemarchitektur sieht eine Kombination aus regelbasierter Prüfung und KI-Analyse vor.  
+Die konkrete Priorität und der Umgang mit widersprüchlichen Ergebnissen sind jedoch nicht normiert.
 
-**Pflichtanforderungen:**
-- Alle Pflichtfelder gem. aktivem Ruleset befüllt
-- Plausible USt-IdNr (Format-korrekt, ggf. absichtlich ungültig für Testfälle)
-- Realistische Beträge innerhalb Template-Spannen
+### Verbesserungsziel
 
-### 4.2 Begünstigten-Integration
+Konflikte zwischen Regelprüfung und KI-Bewertung sollen **transparent, reproduzierbar und didaktisch erklärbar** behandelt werden.
 
-Bei aktivierter Begünstigten-Verknüpfung:
+### Maßnahmen
 
-```python
-# Generator-Einstellungen
-{
-    "use_beneficiary_data": true,
-    "beneficiary": {
-        "beneficiary_name": "Förderverein Musterstadt e.V.",
-        "legal_form": "e.V.",
-        "street": "Hauptstraße 1",
-        "zip": "12345",
-        "city": "Musterstadt",
-        "aliases": ["Förderverein Musterstadt", "FV Musterstadt"]
-    },
-    "project_context": {
-        "project_id": "PRJ-2025-001",
-        "project_name": "Jugendförderung 2025"
-    }
-}
-```
+**2.1 Feste Prioritätslogik**
 
-**Generierte Rechnung:**
-- `customer_name` = Begünstigter (oder Alias-Variante)
-- `customer_address` = Adresse des Begünstigten
-- Projekt-Referenz in Leistungsbeschreibung optional
+Für Schulungszwecke gilt folgende einfache und verbindliche Reihenfolge:
+1. Regelbasierte Prüfungen (harte Regeln, z. B. Pflichtangaben)
+2. KI-basierte semantische Analysen
+3. Keine automatische Überstimmung von Regeln durch KI
 
-### 4.3 Fehlerinjektion für Testfälle
+Die KI darf Regelverstöße erläutern, aber nicht relativieren.
 
-| Fehlerart | Beschreibung | Severity |
-|-----------|--------------|----------|
-| `beneficiary_name_typo` | Tippfehler im Empfängernamen | 1 |
-| `beneficiary_wrong_address` | Falsche Adresse | 2 |
-| `beneficiary_alias_used` | Alias statt Hauptname | 1 |
-| `beneficiary_completely_wrong` | Falscher Empfänger | 5 |
-| `vat_id_invalid_checksum` | USt-IdNr mit falscher Prüfziffer | 3 |
-| `vat_id_missing` | USt-IdNr fehlt | 2 |
+**2.2 Einheitlicher Konfliktstatus**
+
+Bei widersprüchlichen Ergebnissen wird zwingend ein Konfliktstatus ausgegeben, z. B.:
+`CONFLICT_RULE_KI`.
+
+Zusätzlich sind beide Sichtweisen kurz darzustellen:
+- Ergebnis der Regelprüfung,
+- Ergebnis der KI-Analyse.
+
+Eine automatische Entscheidung ist in diesem Fall zu unterlassen.
 
 ---
 
-## 5. Qualitätsmetriken
+## 3. Unklare Ergebnisse („UNCLEAR“) klar definieren
 
-### 5.1 System-Metriken
+### Ausgangslage
 
-| Metrik | Ziel | Messung |
-|--------|------|---------|
-| **Parsing-Genauigkeit** | ≥ 95% | Extrahierte Felder / Erwartete Felder |
-| **Precheck-Abdeckung** | 100% | Geprüfte Pflichtfelder / Alle Pflichtfelder |
-| **LLM-Konsistenz** | ≥ 90% | Gleiche Eingabe → Gleiche Bewertung |
-| **Antwortzeit** | < 30s | Parse + Precheck + LLM (Median) |
+Der Status „unclear“ ist vorgesehen, jedoch nicht fachlich abgegrenzt.  
+Dies birgt die Gefahr einer inflationären oder uneinheitlichen Nutzung.
 
-### 5.2 Didaktische Metriken
+### Verbesserungsziel
 
-Für den Seminarbetrieb:
+„UNCLEAR“ soll ein **präzise definierter Ausnahmezustand** sein, kein Ausweichlabel.
 
-| Metrik | Beschreibung |
-|--------|--------------|
-| **Fehler-Erkennungsrate** | Anteil erkannter injizierter Fehler |
-| **False-Positive-Rate** | Fälschlich als fehlerhaft markierte korrekte Rechnungen |
-| **Lernfortschritt** | Verbesserung über mehrere Durchläufe |
+### Maßnahmen
 
----
+**3.1 Klare Kriterien für UNCLEAR**
 
-## 6. Übersetzungskonzept (Conceptual Translation)
+Der Status `UNCLEAR` darf nur vergeben werden, wenn mindestens eines der folgenden Kriterien erfüllt ist:
+- relevante Informationen fehlen vollständig,
+- vorhandene Informationen sind mehrdeutig,
+- mehrere fachlich plausible Interpretationen sind möglich.
 
-### 6.1 Begünstigten-Terminologie
+**3.2 Begründungspflicht**
 
-| Konzept | Deutsch | English |
-|---------|---------|---------|
-| Begünstigter | Zuwendungsempfänger, Begünstigter | Beneficiary, Grant Recipient |
-| Vorsteuerabzug | Vorsteuerabzugsberechtigt | Input Tax Deductible |
-| Fördermittel | Zuwendung, Fördermittel | Grant, Funding |
-| Aktenzeichen | Aktenzeichen, Geschäftszeichen | File Reference, Case Number |
-
-### 6.2 Prüfkategorien
-
-| Kategorie | Deutsch | English |
-|-----------|---------|---------|
-| Formale Prüfung | Formale Anforderungen | Formal Requirements |
-| Betragsrechnung | Betragsrechnung | Amount Calculation |
-| Empfängerabgleich | Begünstigtenabgleich | Beneficiary Matching |
-| Zeitliche Prüfung | Zeitraum-Validierung | Period Validation |
-
-### 6.3 Fehlermeldungen
-
-| Code | Deutsch | English |
-|------|---------|---------|
-| `BENEFICIARY_MISMATCH` | Empfänger stimmt nicht mit Begünstigtem überein | Invoice recipient does not match beneficiary |
-| `BENEFICIARY_ALIAS_MATCH` | Empfänger entspricht Alias des Begünstigten | Recipient matches beneficiary alias |
-| `VAT_ID_INVALID` | USt-IdNr ungültig | VAT ID invalid |
-| `PERIOD_EXCEEDED` | Leistung außerhalb Projektzeitraum | Service outside project period |
+Jeder UNCLEAR-Status muss enthalten:
+- eine Beschreibung der Unklarheit,
+- einen Hinweis, welche Information zur Klärung erforderlich wäre.
 
 ---
 
-## 7. Checkliste für Qualitätssicherung
+## 4. Risikomodul (Modul 3) inhaltlich schärfen
 
-### 7.1 Vor dem Einsatz
+### Ausgangslage
 
-- [ ] Rulesets korrekt konfiguriert
-- [ ] Begünstigtendaten vollständig erfasst
-- [ ] Projektzeitraum definiert
-- [ ] LLM-Provider erreichbar und konfiguriert
+Das Risikomodul ist optional angelegt und inhaltlich offen.  
+Für Schulungszwecke fehlt ein greifbarer Mindeststandard.
 
-### 7.2 Im Seminarbetrieb
+### Verbesserungsziel
 
-- [ ] Testdaten mit bekannten Fehlern generiert
-- [ ] Lösungsdatei für Dozenten verfügbar
-- [ ] Keine Dummy-Marker in Testdaten
+Das Risikomodul soll als **sensibilisierendes Prüfmodul** dienen, nicht als rechtliche Bewertung.
 
-### 7.3 Produktiveinsatz
+### Maßnahmen
 
-- [ ] Audit-Trail aktiviert
-- [ ] Backup-Strategie definiert
-- [ ] Datenschutz-Anforderungen erfüllt
-- [ ] Vier-Augen-Prinzip bei kritischen Entscheidungen
+**4.1 Einführung eines festen Minimal-Risikokerns**
+
+Unabhängig von Vergaberechtstiefe prüft das System stets einfache Risikohinweise, z. B.:
+- ungewöhnlich hohe Einzelbeträge,
+- auffällige Lieferantenhäufung,
+- fehlende Leistungszeiträume,
+- runde Pauschalbeträge ohne Erläuterung.
+
+**4.2 Klare didaktische Abgrenzung**
+
+Das System muss ausdrücklich kennzeichnen:
+„Hinweis auf mögliches Risiko – keine rechtliche Bewertung“.
 
 ---
 
-## Anhang: Fehlerquellen-Matrix
+## 5. Versionierung und Nachvollziehbarkeit verpflichtend machen
 
-| Fehlerquelle | Regelbasiert | LLM | Manuell |
-|--------------|:------------:|:---:|:-------:|
-| Fehlende Pflichtfelder | ✓ | | |
-| Formatfehler | ✓ | | |
-| Rechenfehler | ✓ | ✓ | |
-| Ungültige Prüfziffern | ✓ | | |
-| Begünstigten-Abweichung | ✓ | ✓ | ✓ |
-| Zeitraum-Überschreitung | ✓ | | |
-| Semantische Unstimmigkeiten | | ✓ | ✓ |
-| Wirtschaftlichkeit | | ✓ | ✓ |
+### Ausgangslage
+
+Versionierungsmechanismen sind vorgesehen, aber nicht zwingend Bestandteil jedes Ergebnisses.
+
+### Verbesserungsziel
+
+Jedes Analyseergebnis soll **vollständig reproduzierbar** sein.
+
+### Maßnahmen
+
+**5.1 Pflicht-Metadaten**
+
+Jeder Auswertungsbericht enthält zwingend:
+- Dokument-Fingerprint,
+- Ruleset-ID und -Version,
+- Prompt-Version,
+- Modellkennung,
+- Datum und Uhrzeit.
+
+Ergebnisse ohne diese Metadaten gelten als nicht valide.
+
+**5.2 Sichtbarkeit der Metadaten**
+
+Die Metadaten sollen sichtbar ausgegeben werden (z. B. Fußzeile), um Abhängigkeiten und Modellwirkung transparent zu machen.
+
+---
+
+## 6. RAG-Nutzung begrenzen und absichern
+
+### Ausgangslage
+
+RAG-Mechanismen sind vorgesehen, bergen aber ohne Leitplanken das Risiko fachlicher Drift.
+
+### Verbesserungsziel
+
+RAG soll **unterstützen und erklären**, nicht entscheiden.
+
+### Maßnahmen
+
+**6.1 Begrenzter Einfluss**
+
+RAG-Beispiele dürfen:
+- Entscheidungen nicht ersetzen,
+- nur ergänzend verwendet werden,
+- klar als frühere Vergleichsfälle gekennzeichnet sein.
+
+**6.2 Fachliche Konsistenz**
+
+Ein RAG-Beispiel darf nur genutzt werden, wenn:
+- gleicher Dokumenttyp,
+- gleiches Ruleset,
+- gleiche Prüfdimension vorliegt.
+
+---
+
+## 7. Fehler- und Abbruchzustände explizit vorsehen
+
+### Ausgangslage
+
+Die Systemlogik fokussiert auf erfolgreiche Analysen.  
+Didaktisch relevante Fehlerzustände sind nicht explizit modelliert.
+
+### Verbesserungsziel
+
+Nicht-Bewertbarkeit soll als **valider Systemzustand** anerkannt werden.
+
+### Maßnahmen
+
+**7.1 Definierte Fehlerzustände**
+
+Das System soll u. a. ausgeben können:
+- `DOCUMENT_UNREADABLE`
+- `INSUFFICIENT_TEXT`
+- `RULESET_NOT_APPLICABLE`
+- `ANALYSIS_ABORTED`
+
+**7.2 Klare Abgrenzung**
+
+Ein Fehlerzustand ist kein Systemversagen, sondern ein fachlich relevantes Ergebnis.
+
+---
+
+## 8. Datenschutz: Datenklassifikation konkretisieren
+
+### Ausgangslage
+
+Technische Schutzmaßnahmen sind beschrieben, die inhaltliche Datenklassifikation bleibt abstrakt.
+
+### Verbesserungsziel
+
+Transparenz darüber, **welche Daten zu welchem Zweck verarbeitet werden**.
+
+### Maßnahmen
+
+**8.1 Einfache Datenklassen**
+
+Mindestens folgende Klassen sind zu unterscheiden:
+- Rechnungsdokumente,
+- extrahierter Text,
+- Analyseergebnisse,
+- Trainings-/Beispieldaten.
+
+**8.2 Dokumentation der Zweckbindung**
+
+Für jede Klasse sind Zweck, Speicherort und konzeptionelle Löschlogik zu dokumentieren.
+
+---
+
+## 9. Generator als systematisches QS-Instrument nutzen
+
+### Ausgangslage
+
+Der Generator ist technisch stark, wird aber noch nicht konsequent als QS-Werkzeug eingesetzt.
+
+### Verbesserungsziel
+
+Der Generator soll als **Referenz- und Regressionstest-Motor** dienen.
+
+### Maßnahmen
+
+**9.1 Referenzszenarien**
+
+Es sind feste Szenarien zu definieren, z. B.:
+- formal korrekte Rechnung,
+- fehlende Pflichtangabe,
+- unklarer Zuwendungszweck,
+- sachlich unpassende Leistung.
+
+**9.2 Vergleichbarkeit erzwingen**
+
+Bei identischem Szenario sind vergleichbare Ergebnisse zu erwarten.  
+Abweichungen sind explizit als Modell- oder Prompt-Effekt zu kennzeichnen.
+
+---
+
+## Abschlussbemerkung
+
+Die vorgeschlagenen Maßnahmen stärken nicht nur die technische und fachliche Qualität des Systems, sondern erhöhen insbesondere dessen **didaktischen Wert**.  
+Das System wird dadurch nicht nur zu einem Analysewerkzeug, sondern zu einem **Lerninstrument für prüferisches Denken im Kontext von KI-gestützter Verwaltungskontrolle**.
