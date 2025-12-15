@@ -11,7 +11,7 @@ from app.models.export import ExportJob, GeneratorJob
 from app.models.feedback import Feedback, RagExample
 from app.models.llm import LlmRun, LlmRunLog, PreparePayload
 from app.models.project import Project
-from app.models.result import FinalResult
+from app.models.result import AnalysisResult, FinalResult
 from app.models.ruleset import Ruleset
 from app.models.settings import ApiKey, Setting
 from app.models.training import ModelRegistry, TrainingDataset, TrainingExample, TrainingRun
@@ -30,6 +30,7 @@ __all__ = [
     "LlmRun",
     "LlmRunLog",
     # Results
+    "AnalysisResult",
     "FinalResult",
     "Feedback",
     "RagExample",

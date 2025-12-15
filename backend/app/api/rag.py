@@ -16,7 +16,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.database import get_async_session
 from app.models.feedback import RagExample
-from app.models.llm import LLMPayload
+from app.models.llm import PreparePayload
 from app.rag import get_rag_service, get_vectorstore
 from app.schemas.rag import (
     RagExampleListItem,
@@ -190,7 +190,7 @@ async def retrieve_rag_examples(
     """
     # Payload aus Datenbank laden
     result = await session.execute(
-        select(LLMPayload).where(LLMPayload.id == data.payload_id)
+        select(PreparePayload).where(PreparePayload.id == data.payload_id)
     )
     payload = result.scalar_one_or_none()
 

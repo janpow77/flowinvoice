@@ -13,7 +13,7 @@ from decimal import Decimal
 from enum import Enum
 from typing import Any
 
-from app.models.enums import ErrorSource, Severity, TaxLawErrorType
+from app.models.enums import ErrorSourceCategory, Severity, TaxLawErrorType
 from app.services.parser import ExtractedValue, ParseResult
 from app.services.validators import (
     ValidationResult,
@@ -77,7 +77,7 @@ class FeatureCheck:
     value: Any = None
     raw_text: str = ""
     error_type: TaxLawErrorType | None = None
-    error_source: ErrorSource = ErrorSource.TAX_LAW
+    error_source: ErrorSourceCategory = ErrorSourceCategory.TAX_LAW
     severity: Severity = Severity.LOW
     message: str = ""
     legal_basis: str = ""
@@ -484,7 +484,7 @@ class RuleEngine:
                     feature_id=feature_id,
                     status=ValidationStatus.MISSING,
                     error_type=TaxLawErrorType.MISSING,
-                    error_source=ErrorSource.TAX_LAW,
+                    error_source=ErrorSourceCategory.TAX_LAW,
                     severity=Severity.HIGH,
                     message=f"{feature_def.name_de} fehlt",
                     legal_basis=feature_def.legal_basis,
@@ -518,7 +518,7 @@ class RuleEngine:
                 value=value,
                 raw_text=raw_text,
                 error_type=error_type if validation_result.status != ValidationStatus.VALID else None,
-                error_source=ErrorSource.TAX_LAW,
+                error_source=ErrorSourceCategory.TAX_LAW,
                 severity=severity,
                 message=validation_result.message,
                 legal_basis=feature_def.legal_basis,
@@ -626,7 +626,7 @@ class RuleEngine:
             feature_id="amount_calculation",
             status=result.status,
             error_type=error_type,
-            error_source=ErrorSource.TAX_LAW,
+            error_source=ErrorSourceCategory.TAX_LAW,
             severity=Severity.HIGH if result.status == ValidationStatus.INVALID else Severity.LOW,
             message=result.message,
             legal_basis="§ 14 Abs. 4 UStG",
@@ -660,7 +660,7 @@ class RuleEngine:
             feature_id="tax_identification",
             status=ValidationStatus.MISSING,
             error_type=TaxLawErrorType.MISSING,
-            error_source=ErrorSource.TAX_LAW,
+            error_source=ErrorSourceCategory.TAX_LAW,
             severity=Severity.HIGH,
             message="Weder Steuernummer noch USt-ID vorhanden",
             legal_basis="§ 14 Abs. 4 Nr. 2 UStG",

@@ -9,11 +9,12 @@ from datetime import datetime
 from typing import TYPE_CHECKING
 from uuid import uuid4
 
-from sqlalchemy import DateTime, ForeignKey, String
-from sqlalchemy.dialects.postgresql import JSONB, UUID
+from sqlalchemy import DateTime, Enum, Float, ForeignKey, Integer, String
+from sqlalchemy.dialects.postgresql import ARRAY, JSONB, UUID
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.database import Base
+from app.models.enums import Provider
 
 if TYPE_CHECKING:
     from app.models.document import Document
@@ -154,3 +155,49 @@ class FinalResult(Base):
             Liste der Konflikt-Felder.
         """
         return [f for f in self.fields if f.get("conflict_flag")]
+
+
+class AnalysisResult(Base):
+    """
+    LLM-Analyseergebnis für ein Dokument.
+
+    Speichert das Ergebnis der KI-Analyse mit allen relevanten Metriken.
+    """
+
+    __tablename__ = "analysis_results"
+
+    id: Mapped[str] = mapped_column(
+        UUID(as_uuid=False), primary_key=True, default=lambda: str(uuid4())
+    )
+
+    document_id: Mapped[str] = mapped_column(
+        UUID(as_uuid=False), ForeignKey("documents.id", ondelete="CASCADE"), nullable=False
+    )
+
+    # Provider und Modell
+    provider: Mapped[Provider] = mapped_column(Enum(Provider), nullable=False)
+    model: Mapped[str] = mapped_column(String(100), nullable=False)
+
+    # Prüfergebnisse
+    semantic_check: Mapped[dict | None] = mapped_column(JSONB, nullable=True)
+    economic_check: Mapped[dict | None] = mapped_column(JSONB, nullable=True)
+    beneficiary_match: Mapped[dict | None] = mapped_column(JSONB, nullable=True)
+    warnings: Mapped[list[str]] = mapped_column(ARRAY(String), nullable=False, default=list)
+
+    # Gesamtbewertung
+    overall_assessment: Mapped[str] = mapped_column(String(50), nullable=False)
+    confidence: Mapped[float] = mapped_column(Float, nullable=False)
+
+    # Token-Statistiken
+    input_tokens: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    output_tokens: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    latency_ms: Mapped[int | None] = mapped_column(Integer, nullable=True)
+
+    # Zeitstempel
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), default=datetime.utcnow
+    )
+
+    def __repr__(self) -> str:
+        """String-Repräsentation."""
+        return f"<AnalysisResult {self.id[:8]} [{self.overall_assessment}]>"
