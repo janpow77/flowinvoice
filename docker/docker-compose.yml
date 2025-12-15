@@ -134,7 +134,7 @@ services:
       context: ../backend
       dockerfile: Dockerfile
     container_name: flowaudit-worker
-    command: celery -A app.worker.celery_app worker --loglevel=info --concurrency=2
+    command: celery -A app.worker.celery_app worker --loglevel=info --concurrency=4 -Q documents,llm,generator,export
     environment:
       - DATABASE_URL=postgresql+asyncpg://flowaudit:${POSTGRES_PASSWORD:-flowaudit_secret}@db:5432/flowaudit
       - REDIS_URL=redis://redis:6379/0
