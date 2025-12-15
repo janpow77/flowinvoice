@@ -378,23 +378,165 @@ Exportverzeichnis wird im UI gewählt (nur erlaubte Aliase, kein freier Pfad):
 
 ## 11. LLM Provider & Settings UI
 
-### 11.1 Settings (Pflichtfelder)
+### 11.1 Unterstützte Provider
 
-* Provider: `Local (Ollama)` / `OpenAI` / `Gemini`
-* Model selection:
+| Provider | ID | API-Basis | Modelle (Beispiele) |
+|----------|----|-----------|--------------------|
+| **Lokal (Ollama)** | `LOCAL_OLLAMA` | `http://ollama:11434` | llama3.1:8b, mistral:7b, qwen2:7b |
+| **OpenAI** | `OPENAI` | `https://api.openai.com/v1` | gpt-4o, gpt-4o-mini, gpt-4-turbo |
+| **Anthropic (Claude)** | `ANTHROPIC` | `https://api.anthropic.com/v1` | claude-sonnet-4-20250514, claude-3-5-haiku-20241022 |
+| **Google (Gemini)** | `GEMINI` | `https://generativelanguage.googleapis.com` | gemini-1.5-pro, gemini-1.5-flash |
 
-  * Local: `llama3:8b` oder `flowaudit-local-ft-vX`
-  * External: konkrete Modellnamen
-* API key input (maskiert `********`, aber Indikator „gesetzt“)
-* Timeout / Retries
-* Parallelism (Dokumente gleichzeitig)
-* Logging level (normal/verbose)
+### 11.2 Settings-UI Anforderungen (Pflicht)
 
-### 11.2 Provider Adapter (Backend)
+#### 11.2.1 Provider-Auswahl
+
+```
+┌─────────────────────────────────────────────────────────────────┐
+│  ⚙️ Einstellungen / Settings                                    │
+├─────────────────────────────────────────────────────────────────┤
+│                                                                  │
+│  ── LLM-Provider für Analyse ──────────────────────────────────│
+│                                                                  │
+│  Aktiver Provider:                                              │
+│  ┌─────────────────────────────────────────────────────────────┐│
+│  │ ○ Lokal (Ollama)           ← Standard, Daten bleiben lokal ││
+│  │ ○ OpenAI (ChatGPT)         ⚠️ Daten werden übertragen      ││
+│  │ ○ Anthropic (Claude)       ⚠️ Daten werden übertragen      ││
+│  │ ○ Google (Gemini)          ⚠️ Daten werden übertragen      ││
+│  └─────────────────────────────────────────────────────────────┘│
+│                                                                  │
+│  ── Lokales Modell (Ollama) ───────────────────────────────────│
+│                                                                  │
+│  Verfügbare Modelle:  [ llama3.1:8b-instruct-q4     ▼ ]        │
+│                       ○ llama3.1:8b-instruct-q4 (geladen)      │
+│                       ○ mistral:7b                             │
+│                       ○ qwen2:7b                               │
+│                       ○ flowaudit-ft-v1 (fine-tuned)           │
+│                                                                  │
+│  [ Modell laden ]   [ Neues Modell herunterladen ]             │
+│                                                                  │
+└─────────────────────────────────────────────────────────────────┘
+```
+
+#### 11.2.2 API-Key-Konfiguration (pro Provider)
+
+```
+┌─────────────────────────────────────────────────────────────────┐
+│  ── API-Keys ──────────────────────────────────────────────────│
+│                                                                  │
+│  OpenAI:                                                        │
+│  ┌─────────────────────────────────────────┐                   │
+│  │ ********************************abcd    │ ✓ Gesetzt         │
+│  └─────────────────────────────────────────┘                   │
+│  [ Ändern ] [ Testen ] [ Löschen ]                             │
+│                                                                  │
+│  Anthropic (Claude):                                            │
+│  ┌─────────────────────────────────────────┐                   │
+│  │ sk-ant-************************1234    │ ✓ Gesetzt         │
+│  └─────────────────────────────────────────┘                   │
+│  [ Ändern ] [ Testen ] [ Löschen ]                             │
+│                                                                  │
+│  Google (Gemini):                                               │
+│  ┌─────────────────────────────────────────┐                   │
+│  │                                         │ ✗ Nicht gesetzt   │
+│  └─────────────────────────────────────────┘                   │
+│  [ API-Key eingeben ]                                          │
+│                                                                  │
+└─────────────────────────────────────────────────────────────────┘
+```
+
+#### 11.2.3 Modell-Auswahl (pro Provider)
+
+```
+┌─────────────────────────────────────────────────────────────────┐
+│  ── Modellauswahl ─────────────────────────────────────────────│
+│                                                                  │
+│  OpenAI Modell:       [ gpt-4o-mini              ▼ ]           │
+│                       ○ gpt-4o (teuer, beste Qualität)         │
+│                       ○ gpt-4o-mini (günstig, schnell)         │
+│                       ○ gpt-4-turbo                            │
+│                                                                  │
+│  Anthropic Modell:    [ claude-sonnet-4-20250514     ▼ ]           │
+│                       ○ claude-sonnet-4-20250514 (Balance)             │
+│                       ○ claude-3-5-haiku (schnell, günstig)    │
+│                                                                  │
+│  Gemini Modell:       [ gemini-1.5-flash         ▼ ]           │
+│                       ○ gemini-1.5-pro (beste Qualität)        │
+│                       ○ gemini-1.5-flash (schnell)             │
+│                                                                  │
+└─────────────────────────────────────────────────────────────────┘
+```
+
+#### 11.2.4 Erweiterte Einstellungen
+
+```
+┌─────────────────────────────────────────────────────────────────┐
+│  ── Erweiterte Einstellungen ──────────────────────────────────│
+│                                                                  │
+│  Temperature:         [ 0.2        ] (0.0 - 1.5)               │
+│  Max Tokens:          [ 2000       ] (100 - 8192)              │
+│  Timeout (Sekunden):  [ 120        ] (30 - 300)                │
+│  Parallele Anfragen:  [ 2          ] (1 - 5)                   │
+│                                                                  │
+│  ☐ Verbose Logging aktivieren                                  │
+│  ☑ Bei Fehler automatisch wiederholen (3x)                     │
+│                                                                  │
+│  [ Einstellungen speichern ]   [ Zurücksetzen ]                │
+│                                                                  │
+└─────────────────────────────────────────────────────────────────┘
+```
+
+### 11.3 API-Key-Sicherheit
+
+| Anforderung | Implementierung |
+|-------------|-----------------|
+| **Anzeige maskiert** | Nur letzte 4 Zeichen sichtbar: `sk-ant-************************1234` |
+| **Speicherung verschlüsselt** | AES-256 oder Fernet, Key aus Umgebungsvariable |
+| **Keine Logs** | API-Keys werden niemals in Logs geschrieben |
+| **Testfunktion** | "Testen"-Button prüft Verbindung ohne Key anzuzeigen |
+| **Löschbar** | User kann API-Key jederzeit entfernen |
+
+### 11.4 Provider Adapter (Backend)
 
 Einheitliches Interface:
 
-* `analyze_invoice(input_json) -> response_json + stats`
+```python
+class BaseLLMProvider(ABC):
+    @abstractmethod
+    async def analyze(self, payload: PreparePayload) -> LLMResponse:
+        """Führt Analyse durch und gibt strukturierte Antwort zurück."""
+        pass
+
+    @abstractmethod
+    async def test_connection(self) -> bool:
+        """Testet ob Provider erreichbar und API-Key gültig ist."""
+        pass
+
+    @abstractmethod
+    def get_available_models(self) -> list[ModelInfo]:
+        """Gibt Liste verfügbarer Modelle zurück."""
+        pass
+```
+
+### 11.5 Datenschutz-Hinweise in UI
+
+Bei Auswahl eines externen Providers:
+
+```
+⚠️ HINWEIS: Bei Verwendung von [OpenAI/Claude/Gemini] werden
+Rechnungsdaten an externe Server übertragen.
+
+Übertragene Daten:
+• Extrahierter Text aus PDFs
+• Projektkontext (anonymisiert)
+• Regelwerk-Anforderungen
+
+Die Daten werden gemäß den Datenschutzrichtlinien des
+jeweiligen Anbieters verarbeitet.
+
+[ Verstanden, fortfahren ]   [ Abbrechen ]
+```
 
 ---
 

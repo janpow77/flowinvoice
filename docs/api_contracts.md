@@ -100,6 +100,7 @@
 
 * `LOCAL_OLLAMA`
 * `OPENAI`
+* `ANTHROPIC`
 * `GEMINI`
 
 ### 1.9 Enum: FeedbackRating
@@ -200,14 +201,44 @@ Liefert UI-Infos und Zähler.
 
 ```json
 {
-  "provider": "LOCAL_OLLAMA",
-  "model_name": "llama3.1:8b-instruct-q4",
-  "temperature": 0.2,
-  "max_tokens": 1200,
-  "timeout_sec": 120,
-  "local_base_url": "http://ollama:11434",
-  "api_key_is_set": true,
-  "api_key_masked": "************abcd",
+  "active_provider": "LOCAL_OLLAMA",
+  "providers": {
+    "LOCAL_OLLAMA": {
+      "enabled": true,
+      "base_url": "http://ollama:11434",
+      "model_name": "llama3.1:8b-instruct-q4",
+      "available_models": ["llama3.1:8b-instruct-q4", "mistral:7b", "qwen2:7b"]
+    },
+    "OPENAI": {
+      "enabled": true,
+      "api_key_is_set": true,
+      "api_key_masked": "sk-****************************abcd",
+      "model_name": "gpt-4o-mini",
+      "available_models": ["gpt-4o", "gpt-4o-mini", "gpt-4-turbo"]
+    },
+    "ANTHROPIC": {
+      "enabled": true,
+      "api_key_is_set": true,
+      "api_key_masked": "sk-ant-************************1234",
+      "model_name": "claude-sonnet-4-20250514",
+      "available_models": ["claude-sonnet-4-20250514", "claude-3-5-haiku-20241022"]
+    },
+    "GEMINI": {
+      "enabled": false,
+      "api_key_is_set": false,
+      "api_key_masked": null,
+      "model_name": "gemini-1.5-flash",
+      "available_models": ["gemini-1.5-pro", "gemini-1.5-flash"]
+    }
+  },
+  "inference": {
+    "temperature": 0.2,
+    "max_tokens": 2000,
+    "timeout_sec": 120,
+    "parallel_requests": 2,
+    "retry_on_error": true,
+    "max_retries": 3
+  },
   "generator": {
     "output_dir": "/data/generated",
     "solutions_dir": "/data/generated",
@@ -217,44 +248,150 @@ Liefert UI-Infos und Zähler.
     "enabled": true,
     "top_k": 3,
     "similarity_threshold": 0.25
+  },
+  "logging": {
+    "verbose": false
   }
 }
 ```
 
 ### 3.2 PUT /api/settings
 
-**Request**
+**Request** (partielle Updates erlaubt)
 
 ```json
 {
-  "provider": "OPENAI",
-  "model_name": "gpt-4.1-mini",
-  "temperature": 0.3,
-  "max_tokens": 1200,
-  "timeout_sec": 120,
-  "local_base_url": "http://ollama:11434",
-  "api_key": "sk-...",
-  "generator": {
-    "output_dir": "/data/generated",
-    "solutions_dir": "/data/generated",
-    "enable_admin_menu": true
+  "active_provider": "ANTHROPIC",
+  "providers": {
+    "ANTHROPIC": {
+      "model_name": "claude-sonnet-4-20250514"
+    }
   },
-  "rag": {
-    "enabled": true,
-    "top_k": 3,
-    "similarity_threshold": 0.25
+  "inference": {
+    "temperature": 0.3,
+    "max_tokens": 2000
   }
 }
 ```
 
 **Response 200**
 
-* wie GET
+* wie GET (vollständiges Settings-Objekt)
+
+### 3.3 PUT /api/settings/providers/{provider_id}/api-key
+
+Setzt oder aktualisiert API-Key für einen Provider.
+
+**Request**
+
+```json
+{
+  "api_key": "sk-ant-api03-..."
+}
+```
+
+**Response 200**
+
+```json
+{
+  "provider": "ANTHROPIC",
+  "api_key_is_set": true,
+  "api_key_masked": "sk-ant-************************wxyz"
+}
+```
+
+### 3.4 DELETE /api/settings/providers/{provider_id}/api-key
+
+Löscht API-Key für einen Provider.
+
+**Response 200**
+
+```json
+{
+  "provider": "ANTHROPIC",
+  "api_key_is_set": false
+}
+```
+
+### 3.5 POST /api/settings/providers/{provider_id}/test
+
+Testet Verbindung und API-Key-Gültigkeit.
+
+**Response 200**
+
+```json
+{
+  "provider": "ANTHROPIC",
+  "status": "ok",
+  "model_accessible": true,
+  "latency_ms": 450,
+  "message": "Connection successful"
+}
+```
+
+**Response 401** (ungültiger Key)
+
+```json
+{
+  "provider": "ANTHROPIC",
+  "status": "error",
+  "message": "Invalid API key"
+}
+```
+
+### 3.6 GET /api/settings/providers/LOCAL_OLLAMA/models
+
+Listet verfügbare lokale Modelle von Ollama.
+
+**Response 200**
+
+```json
+{
+  "models": [
+    {
+      "name": "llama3.1:8b-instruct-q4",
+      "size_gb": 4.7,
+      "loaded": true,
+      "modified_at": "2025-12-10T10:00:00Z"
+    },
+    {
+      "name": "mistral:7b",
+      "size_gb": 4.1,
+      "loaded": false,
+      "modified_at": "2025-12-01T08:00:00Z"
+    }
+  ]
+}
+```
+
+### 3.7 POST /api/settings/providers/LOCAL_OLLAMA/models/pull
+
+Lädt ein neues Modell herunter.
+
+**Request**
+
+```json
+{
+  "model_name": "qwen2:7b"
+}
+```
+
+**Response 202**
+
+```json
+{
+  "status": "pulling",
+  "model_name": "qwen2:7b",
+  "progress_url": "/api/settings/providers/LOCAL_OLLAMA/models/pull/status"
+}
+```
 
 **Validations**
 
 * `temperature` 0..1.5
 * `max_tokens` 64..8192
+* `timeout_sec` 30..300
+* `parallel_requests` 1..10
 * `output_dir` muss existieren oder vom System anlegbar sein
 
 ---
