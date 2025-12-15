@@ -6,7 +6,7 @@ Training-Beispiele, Datasets, Training-Runs und Modell-Registry.
 """
 
 from datetime import datetime
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any
 from uuid import uuid4
 
 from sqlalchemy import Boolean, DateTime, Enum, Float, ForeignKey, Integer, String, Text
@@ -45,7 +45,7 @@ class TrainingExample(Base):
     module: Mapped[int] = mapped_column(Integer, nullable=False, index=True)
 
     # Goldstandard-Labels
-    label_json: Mapped[dict] = mapped_column(JSONB, nullable=False)
+    label_json: Mapped[dict[str, Any]] = mapped_column(JSONB, nullable=False)
 
     # Quelle
     source: Mapped[str] = mapped_column(String(50), nullable=False)
@@ -91,7 +91,7 @@ class TrainingDataset(Base):
     val_file_path: Mapped[str | None] = mapped_column(String(1000), nullable=True)
 
     # Manifest (Hashes, Seed, etc.)
-    manifest: Mapped[dict | None] = mapped_column(JSONB, nullable=True)
+    manifest: Mapped[dict[str, Any] | None] = mapped_column(JSONB, nullable=True)
 
     # Zeitstempel
     created_at: Mapped[datetime] = mapped_column(
@@ -138,7 +138,7 @@ class TrainingRun(Base):
     status: Mapped[str] = mapped_column(String(20), default="PENDING")
 
     # Metriken
-    metrics: Mapped[dict | None] = mapped_column(JSONB, nullable=True)
+    metrics: Mapped[dict[str, Any] | None] = mapped_column(JSONB, nullable=True)
     """
     {
         "train_loss": 0.123,
@@ -203,7 +203,7 @@ class ModelRegistry(Base):
     is_active: Mapped[bool] = mapped_column(Boolean, default=False)
 
     # Metriken
-    metrics: Mapped[dict | None] = mapped_column(JSONB, nullable=True)
+    metrics: Mapped[dict[str, Any] | None] = mapped_column(JSONB, nullable=True)
 
     # Zeitstempel
     created_at: Mapped[datetime] = mapped_column(

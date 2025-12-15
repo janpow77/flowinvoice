@@ -6,7 +6,7 @@ Export-Jobs und Generator-Jobs.
 """
 
 from datetime import datetime
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any
 from uuid import uuid4
 
 from sqlalchemy import ARRAY, DateTime, ForeignKey, Integer, String, Text
@@ -46,7 +46,7 @@ class ExportJob(Base):
     file_path: Mapped[str | None] = mapped_column(String(1000), nullable=True)
 
     # Optionen
-    options: Mapped[dict | None] = mapped_column(JSONB, nullable=True)
+    options: Mapped[dict[str, Any] | None] = mapped_column(JSONB, nullable=True)
     """
     {
         "only_status": ["ACCEPTED"],
@@ -102,7 +102,7 @@ class GeneratorJob(Base):
     templates_enabled: Mapped[list[str]] = mapped_column(ARRAY(String(50)), nullable=False)
 
     # Generator-Einstellungen
-    settings: Mapped[dict] = mapped_column(JSONB, nullable=False)
+    settings: Mapped[dict[str, Any]] = mapped_column(JSONB, nullable=False)
     """
     {
         "error_rate_total": 5.0,
@@ -121,7 +121,7 @@ class GeneratorJob(Base):
     # Ausgabe
     output_dir: Mapped[str | None] = mapped_column(String(1000), nullable=True)
     solutions_file: Mapped[str | None] = mapped_column(String(1000), nullable=True)
-    generated_files: Mapped[dict] = mapped_column(JSONB, default=list)
+    generated_files: Mapped[list[dict[str, Any]]] = mapped_column(JSONB, default=list)
 
     # Fehler
     error_message: Mapped[str | None] = mapped_column(Text, nullable=True)

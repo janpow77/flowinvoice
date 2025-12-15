@@ -6,7 +6,7 @@ Vorhaben/Projekt mit Begünstigtem und Durchführungsort.
 """
 
 from datetime import datetime
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any
 from uuid import uuid4
 
 from sqlalchemy import Boolean, DateTime, String
@@ -40,10 +40,10 @@ class Project(Base):
     ui_language_hint: Mapped[str] = mapped_column(String(5), default="de")
 
     # Begünstigter (JSON mit name, street, zip, city, country, vat_id, tax_number, aliases)
-    beneficiary: Mapped[dict] = mapped_column(JSONB, nullable=False)
+    beneficiary: Mapped[dict[str, Any]] = mapped_column(JSONB, nullable=False)
 
     # Projekt-Details (JSON mit project_title, implementation, budget, period, etc.)
-    project: Mapped[dict] = mapped_column(JSONB, nullable=False)
+    project: Mapped[dict[str, Any]] = mapped_column(JSONB, nullable=False)
 
     # Status
     is_active: Mapped[bool] = mapped_column(Boolean, default=False)
@@ -69,7 +69,8 @@ class Project(Base):
     @property
     def project_title(self) -> str:
         """Projekt-Titel."""
-        return self.project.get("project_title", "")
+        title: str = self.project.get("project_title", "")
+        return title
 
     @property
     def file_reference(self) -> str | None:
@@ -79,20 +80,22 @@ class Project(Base):
     @property
     def beneficiary_name(self) -> str:
         """Name des Begünstigten."""
-        return self.beneficiary.get("name", "")
+        name: str = self.beneficiary.get("name", "")
+        return name
 
     @property
     def beneficiary_aliases(self) -> list[str]:
         """Alias-Namen des Begünstigten."""
-        return self.beneficiary.get("aliases", [])
+        aliases: list[str] = self.beneficiary.get("aliases", [])
+        return aliases
 
     @property
-    def implementation_location(self) -> dict | None:
+    def implementation_location(self) -> dict[str, Any] | None:
         """Durchführungsort."""
         return self.project.get("implementation")
 
     @property
-    def project_period(self) -> dict | None:
+    def project_period(self) -> dict[str, Any] | None:
         """Projektzeitraum."""
         return self.project.get("project_period")
 

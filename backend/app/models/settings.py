@@ -6,6 +6,7 @@ Anwendungs-Einstellungen und API-Key-Speicherung.
 """
 
 from datetime import datetime
+from typing import Any
 from uuid import uuid4
 
 from sqlalchemy import Boolean, DateTime, Enum, LargeBinary, String
@@ -30,7 +31,7 @@ class Setting(Base):
     )
 
     key: Mapped[str] = mapped_column(String(100), nullable=False, unique=True, index=True)
-    value: Mapped[dict] = mapped_column(JSONB, nullable=False)
+    value: Mapped[dict[str, Any]] = mapped_column(JSONB, nullable=False)
 
     # Zeitstempel
     updated_at: Mapped[datetime] = mapped_column(

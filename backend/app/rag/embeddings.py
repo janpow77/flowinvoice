@@ -51,7 +51,8 @@ class EmbeddingModel:
             Embedding-Vektor
         """
         embedding = self.model.encode(text, convert_to_numpy=True)
-        return embedding.tolist()
+        result: list[float] = embedding.tolist()
+        return result
 
     def embed_texts(self, texts: list[str]) -> list[list[float]]:
         """
@@ -69,7 +70,8 @@ class EmbeddingModel:
     @property
     def dimension(self) -> int:
         """Gibt Embedding-Dimension zurück."""
-        return self.model.get_sentence_embedding_dimension()
+        dim: int = self.model.get_sentence_embedding_dimension()
+        return dim
 
 
 # Singleton

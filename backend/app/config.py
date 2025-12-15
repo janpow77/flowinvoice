@@ -33,7 +33,7 @@ class Settings(BaseSettings):
     app_version: str = "0.1.0"
     debug: bool = False
     log_level: Literal["DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"] = "INFO"
-    secret_key: SecretStr = Field(default="flowaudit_dev_secret_key_change_in_production")
+    secret_key: SecretStr = Field(default=SecretStr("flowaudit_dev_secret_key_change_in_production"))
 
     # CORS - Erlaubte Origins (kommasepariert)
     cors_origins: str = Field(

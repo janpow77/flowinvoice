@@ -6,7 +6,7 @@ Steuerliche Regelwerke (DE_USTG, EU_VAT, UK_VAT).
 """
 
 from datetime import datetime
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any
 from uuid import uuid4
 
 from sqlalchemy import ARRAY, DateTime, String, UniqueConstraint
@@ -40,9 +40,9 @@ class Ruleset(Base):
     title_en: Mapped[str] = mapped_column(String(255), nullable=False)
 
     # JSON-Felder
-    legal_references: Mapped[dict] = mapped_column(JSONB, nullable=False, default=list)
-    features: Mapped[dict] = mapped_column(JSONB, nullable=False, default=list)
-    special_rules: Mapped[dict | None] = mapped_column(JSONB, nullable=True)
+    legal_references: Mapped[list[dict[str, Any]]] = mapped_column(JSONB, nullable=False, default=list)
+    features: Mapped[list[dict[str, Any]]] = mapped_column(JSONB, nullable=False, default=list)
+    special_rules: Mapped[dict[str, Any] | None] = mapped_column(JSONB, nullable=True)
 
     # Spracheinstellungen
     default_language: Mapped[str] = mapped_column(String(5), default="de")
@@ -63,7 +63,7 @@ class Ruleset(Base):
         """String-Repräsentation."""
         return f"<Ruleset {self.ruleset_id} v{self.version}>"
 
-    def get_feature_by_id(self, feature_id: str) -> dict | None:
+    def get_feature_by_id(self, feature_id: str) -> dict[str, Any] | None:
         """
         Findet ein Feature nach ID.
 
@@ -78,7 +78,7 @@ class Ruleset(Base):
                 return feature
         return None
 
-    def get_required_features(self) -> list[dict]:
+    def get_required_features(self) -> list[dict[str, Any]]:
         """
         Gibt alle Pflichtfeatures zurück.
 

@@ -6,7 +6,7 @@ Finale Ergebnisse nach Konfliktlösung zwischen Regel-Engine und LLM.
 """
 
 from datetime import datetime
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any
 from uuid import uuid4
 
 from sqlalchemy import DateTime, Enum, Float, ForeignKey, Integer, String
@@ -51,7 +51,7 @@ class FinalResult(Base):
     status: Mapped[str] = mapped_column(String(50), default="PENDING")
 
     # Berechnete Beträge
-    computed: Mapped[dict | None] = mapped_column(JSONB, nullable=True)
+    computed: Mapped[dict[str, Any] | None] = mapped_column(JSONB, nullable=True)
     """
     {
         "amounts": {
@@ -65,7 +65,7 @@ class FinalResult(Base):
     """
 
     # Feature-Ergebnisse mit Quellen
-    fields: Mapped[dict] = mapped_column(JSONB, nullable=False, default=list)
+    fields: Mapped[list[dict[str, Any]]] = mapped_column(JSONB, nullable=False, default=list)
     """
     [
         {
@@ -82,7 +82,7 @@ class FinalResult(Base):
     """
 
     # Gesamtbewertung
-    overall: Mapped[dict | None] = mapped_column(JSONB, nullable=True)
+    overall: Mapped[dict[str, Any] | None] = mapped_column(JSONB, nullable=True)
     """
     {
         "traffic_light": "GREEN",
@@ -130,9 +130,10 @@ class FinalResult(Base):
         """Liste fehlender Pflichtfeatures."""
         if not self.overall:
             return []
-        return self.overall.get("missing_required_features", [])
+        features: list[str] = self.overall.get("missing_required_features", [])
+        return features
 
-    def get_field_by_id(self, feature_id: str) -> dict | None:
+    def get_field_by_id(self, feature_id: str) -> dict[str, Any] | None:
         """
         Gibt Feld-Ergebnis nach Feature-ID zurück.
 
@@ -147,7 +148,7 @@ class FinalResult(Base):
                 return field
         return None
 
-    def get_conflicts(self) -> list[dict]:
+    def get_conflicts(self) -> list[dict[str, Any]]:
         """
         Gibt alle Felder mit Konflikten zurück.
 
@@ -179,9 +180,9 @@ class AnalysisResult(Base):
     model: Mapped[str] = mapped_column(String(100), nullable=False)
 
     # Prüfergebnisse
-    semantic_check: Mapped[dict | None] = mapped_column(JSONB, nullable=True)
-    economic_check: Mapped[dict | None] = mapped_column(JSONB, nullable=True)
-    beneficiary_match: Mapped[dict | None] = mapped_column(JSONB, nullable=True)
+    semantic_check: Mapped[dict[str, Any] | None] = mapped_column(JSONB, nullable=True)
+    economic_check: Mapped[dict[str, Any] | None] = mapped_column(JSONB, nullable=True)
+    beneficiary_match: Mapped[dict[str, Any] | None] = mapped_column(JSONB, nullable=True)
     warnings: Mapped[list[str]] = mapped_column(ARRAY(String), nullable=False, default=list)
 
     # Gesamtbewertung

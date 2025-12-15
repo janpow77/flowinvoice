@@ -655,7 +655,7 @@ def validate_amount(
 # MwSt-Satz Validierung
 # =============================================================================
 
-VALID_VAT_RATES = {
+VALID_VAT_RATES: dict[str, list[int | float]] = {
     "DE": [19, 7, 0],  # Deutschland
     "AT": [20, 13, 10, 0],  # Österreich
     "FR": [20, 10, 5.5, 2.1, 0],  # Frankreich

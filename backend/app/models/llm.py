@@ -6,7 +6,7 @@ PreparePayload (Input-JSON), LLM-Runs und Logs.
 """
 
 from datetime import datetime
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any
 from uuid import uuid4
 
 from sqlalchemy import DateTime, Enum, ForeignKey, String, Text
@@ -42,25 +42,25 @@ class PreparePayload(Base):
     schema_version: Mapped[str] = mapped_column(String(20), default="1.0")
 
     # Ruleset-Info
-    ruleset: Mapped[dict] = mapped_column(JSONB, nullable=False)
+    ruleset: Mapped[dict[str, Any]] = mapped_column(JSONB, nullable=False)
     ui_language: Mapped[str] = mapped_column(String(5), nullable=False)
 
     # Kontext
-    project_context: Mapped[dict | None] = mapped_column(JSONB, nullable=True)
-    parsing_summary: Mapped[dict | None] = mapped_column(JSONB, nullable=True)
-    deterministic_precheck_results: Mapped[dict | None] = mapped_column(JSONB, nullable=True)
+    project_context: Mapped[dict[str, Any] | None] = mapped_column(JSONB, nullable=True)
+    parsing_summary: Mapped[dict[str, Any] | None] = mapped_column(JSONB, nullable=True)
+    deterministic_precheck_results: Mapped[dict[str, Any] | None] = mapped_column(JSONB, nullable=True)
 
     # Features (zu prüfende Merkmale)
-    features: Mapped[dict] = mapped_column(JSONB, nullable=False)
+    features: Mapped[dict[str, Any]] = mapped_column(JSONB, nullable=False)
 
     # Extrahierter Text
     extracted_text: Mapped[str | None] = mapped_column(Text, nullable=True)
 
     # Schema für Output
-    required_output_schema: Mapped[dict | None] = mapped_column(JSONB, nullable=True)
+    required_output_schema: Mapped[dict[str, Any] | None] = mapped_column(JSONB, nullable=True)
 
     # RAG-Kontext (Few-Shot-Beispiele)
-    rag_context: Mapped[dict | None] = mapped_column(JSONB, nullable=True)
+    rag_context: Mapped[dict[str, Any] | None] = mapped_column(JSONB, nullable=True)
 
     # Zeitstempel
     created_at: Mapped[datetime] = mapped_column(
@@ -106,12 +106,12 @@ class LlmRun(Base):
     status: Mapped[str] = mapped_column(String(20), default="PENDING")
 
     # Timing und Tokens
-    timings_ms: Mapped[dict | None] = mapped_column(JSONB, nullable=True)
-    token_usage: Mapped[dict | None] = mapped_column(JSONB, nullable=True)
+    timings_ms: Mapped[dict[str, Any] | None] = mapped_column(JSONB, nullable=True)
+    token_usage: Mapped[dict[str, Any] | None] = mapped_column(JSONB, nullable=True)
 
     # Response
     raw_response_text: Mapped[str | None] = mapped_column(Text, nullable=True)
-    structured_response: Mapped[dict | None] = mapped_column(JSONB, nullable=True)
+    structured_response: Mapped[dict[str, Any] | None] = mapped_column(JSONB, nullable=True)
 
     # Fehler
     error_message: Mapped[str | None] = mapped_column(Text, nullable=True)
@@ -158,7 +158,7 @@ class LlmRun(Base):
             return self.token_usage.get("output")
         return None
 
-    def get_feature_result(self, feature_id: str) -> dict | None:
+    def get_feature_result(self, feature_id: str) -> dict[str, Any] | None:
         """
         Gibt Feature-Ergebnis aus Response zurück.
 
@@ -171,7 +171,7 @@ class LlmRun(Base):
         if not self.structured_response:
             return None
 
-        features = self.structured_response.get("features", [])
+        features: list[dict[str, Any]] = self.structured_response.get("features", [])
         for feature in features:
             if feature.get("feature_id") == feature_id:
                 return feature
@@ -200,7 +200,7 @@ class LlmRunLog(Base):
     )
     level: Mapped[str] = mapped_column(String(10), nullable=False)
     message: Mapped[str] = mapped_column(Text, nullable=False)
-    data: Mapped[dict | None] = mapped_column(JSONB, nullable=True)
+    data: Mapped[dict[str, Any] | None] = mapped_column(JSONB, nullable=True)
 
     # Relationships
     llm_run: Mapped["LlmRun"] = relationship("LlmRun", back_populates="logs")

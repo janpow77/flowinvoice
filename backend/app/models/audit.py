@@ -6,6 +6,7 @@ Audit-Log für alle System-Ereignisse.
 """
 
 from datetime import datetime
+from typing import Any
 from uuid import uuid4
 
 from sqlalchemy import DateTime, String
@@ -67,7 +68,7 @@ class AuditEvent(Base):
     user_role: Mapped[str | None] = mapped_column(String(20), nullable=True)
 
     # Zusätzliche Daten
-    data: Mapped[dict | None] = mapped_column(JSONB, nullable=True)
+    data: Mapped[dict[str, Any] | None] = mapped_column(JSONB, nullable=True)
 
     # Zeitstempel
     timestamp: Mapped[datetime] = mapped_column(
