@@ -180,6 +180,8 @@ async def run_generator(
     alias_noise_probability: float = 10.0,
     date_format_profiles: list[str] | None = None,
     output_dir_override: str | None = None,
+    beneficiary_data: dict[str, Any] | None = None,
+    project_context: dict[str, Any] | None = None,
     session: AsyncSession = Depends(get_async_session),
     x_role: str = Header(default="user", alias="X-Role"),
 ) -> dict[str, Any]:
@@ -198,6 +200,11 @@ async def run_generator(
         alias_noise_probability: Alias-Noise (%)
         date_format_profiles: Datumsformate
         output_dir_override: Ausgabeverzeichnis-Override
+        beneficiary_data: Optional - Begünstigtendaten für konsistente Rechnungen
+            Pflichtfelder: beneficiary_name, street, zip, city
+            Optional: legal_form, country, vat_id, aliases
+        project_context: Optional - Projektkontext
+            Optional: project_id, project_name
 
     Returns:
         Generator-Job-Info.
@@ -207,6 +214,27 @@ async def run_generator(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Admin role required",
         )
+
+    # Validierung der Begünstigtendaten (falls vorhanden)
+    if beneficiary_data:
+        required_fields = ["beneficiary_name", "street", "zip", "city"]
+        missing = [f for f in required_fields if not beneficiary_data.get(f)]
+        if missing:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail=f"Missing required beneficiary fields: {', '.join(missing)}",
+            )
+
+        # Keine Dummy-Marker erlaubt
+        dummy_markers = ["TEST", "XXX", "DUMMY", "Lorem", "Ipsum", "PLACEHOLDER"]
+        for field, value in beneficiary_data.items():
+            if isinstance(value, str):
+                for marker in dummy_markers:
+                    if marker.lower() in value.lower():
+                        raise HTTPException(
+                            status_code=status.HTTP_400_BAD_REQUEST,
+                            detail=f"Dummy marker '{marker}' found in beneficiary field '{field}'",
+                        )
 
     templates = templates_enabled or ["T1_HANDWERK", "T3_CORPORATE"]
     date_formats = date_format_profiles or ["DD.MM.YYYY"]
@@ -223,6 +251,8 @@ async def run_generator(
             "per_feature_error_rates": per_feature_error_rates or {},
             "alias_noise_probability": alias_noise_probability,
             "date_format_profiles": date_formats,
+            "beneficiary_data": beneficiary_data,
+            "project_context": project_context,
         },
         status="PENDING",
     )
@@ -239,6 +269,7 @@ async def run_generator(
         "output_dir": generator_job.output_dir,
         "solutions_file": generator_job.solutions_file,
         "task_id": task.id,
+        "beneficiary_data_used": beneficiary_data is not None,
     }
 
 

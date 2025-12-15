@@ -203,6 +203,98 @@ export const de = {
     calculationError: 'Berechnungsfehler',
   },
 
+  // Beneficiary (Begünstigter / Zuwendungsempfänger)
+  beneficiary: {
+    title: 'Begünstigter',
+    subtitle: 'Zuwendungsempfänger',
+    name: 'Name des Begünstigten',
+    legalForm: 'Rechtsform',
+    street: 'Straße und Hausnummer',
+    zip: 'Postleitzahl',
+    city: 'Stadt',
+    country: 'Land',
+    vatId: 'USt-Identifikationsnummer',
+    taxNumber: 'Steuernummer',
+    aliases: 'Alternative Schreibweisen',
+    inputTaxDeductible: 'Vorsteuerabzugsberechtigt',
+    // Matching status
+    matching: {
+      title: 'Begünstigtenabgleich',
+      exactMatch: 'Exakte Übereinstimmung',
+      aliasMatch: 'Alias-Übereinstimmung',
+      likelyMatch: 'Wahrscheinliche Übereinstimmung',
+      mismatch: 'Keine Übereinstimmung',
+      notChecked: 'Nicht geprüft',
+    },
+    // Error messages
+    errors: {
+      mismatch: 'Empfänger stimmt nicht mit Begünstigtem überein',
+      aliasUsed: 'Empfänger entspricht Alias des Begünstigten',
+      wrongAddress: 'Adresse weicht vom Begünstigten ab',
+      nameTypo: 'Möglicher Tippfehler im Empfängernamen',
+    },
+  },
+
+  // Project Context (Projektbezug)
+  projectContext: {
+    title: 'Projektkontext',
+    projectId: 'Projekt-ID',
+    projectName: 'Projektname',
+    fileReference: 'Aktenzeichen',
+    projectPeriod: 'Projektzeitraum',
+    fundingType: 'Förderart',
+    fundingRate: 'Fördersatz',
+    totalBudget: 'Gesamtbudget',
+    eligibleCosts: 'Förderfähige Kosten',
+    approvalDate: 'Bewilligungsdatum',
+    approvingAuthority: 'Bewilligungsbehörde',
+    implementationLocation: 'Durchführungsort',
+  },
+
+  // Quality Assurance
+  quality: {
+    title: 'Qualitätssicherung',
+    traceability: 'Nachvollziehbarkeit',
+    plausibility: 'Plausibilität',
+    consistency: 'Konsistenz',
+    truthSource: {
+      rule: 'Regelbasiert',
+      llm: 'KI-basiert',
+      user: 'Manuell',
+    },
+    checks: {
+      formal: 'Formale Prüfung',
+      semantic: 'Semantische Prüfung',
+      organizational: 'Organisatorische Konsistenz',
+      temporal: 'Zeitliche Konsistenz',
+      economic: 'Wirtschaftlichkeit',
+    },
+  },
+
+  // Generator
+  generator: {
+    title: 'Testdaten-Generator',
+    description: 'Erstellt Test-Rechnungen für den Seminarbetrieb',
+    count: 'Anzahl',
+    templates: 'Templates',
+    errorRate: 'Fehlerrate',
+    severity: 'Schweregrad',
+    useBeneficiaryData: 'Begünstigtendaten verwenden',
+    beneficiaryDataHint: 'Generierte Rechnungen verwenden konsistent die angegebenen Begünstigtendaten',
+    noDummyMarkers: 'Keine Dummy-Marker erlaubt',
+    errorTypes: {
+      missingInvoiceNumber: 'Fehlende Rechnungsnummer',
+      invalidVatId: 'Ungültige USt-IdNr',
+      missingDate: 'Fehlendes Datum',
+      calculationError: 'Rechenfehler',
+      missingDescription: 'Fehlende Beschreibung',
+      beneficiaryNameTypo: 'Tippfehler im Empfängernamen',
+      beneficiaryAliasUsed: 'Alias statt Hauptname',
+      beneficiaryWrongAddress: 'Falsche Adresse',
+      beneficiaryCompletelyWrong: 'Komplett falscher Empfänger',
+    },
+  },
+
   // Processing Steps
   processing: {
     upload: 'Datei hochladen',

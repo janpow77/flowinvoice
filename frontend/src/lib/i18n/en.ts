@@ -203,6 +203,98 @@ export const en = {
     calculationError: 'Calculation Error',
   },
 
+  // Beneficiary (Grant Recipient)
+  beneficiary: {
+    title: 'Beneficiary',
+    subtitle: 'Grant Recipient',
+    name: 'Beneficiary Name',
+    legalForm: 'Legal Form',
+    street: 'Street and Number',
+    zip: 'Postal Code',
+    city: 'City',
+    country: 'Country',
+    vatId: 'VAT Identification Number',
+    taxNumber: 'Tax Number',
+    aliases: 'Alternative Names',
+    inputTaxDeductible: 'Input Tax Deductible',
+    // Matching status
+    matching: {
+      title: 'Beneficiary Matching',
+      exactMatch: 'Exact Match',
+      aliasMatch: 'Alias Match',
+      likelyMatch: 'Likely Match',
+      mismatch: 'No Match',
+      notChecked: 'Not Checked',
+    },
+    // Error messages
+    errors: {
+      mismatch: 'Invoice recipient does not match beneficiary',
+      aliasUsed: 'Recipient matches beneficiary alias',
+      wrongAddress: 'Address differs from beneficiary',
+      nameTypo: 'Possible typo in recipient name',
+    },
+  },
+
+  // Project Context
+  projectContext: {
+    title: 'Project Context',
+    projectId: 'Project ID',
+    projectName: 'Project Name',
+    fileReference: 'File Reference',
+    projectPeriod: 'Project Period',
+    fundingType: 'Funding Type',
+    fundingRate: 'Funding Rate',
+    totalBudget: 'Total Budget',
+    eligibleCosts: 'Eligible Costs',
+    approvalDate: 'Approval Date',
+    approvingAuthority: 'Approving Authority',
+    implementationLocation: 'Implementation Location',
+  },
+
+  // Quality Assurance
+  quality: {
+    title: 'Quality Assurance',
+    traceability: 'Traceability',
+    plausibility: 'Plausibility',
+    consistency: 'Consistency',
+    truthSource: {
+      rule: 'Rule-based',
+      llm: 'AI-based',
+      user: 'Manual',
+    },
+    checks: {
+      formal: 'Formal Check',
+      semantic: 'Semantic Check',
+      organizational: 'Organizational Consistency',
+      temporal: 'Temporal Consistency',
+      economic: 'Economic Viability',
+    },
+  },
+
+  // Generator
+  generator: {
+    title: 'Test Data Generator',
+    description: 'Creates test invoices for training purposes',
+    count: 'Count',
+    templates: 'Templates',
+    errorRate: 'Error Rate',
+    severity: 'Severity',
+    useBeneficiaryData: 'Use Beneficiary Data',
+    beneficiaryDataHint: 'Generated invoices will consistently use the specified beneficiary data',
+    noDummyMarkers: 'No dummy markers allowed',
+    errorTypes: {
+      missingInvoiceNumber: 'Missing Invoice Number',
+      invalidVatId: 'Invalid VAT ID',
+      missingDate: 'Missing Date',
+      calculationError: 'Calculation Error',
+      missingDescription: 'Missing Description',
+      beneficiaryNameTypo: 'Recipient Name Typo',
+      beneficiaryAliasUsed: 'Alias Used Instead of Main Name',
+      beneficiaryWrongAddress: 'Wrong Address',
+      beneficiaryCompletelyWrong: 'Completely Wrong Recipient',
+    },
+  },
+
   // Processing Steps
   processing: {
     upload: 'Upload File',

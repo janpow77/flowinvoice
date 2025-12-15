@@ -318,6 +318,10 @@ async def _generate_invoices_async(generator_job_id: str) -> dict[str, Any]:
             error_rate = job.settings.get("error_rate_total", 5.0) if job.settings else 5.0
             severity = job.settings.get("severity", 2) if job.settings else 2
 
+            # Begünstigtendaten und Projektkontext aus Settings (optional)
+            beneficiary_data = job.settings.get("beneficiary_data") if job.settings else None
+            project_context = job.settings.get("project_context") if job.settings else None
+
             # Ausgabeverzeichnis erstellen
             output_dir = Path(job.output_dir or f"/data/generated/{generator_job_id}")
             output_dir.mkdir(parents=True, exist_ok=True)
@@ -330,13 +334,15 @@ async def _generate_invoices_async(generator_job_id: str) -> dict[str, Any]:
                 template = random.choice(templates)
                 has_error = random.random() * 100 < error_rate
 
-                # Generiere Rechnungsdaten
+                # Generiere Rechnungsdaten (mit optionalen Begünstigtendaten)
                 invoice_data = _generate_invoice_data(
                     template=template,
                     index=i + 1,
                     has_error=has_error,
                     severity=severity,
                     ruleset_id=job.ruleset_id,
+                    beneficiary_data=beneficiary_data,
+                    project_context=project_context,
                 )
 
                 # Dateiname
@@ -349,13 +355,15 @@ async def _generate_invoices_async(generator_job_id: str) -> dict[str, Any]:
 
                 generated_files.append(str(filepath))
 
-                # Lösung speichern
+                # Lösung speichern (inkl. Begünstigten-Info)
                 solutions.append({
                     "filename": filename,
                     "template": template,
                     "has_error": has_error,
                     "errors": invoice_data.get("injected_errors", []),
                     "correct_values": invoice_data.get("correct_values", {}),
+                    "beneficiary_used": invoice_data.get("beneficiary_used", False),
+                    "project_id": invoice_data.get("project_id"),
                 })
 
             # Lösungsdatei schreiben
@@ -393,8 +401,27 @@ def _generate_invoice_data(
     has_error: bool,
     severity: int,
     ruleset_id: str,
+    beneficiary_data: dict[str, Any] | None = None,
+    project_context: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
-    """Generiert Rechnungsdaten basierend auf Template."""
+    """
+    Generiert Rechnungsdaten basierend auf Template.
+
+    Args:
+        template: Template-ID (T1_HANDWERK, etc.)
+        index: Laufende Nummer
+        has_error: Soll ein Fehler injiziert werden?
+        severity: Schweregrad der Fehler (1-5)
+        ruleset_id: Aktives Ruleset
+        beneficiary_data: Optional - Begünstigtendaten für konsistente Rechnungen
+            Pflichtfelder: beneficiary_name, street, zip, city
+            Optional: legal_form, country, vat_id, aliases
+        project_context: Optional - Projektkontext
+            Optional: project_id, project_name
+
+    Returns:
+        Dict mit Rechnungsdaten inkl. ggf. injizierten Fehlern
+    """
     # Basisdaten
     today = datetime.now()
     invoice_date = today - timedelta(days=random.randint(1, 30))
@@ -441,15 +468,24 @@ def _generate_invoice_data(
     vat_amount = round(net_amount * vat_rate / 100, 2)
     gross_amount = round(net_amount + vat_amount, 2)
 
+    # Empfängerdaten aus Begünstigtendaten oder Standard
+    customer_name, customer_address = _resolve_customer_data(beneficiary_data)
+
+    # Leistungsbeschreibung ggf. mit Projektbezug
+    description = _build_description(config["description"], project_context)
+
+    # USt-IdNr generieren (plausibel)
+    vat_id = _generate_vat_id(beneficiary_data)
+
     data = {
         "invoice_number": f"{today.year}-{index:04d}",
         "invoice_date": invoice_date.strftime("%d.%m.%Y"),
         "supplier_name": config["supplier"],
         "supplier_address": config["supplier_address"],
-        "vat_id": f"DE{random.randint(100000000, 999999999)}",
-        "customer_name": "FlowAudit Testprojekt GmbH",
-        "customer_address": "Prüfstraße 1, 10117 Berlin",
-        "description": config["description"],
+        "vat_id": vat_id,
+        "customer_name": customer_name,
+        "customer_address": customer_address,
+        "description": description,
         "supply_date": (invoice_date - timedelta(days=random.randint(1, 14))).strftime("%d.%m.%Y"),
         "net_amount": f"{net_amount:,.2f}".replace(",", "X").replace(".", ",").replace("X", "."),
         "vat_rate": vat_rate,
@@ -459,24 +495,195 @@ def _generate_invoice_data(
         "template": template,
         "injected_errors": [],
         "correct_values": {},
+        # Metadaten für Lösungsdatei
+        "beneficiary_used": beneficiary_data is not None,
+        "project_id": project_context.get("project_id") if project_context else None,
     }
 
     # Fehler injizieren
     if has_error:
-        data = _inject_errors(data, severity)
+        data = _inject_errors(data, severity, beneficiary_data)
 
     return data
 
 
-def _inject_errors(data: dict[str, Any], severity: int) -> dict[str, Any]:
-    """Injiziert Fehler in Rechnungsdaten."""
-    error_types = [
-        ("missing_invoice_number", lambda d: d.update({"invoice_number": "", "correct_values": {**d.get("correct_values", {}), "invoice_number": d["invoice_number"]}})),
-        ("invalid_vat_id", lambda d: d.update({"vat_id": "INVALID123", "correct_values": {**d.get("correct_values", {}), "vat_id": d["vat_id"]}})),
-        ("missing_date", lambda d: d.update({"invoice_date": "", "correct_values": {**d.get("correct_values", {}), "invoice_date": d["invoice_date"]}})),
-        ("calculation_error", lambda d: d.update({"gross_amount": str(float(d["gross_amount"].replace(".", "").replace(",", ".")) + 10).replace(".", ","), "correct_values": {**d.get("correct_values", {}), "gross_amount": d["gross_amount"]}})),
-        ("missing_description", lambda d: d.update({"description": "", "correct_values": {**d.get("correct_values", {}), "description": d["description"]}})),
+def _resolve_customer_data(
+    beneficiary_data: dict[str, Any] | None,
+) -> tuple[str, str]:
+    """
+    Ermittelt Empfängername und -adresse aus Begünstigtendaten.
+
+    Args:
+        beneficiary_data: Begünstigtendaten oder None
+
+    Returns:
+        Tuple (customer_name, customer_address)
+    """
+    if not beneficiary_data:
+        return "FlowAudit Testprojekt GmbH", "Prüfstraße 1, 10117 Berlin"
+
+    # Name aus Begünstigtendaten (ggf. mit Rechtsform)
+    name = beneficiary_data.get("beneficiary_name", "")
+    legal_form = beneficiary_data.get("legal_form", "")
+
+    if legal_form and legal_form not in name:
+        customer_name = f"{name} {legal_form}"
+    else:
+        customer_name = name
+
+    # Adresse zusammenbauen
+    street = beneficiary_data.get("street", "")
+    zip_code = beneficiary_data.get("zip", "")
+    city = beneficiary_data.get("city", "")
+
+    customer_address = f"{street}, {zip_code} {city}".strip(", ")
+
+    return customer_name, customer_address
+
+
+def _build_description(
+    base_description: str,
+    project_context: dict[str, Any] | None,
+) -> str:
+    """
+    Erstellt Leistungsbeschreibung, optional mit Projektbezug.
+
+    Args:
+        base_description: Basis-Beschreibung aus Template
+        project_context: Projektkontext oder None
+
+    Returns:
+        Leistungsbeschreibung
+    """
+    if not project_context:
+        return base_description
+
+    project_name = project_context.get("project_name", "")
+    if project_name:
+        return f"{base_description} (Projekt: {project_name})"
+
+    return base_description
+
+
+def _generate_vat_id(beneficiary_data: dict[str, Any] | None) -> str:
+    """
+    Generiert eine plausible USt-IdNr.
+
+    Args:
+        beneficiary_data: Begünstigtendaten (optional, für Ländercode)
+
+    Returns:
+        USt-IdNr im korrekten Format
+    """
+    country = "DE"
+    if beneficiary_data:
+        country = beneficiary_data.get("country", "DE")
+
+    if country == "DE":
+        # Deutsche USt-IdNr: DE + 9 Ziffern
+        return f"DE{random.randint(100000000, 999999999)}"
+    elif country == "AT":
+        # Österreichische USt-IdNr: ATU + 8 Ziffern
+        return f"ATU{random.randint(10000000, 99999999)}"
+    elif country == "GB":
+        # UK VAT: GB + 9 oder 12 Ziffern
+        return f"GB{random.randint(100000000, 999999999)}"
+    else:
+        # EU-Standard: 2 Buchstaben + Ziffern
+        return f"{country}{random.randint(100000000, 999999999)}"
+
+
+def _inject_errors(
+    data: dict[str, Any],
+    severity: int,
+    beneficiary_data: dict[str, Any] | None = None,
+) -> dict[str, Any]:
+    """
+    Injiziert Fehler in Rechnungsdaten.
+
+    Args:
+        data: Rechnungsdaten
+        severity: Schweregrad (1-5, bestimmt Anzahl der Fehler)
+        beneficiary_data: Begünstigtendaten (für spezifische Fehlertypen)
+
+    Returns:
+        Modifizierte Rechnungsdaten mit injizierten Fehlern
+    """
+    # Basis-Fehlertypen (immer verfügbar)
+    error_types: list[tuple[str, Any]] = [
+        ("missing_invoice_number", lambda d: d.update({
+            "invoice_number": "",
+            "correct_values": {**d.get("correct_values", {}), "invoice_number": d["invoice_number"]}
+        })),
+        ("invalid_vat_id", lambda d: d.update({
+            "vat_id": "INVALID123",
+            "correct_values": {**d.get("correct_values", {}), "vat_id": d["vat_id"]}
+        })),
+        ("missing_date", lambda d: d.update({
+            "invoice_date": "",
+            "correct_values": {**d.get("correct_values", {}), "invoice_date": d["invoice_date"]}
+        })),
+        ("calculation_error", lambda d: d.update({
+            "gross_amount": str(float(d["gross_amount"].replace(".", "").replace(",", ".")) + 10).replace(".", ","),
+            "correct_values": {**d.get("correct_values", {}), "gross_amount": d["gross_amount"]}
+        })),
+        ("missing_description", lambda d: d.update({
+            "description": "",
+            "correct_values": {**d.get("correct_values", {}), "description": d["description"]}
+        })),
+        ("vat_id_missing", lambda d: d.update({
+            "vat_id": "",
+            "correct_values": {**d.get("correct_values", {}), "vat_id": d["vat_id"]}
+        })),
     ]
+
+    # Begünstigten-spezifische Fehler (nur wenn beneficiary_data vorhanden)
+    if beneficiary_data:
+        correct_name = data["customer_name"]
+        correct_address = data["customer_address"]
+
+        # Tippfehler im Empfängernamen (leicht)
+        error_types.append((
+            "beneficiary_name_typo",
+            lambda d: d.update({
+                "customer_name": _add_typo(d["customer_name"]),
+                "correct_values": {**d.get("correct_values", {}), "customer_name": correct_name}
+            })
+        ))
+
+        # Alias statt Hauptname verwenden (leicht)
+        aliases = beneficiary_data.get("aliases", [])
+        if aliases:
+            error_types.append((
+                "beneficiary_alias_used",
+                lambda d: d.update({
+                    "customer_name": random.choice(aliases),
+                    "correct_values": {**d.get("correct_values", {}), "customer_name": correct_name}
+                })
+            ))
+
+        # Falsche Adresse (mittel)
+        error_types.append((
+            "beneficiary_wrong_address",
+            lambda d: d.update({
+                "customer_address": "Musterweg 99, 00000 Nirgendwo",
+                "correct_values": {**d.get("correct_values", {}), "customer_address": correct_address}
+            })
+        ))
+
+        # Komplett falscher Empfänger (schwer)
+        error_types.append((
+            "beneficiary_completely_wrong",
+            lambda d: d.update({
+                "customer_name": "Unbekannte Firma GmbH",
+                "customer_address": "Falschstraße 1, 99999 Anderswo",
+                "correct_values": {
+                    **d.get("correct_values", {}),
+                    "customer_name": correct_name,
+                    "customer_address": correct_address
+                }
+            })
+        ))
 
     # Anzahl der Fehler basierend auf Severity
     num_errors = min(severity, len(error_types))
@@ -487,6 +694,35 @@ def _inject_errors(data: dict[str, Any], severity: int) -> dict[str, Any]:
         data["injected_errors"].append(error_name)
 
     return data
+
+
+def _add_typo(text: str) -> str:
+    """Fügt einen realistischen Tippfehler ein."""
+    if len(text) < 3:
+        return text
+
+    # Verschiedene Typo-Arten
+    typo_type = random.choice(["swap", "duplicate", "omit", "replace"])
+
+    chars = list(text)
+    pos = random.randint(1, len(chars) - 2)
+
+    if typo_type == "swap" and pos < len(chars) - 1:
+        # Buchstaben vertauschen
+        chars[pos], chars[pos + 1] = chars[pos + 1], chars[pos]
+    elif typo_type == "duplicate":
+        # Buchstaben doppeln
+        chars.insert(pos, chars[pos])
+    elif typo_type == "omit":
+        # Buchstaben auslassen
+        chars.pop(pos)
+    elif typo_type == "replace":
+        # Ähnlichen Buchstaben ersetzen
+        similar = {"a": "e", "e": "a", "i": "l", "o": "0", "s": "z", "n": "m"}
+        if chars[pos].lower() in similar:
+            chars[pos] = similar[chars[pos].lower()]
+
+    return "".join(chars)
 
 
 def _format_invoice_text(data: dict[str, Any]) -> str:
