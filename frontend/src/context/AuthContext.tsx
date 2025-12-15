@@ -136,6 +136,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
 /**
  * Hook um auf den Auth-Context zuzugreifen
  */
+// eslint-disable-next-line react-refresh/only-export-components
 export function useAuth(): AuthContextType {
   const context = useContext(AuthContext);
   if (context === undefined) {

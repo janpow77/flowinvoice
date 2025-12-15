@@ -8,7 +8,8 @@ const COLORS = ['#22c55e', '#f59e0b', '#ef4444', '#3b82f6', '#8b5cf6']
 
 export default function Statistics() {
   const { t } = useTranslation()
-  const { data: _stats, isLoading, error, refetch } = useQuery({
+  // TODO: Use real stats data when API is fully implemented
+  const { isLoading, error, refetch } = useQuery({
     queryKey: ['statistics'],
     queryFn: () => api.getDetailedStats(),
     retry: 2,
