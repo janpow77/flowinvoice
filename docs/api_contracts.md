@@ -100,6 +100,7 @@
 
 * `LOCAL_OLLAMA`
 * `OPENAI`
+* `ANTHROPIC`
 * `GEMINI`
 
 ### 1.9 Enum: FeedbackRating
@@ -115,7 +116,35 @@
 * `UNCLEAR`
 * `NO`
 
-### 1.11 Schema: Money
+### 1.11 Enum: LocationMatchStatus
+
+* `MATCH` – Exakte oder semantische Übereinstimmung
+* `PARTIAL` – Teilweise Übereinstimmung (z.B. gleiche Stadt, andere Straße)
+* `MISMATCH` – Keine Übereinstimmung
+* `UNCLEAR` – Nicht bestimmbar (fehlende Daten)
+
+### 1.12 Enum: ErrorSourceCategory
+
+* `TAX_LAW` – Fehler bei steuerrechtlichen Pflichtangaben (UStG/VAT/MwStSystRL)
+* `BENEFICIARY_DATA` – Fehler beim Abgleich mit Begünstigten-/Projektdaten
+* `LOCATION_VALIDATION` – Fehler bei der Standort-Validierung (Sitz ↔ Durchführungsort ↔ Leistungsort)
+
+### 1.13 Enum: TaxLawErrorType
+
+Detaillierte Fehlertypen für steuerrechtliche Pflichtangaben:
+
+* `MISSING` – Pflichtangabe fehlt komplett
+* `WRONG_FORMAT` – Format entspricht nicht der Vorgabe (z.B. Steuernummer ohne Trennzeichen)
+* `CONFUSED_WITH_OTHER` – Verwechslung mit anderem Feld (z.B. Kundennummer statt Steuernummer)
+* `CALCULATION_ERROR` – Rechenfehler bei Beträgen (Netto + MwSt ≠ Brutto, Rundungsdifferenz)
+* `WRONG_RATE` – Falscher Steuersatz angewendet oder erkannt
+* `NOT_UNIQUE` – Rechnungsnummer nicht eindeutig (Duplikat im Projekt)
+* `UNCLEAR` – Angabe vorhanden, aber nicht eindeutig interpretierbar
+* `OUT_OF_PROJECT_PERIOD` – Datum/Zeitraum liegt außerhalb des Projektzeitraums
+* `INVALID_CHECKSUM` – Prüfziffer ungültig (bei USt-ID)
+* `COUNTRY_MISMATCH` – Ländercode passt nicht zum Kontext
+
+### 1.14 Schema: Money
 
 ```json
 {
@@ -124,7 +153,7 @@
 }
 ```
 
-### 1.12 Schema: DateRange
+### 1.15 Schema: DateRange
 
 ```json
 {
@@ -133,7 +162,7 @@
 }
 ```
 
-### 1.13 Schema: BoundingBox (normalized)
+### 1.16 Schema: BoundingBox (normalized)
 
 ```json
 {
@@ -200,14 +229,44 @@ Liefert UI-Infos und Zähler.
 
 ```json
 {
-  "provider": "LOCAL_OLLAMA",
-  "model_name": "llama3.1:8b-instruct-q4",
-  "temperature": 0.2,
-  "max_tokens": 1200,
-  "timeout_sec": 120,
-  "local_base_url": "http://ollama:11434",
-  "api_key_is_set": true,
-  "api_key_masked": "************abcd",
+  "active_provider": "LOCAL_OLLAMA",
+  "providers": {
+    "LOCAL_OLLAMA": {
+      "enabled": true,
+      "base_url": "http://ollama:11434",
+      "model_name": "llama3.1:8b-instruct-q4",
+      "available_models": ["llama3.1:8b-instruct-q4", "mistral:7b", "qwen2:7b"]
+    },
+    "OPENAI": {
+      "enabled": true,
+      "api_key_is_set": true,
+      "api_key_masked": "sk-****************************abcd",
+      "model_name": "gpt-4o-mini",
+      "available_models": ["gpt-4o", "gpt-4o-mini", "gpt-4-turbo"]
+    },
+    "ANTHROPIC": {
+      "enabled": true,
+      "api_key_is_set": true,
+      "api_key_masked": "sk-ant-************************1234",
+      "model_name": "claude-sonnet-4-20250514",
+      "available_models": ["claude-sonnet-4-20250514", "claude-3-5-haiku-20241022"]
+    },
+    "GEMINI": {
+      "enabled": false,
+      "api_key_is_set": false,
+      "api_key_masked": null,
+      "model_name": "gemini-1.5-flash",
+      "available_models": ["gemini-1.5-pro", "gemini-1.5-flash"]
+    }
+  },
+  "inference": {
+    "temperature": 0.2,
+    "max_tokens": 2000,
+    "timeout_sec": 120,
+    "parallel_requests": 2,
+    "retry_on_error": true,
+    "max_retries": 3
+  },
   "generator": {
     "output_dir": "/data/generated",
     "solutions_dir": "/data/generated",
@@ -217,44 +276,150 @@ Liefert UI-Infos und Zähler.
     "enabled": true,
     "top_k": 3,
     "similarity_threshold": 0.25
+  },
+  "logging": {
+    "verbose": false
   }
 }
 ```
 
 ### 3.2 PUT /api/settings
 
-**Request**
+**Request** (partielle Updates erlaubt)
 
 ```json
 {
-  "provider": "OPENAI",
-  "model_name": "gpt-4.1-mini",
-  "temperature": 0.3,
-  "max_tokens": 1200,
-  "timeout_sec": 120,
-  "local_base_url": "http://ollama:11434",
-  "api_key": "sk-...",
-  "generator": {
-    "output_dir": "/data/generated",
-    "solutions_dir": "/data/generated",
-    "enable_admin_menu": true
+  "active_provider": "ANTHROPIC",
+  "providers": {
+    "ANTHROPIC": {
+      "model_name": "claude-sonnet-4-20250514"
+    }
   },
-  "rag": {
-    "enabled": true,
-    "top_k": 3,
-    "similarity_threshold": 0.25
+  "inference": {
+    "temperature": 0.3,
+    "max_tokens": 2000
   }
 }
 ```
 
 **Response 200**
 
-* wie GET
+* wie GET (vollständiges Settings-Objekt)
+
+### 3.3 PUT /api/settings/providers/{provider_id}/api-key
+
+Setzt oder aktualisiert API-Key für einen Provider.
+
+**Request**
+
+```json
+{
+  "api_key": "sk-ant-api03-..."
+}
+```
+
+**Response 200**
+
+```json
+{
+  "provider": "ANTHROPIC",
+  "api_key_is_set": true,
+  "api_key_masked": "sk-ant-************************wxyz"
+}
+```
+
+### 3.4 DELETE /api/settings/providers/{provider_id}/api-key
+
+Löscht API-Key für einen Provider.
+
+**Response 200**
+
+```json
+{
+  "provider": "ANTHROPIC",
+  "api_key_is_set": false
+}
+```
+
+### 3.5 POST /api/settings/providers/{provider_id}/test
+
+Testet Verbindung und API-Key-Gültigkeit.
+
+**Response 200**
+
+```json
+{
+  "provider": "ANTHROPIC",
+  "status": "ok",
+  "model_accessible": true,
+  "latency_ms": 450,
+  "message": "Connection successful"
+}
+```
+
+**Response 401** (ungültiger Key)
+
+```json
+{
+  "provider": "ANTHROPIC",
+  "status": "error",
+  "message": "Invalid API key"
+}
+```
+
+### 3.6 GET /api/settings/providers/LOCAL_OLLAMA/models
+
+Listet verfügbare lokale Modelle von Ollama.
+
+**Response 200**
+
+```json
+{
+  "models": [
+    {
+      "name": "llama3.1:8b-instruct-q4",
+      "size_gb": 4.7,
+      "loaded": true,
+      "modified_at": "2025-12-10T10:00:00Z"
+    },
+    {
+      "name": "mistral:7b",
+      "size_gb": 4.1,
+      "loaded": false,
+      "modified_at": "2025-12-01T08:00:00Z"
+    }
+  ]
+}
+```
+
+### 3.7 POST /api/settings/providers/LOCAL_OLLAMA/models/pull
+
+Lädt ein neues Modell herunter.
+
+**Request**
+
+```json
+{
+  "model_name": "qwen2:7b"
+}
+```
+
+**Response 202**
+
+```json
+{
+  "status": "pulling",
+  "model_name": "qwen2:7b",
+  "progress_url": "/api/settings/providers/LOCAL_OLLAMA/models/pull/status"
+}
+```
 
 **Validations**
 
 * `temperature` 0..1.5
 * `max_tokens` 64..8192
+* `timeout_sec` 30..300
+* `parallel_requests` 1..10
 * `output_dir` muss existieren oder vom System anlegbar sein
 
 ---
@@ -346,8 +511,14 @@ Update einer Version (optional; besser: immutable + new version).
     "project_title": "Baumaßnahme Aschaffenburg",
     "file_reference": "AZ-2025-0001",
     "project_description": "Umbau und Sanierung …",
-    "implementation_location": "Aschaffenburg",
-    "implementation_address": "Baustelle …",
+    "implementation": {
+      "location_name": "Baustelle Hauptbahnhof",
+      "street": "Bahnhofsplatz 1",
+      "zip": "63739",
+      "city": "Aschaffenburg",
+      "country": "DE",
+      "description": "Umbaumaßnahmen am Hauptbahnhof Aschaffenburg"
+    },
     "total_budget": { "amount": "5000000.00", "currency": "EUR" },
     "funding_type": "PERCENT",
     "funding_rate_percent": 70.0,
@@ -676,8 +847,32 @@ Starts LLM inference using latest payload (or specify payload_id).
       "reasons": ["Construction services match project description"],
       "mapped_cost_category": "Bau",
       "time_plausible": true,
-      "location_plausible": true,
-      "beneficiary_plausible": true
+      "beneficiary_plausible": true,
+      "location_fit": {
+        "customer_matches_beneficiary": {
+          "status": "MATCH",
+          "confidence": 95,
+          "invoice_value": "Stadt Aschaffenburg, Dalbergstraße 15, 63739 Aschaffenburg",
+          "project_value": "Stadt Aschaffenburg, Dalbergstraße 15, 63739 Aschaffenburg",
+          "note": "Exakte Übereinstimmung"
+        },
+        "service_location_matches_implementation": {
+          "status": "MATCH",
+          "confidence": 88,
+          "invoice_value": "Bahnhofsplatz 1, 63739 Aschaffenburg",
+          "project_value": "Bahnhofsplatz 1, 63739 Aschaffenburg",
+          "note": "Leistungsort entspricht Durchführungsort"
+        },
+        "service_location_matches_beneficiary": {
+          "status": "MISMATCH",
+          "confidence": 92,
+          "invoice_value": "Bahnhofsplatz 1, 63739 Aschaffenburg",
+          "project_value": "Dalbergstraße 15, 63739 Aschaffenburg",
+          "note": "Leistungsort ≠ Sitz Begünstigter (erwartbar bei Bauvorhaben)"
+        },
+        "overall_location_plausibility": "PLAUSIBLE",
+        "rationale": "Rechnungsempfänger = Begünstigter ✓, Leistungsort = Durchführungsort ✓"
+      }
     }
   }
 }
@@ -848,7 +1043,7 @@ Allows UI to show which examples would be used.
 
 ---
 
-## 13. Statistics
+## 13. Statistics & Dashboard (Informationsmenü)
 
 ### 13.1 GET /api/projects/{project_id}/stats
 
@@ -881,7 +1076,391 @@ Allows UI to show which examples would be used.
 
 ### 13.2 GET /api/stats/global
 
-Aggregated statistics for dashboard.
+Aggregated statistics for dashboard overview.
+
+**Response 200**
+
+```json
+{
+  "overview": {
+    "total_analyses": 1247,
+    "total_projects": 12,
+    "total_documents": 540,
+    "total_rag_examples": 84,
+    "session_analyses": 6,
+    "uptime_hours": 48.5
+  },
+  "accuracy": {
+    "overall_accuracy_percent": 87.3,
+    "feature_accuracy": {
+      "invoice_number": 98.2,
+      "invoice_date": 96.5,
+      "supplier_name_address": 89.1,
+      "supplier_tax_or_vat_id": 82.4
+    }
+  },
+  "by_provider": {
+    "LOCAL_OLLAMA": { "count": 980, "avg_time_ms": 12500 },
+    "OPENAI": { "count": 200, "avg_time_ms": 3200 },
+    "ANTHROPIC": { "count": 50, "avg_time_ms": 4100 },
+    "GEMINI": { "count": 17, "avg_time_ms": 2800 }
+  },
+  "time_trend": {
+    "period": "7d",
+    "data_points": [
+      { "date": "2025-12-09", "count": 45, "accuracy": 85.2 },
+      { "date": "2025-12-10", "count": 52, "accuracy": 86.1 },
+      { "date": "2025-12-11", "count": 38, "accuracy": 87.8 },
+      { "date": "2025-12-12", "count": 61, "accuracy": 88.2 },
+      { "date": "2025-12-13", "count": 44, "accuracy": 87.5 },
+      { "date": "2025-12-14", "count": 55, "accuracy": 88.9 },
+      { "date": "2025-12-15", "count": 12, "accuracy": 91.7 }
+    ]
+  }
+}
+```
+
+### 13.3 GET /api/stats/feedback
+
+Feedback-Statistiken für Didaktik-Dashboard.
+
+**Response 200**
+
+```json
+{
+  "summary": {
+    "total_feedback_entries": 312,
+    "rating_distribution": {
+      "CORRECT": 245,
+      "PARTIAL": 52,
+      "WRONG": 15
+    },
+    "avg_corrections_per_analysis": 0.8
+  },
+  "errors_by_feature": [
+    {
+      "feature_id": "supplier_tax_or_vat_id",
+      "total_errors": 45,
+      "error_types": {
+        "MISSING": 28,
+        "UNCLEAR": 12,
+        "WRONG_VALUE": 5
+      },
+      "most_common_correction": "USt-IdNr. statt Steuernummer erkannt"
+    },
+    {
+      "feature_id": "supply_date_or_period",
+      "total_errors": 32,
+      "error_types": {
+        "MISSING": 8,
+        "UNCLEAR": 18,
+        "WRONG_VALUE": 6
+      },
+      "most_common_correction": "Lieferzeitraum falsch interpretiert"
+    }
+  ],
+  "errors_by_source": {
+    "TAX_LAW": {
+      "label_de": "Steuerrecht (UStG/VAT/MwStSystRL)",
+      "label_en": "Tax Law (UStG/VAT/VAT Directive)",
+      "total_errors": 34,
+      "percentage": 60.7,
+      "features": [
+        { "feature_id": "supplier_tax_or_vat_id", "errors": 18 },
+        { "feature_id": "invoice_number", "errors": 5 },
+        { "feature_id": "vat_amount", "errors": 7 },
+        { "feature_id": "supply_date_or_period", "errors": 4 }
+      ],
+      "detail": [
+        {
+          "feature_id": "supplier_tax_or_vat_id",
+          "name_de": "Steuer-/USt-ID Lieferant",
+          "name_en": "Supplier Tax/VAT ID",
+          "legal_basis": "§14(4) Nr.2 UStG / Art. 226 Nr. 3 MwStSystRL",
+          "total_errors": 18,
+          "error_breakdown": [
+            { "type": "MISSING", "count": 11, "label_de": "fehlend", "label_en": "missing" },
+            { "type": "WRONG_FORMAT", "count": 4, "label_de": "falsches Format", "label_en": "wrong format" },
+            { "type": "CONFUSED_WITH_OTHER", "count": 3, "label_de": "Verwechslung", "label_en": "confused with other field", "example": "Kundennr. statt Steuer-ID erkannt" }
+          ]
+        },
+        {
+          "feature_id": "vat_amount",
+          "name_de": "Steuerbetrag (MwSt)",
+          "name_en": "VAT Amount",
+          "legal_basis": "§14(4) Nr.7 UStG / Art. 226 Nr. 10 MwStSystRL",
+          "total_errors": 7,
+          "error_breakdown": [
+            { "type": "CALCULATION_ERROR", "count": 4, "label_de": "Rechenfehler", "label_en": "calculation error", "example": "Rundungsdifferenz > 0.01€" },
+            { "type": "MISSING", "count": 2, "label_de": "fehlend", "label_en": "missing" },
+            { "type": "WRONG_RATE", "count": 1, "label_de": "falscher Steuersatz", "label_en": "wrong rate", "example": "19% statt 7% erkannt" }
+          ]
+        },
+        {
+          "feature_id": "invoice_number",
+          "name_de": "Rechnungsnummer",
+          "name_en": "Invoice Number",
+          "legal_basis": "§14(4) Nr.4 UStG / Art. 226 Nr. 2 MwStSystRL",
+          "total_errors": 5,
+          "error_breakdown": [
+            { "type": "MISSING", "count": 2, "label_de": "fehlend", "label_en": "missing" },
+            { "type": "NOT_UNIQUE", "count": 2, "label_de": "nicht eindeutig", "label_en": "not unique", "example": "Duplikat im Projekt" },
+            { "type": "WRONG_FORMAT", "count": 1, "label_de": "falsches Format", "label_en": "wrong format" }
+          ]
+        },
+        {
+          "feature_id": "supply_date_or_period",
+          "name_de": "Leistungszeitraum/-datum",
+          "name_en": "Supply Date/Period",
+          "legal_basis": "§14(4) Nr.6 UStG / Art. 226 Nr. 7 MwStSystRL",
+          "total_errors": 4,
+          "error_breakdown": [
+            { "type": "UNCLEAR", "count": 2, "label_de": "unklar", "label_en": "unclear", "example": "Zeitraum nicht eindeutig interpretierbar" },
+            { "type": "MISSING", "count": 1, "label_de": "fehlend", "label_en": "missing" },
+            { "type": "OUT_OF_PROJECT_PERIOD", "count": 1, "label_de": "außerhalb Projektzeitraum", "label_en": "outside project period" }
+          ]
+        }
+      ]
+    },
+    "BENEFICIARY_DATA": {
+      "label_de": "Begünstigten-Daten (Projektabgleich)",
+      "label_en": "Beneficiary Data (Project Matching)",
+      "total_errors": 15,
+      "percentage": 26.8,
+      "features": [
+        { "feature_id": "customer_name_address", "errors": 8 },
+        { "feature_id": "service_location_match", "errors": 4 },
+        { "feature_id": "beneficiary_alias_match", "errors": 3 }
+      ]
+    },
+    "LOCATION_VALIDATION": {
+      "label_de": "Standort-Validierung",
+      "label_en": "Location Validation",
+      "total_errors": 7,
+      "percentage": 12.5,
+      "features": [
+        { "feature_id": "service_location_mismatch", "errors": 4 },
+        { "feature_id": "implementation_location_unclear", "errors": 3 }
+      ]
+    }
+  },
+  "rag_improvement": {
+    "accuracy_before_rag": 78.5,
+    "accuracy_after_rag": 87.3,
+    "improvement_percent": 11.2,
+    "examples_contributing": 84
+  },
+  "feedback_timeline": [
+    { "date": "2025-12-09", "correct": 35, "partial": 8, "wrong": 2 },
+    { "date": "2025-12-10", "correct": 42, "partial": 6, "wrong": 1 },
+    { "date": "2025-12-11", "correct": 28, "partial": 9, "wrong": 3 }
+  ]
+}
+```
+
+### 13.4 GET /api/stats/llm
+
+Lokale und externe LLM-Statistiken (Modell-Telemetrie).
+
+**Response 200**
+
+```json
+{
+  "active_provider": "LOCAL_OLLAMA",
+  "active_model": "llama3.1:8b-instruct-q4",
+  "local_model_stats": {
+    "model_name": "llama3.1:8b-instruct-q4",
+    "model_size_gb": 4.7,
+    "quantization": "Q4_K_M",
+    "loaded": true,
+    "context_window": 8192,
+    "total_requests": 980,
+    "avg_tokens_in": 2100,
+    "avg_tokens_out": 650,
+    "total_tokens_processed": 2695000,
+    "avg_inference_time_ms": 12500,
+    "min_inference_time_ms": 8200,
+    "max_inference_time_ms": 28400,
+    "tokens_per_second_avg": 52.0
+  },
+  "resource_usage": {
+    "current_cpu_percent": 45.2,
+    "current_ram_mb": 8420,
+    "current_ram_percent": 13.2,
+    "gpu_available": true,
+    "gpu_name": "Intel UHD Graphics",
+    "gpu_memory_used_mb": 2048,
+    "gpu_memory_total_mb": 4096,
+    "gpu_utilization_percent": 78.5
+  },
+  "error_stats": {
+    "timeout_count": 3,
+    "parse_error_count": 1,
+    "connection_error_count": 0,
+    "last_error": {
+      "timestamp": "2025-12-14T18:32:00Z",
+      "type": "TIMEOUT",
+      "message": "Request exceeded 120s timeout"
+    }
+  },
+  "external_providers": {
+    "OPENAI": {
+      "total_requests": 200,
+      "total_tokens": 520000,
+      "avg_latency_ms": 3200,
+      "estimated_cost_usd": 12.50
+    },
+    "ANTHROPIC": {
+      "total_requests": 50,
+      "total_tokens": 145000,
+      "avg_latency_ms": 4100,
+      "estimated_cost_usd": 5.80
+    },
+    "GEMINI": {
+      "total_requests": 17,
+      "total_tokens": 42000,
+      "avg_latency_ms": 2800,
+      "estimated_cost_usd": 0.85
+    }
+  }
+}
+```
+
+### 13.5 GET /api/stats/rag
+
+ChromaDB/RAG-Übersicht für didaktische Zwecke.
+
+**Response 200**
+
+```json
+{
+  "collection_stats": {
+    "collection_name": "flowaudit_corrections",
+    "total_examples": 84,
+    "embedding_model": "sentence-transformers/all-MiniLM-L6-v2",
+    "embedding_dimension": 384,
+    "storage_size_mb": 12.4
+  },
+  "by_ruleset": {
+    "DE_USTG": 72,
+    "EU_VAT": 8,
+    "UK_VAT": 4
+  },
+  "by_feature": [
+    { "feature_id": "supplier_tax_or_vat_id", "count": 18 },
+    { "feature_id": "supply_date_or_period", "count": 14 },
+    { "feature_id": "customer_name_address", "count": 12 },
+    { "feature_id": "invoice_number", "count": 10 },
+    { "feature_id": "line_items", "count": 9 }
+  ],
+  "retrieval_stats": {
+    "total_retrievals": 456,
+    "avg_similarity_score": 0.72,
+    "cache_hit_rate": 0.35
+  },
+  "recent_examples": [
+    {
+      "rag_example_id": "rag_084",
+      "created_at": "2025-12-15T11:45:00Z",
+      "ruleset_id": "DE_USTG",
+      "feature_id": "supplier_tax_or_vat_id",
+      "correction_type": "MISSING_TO_PRESENT",
+      "similarity_to_nearest": 0.12,
+      "usage_count": 3
+    },
+    {
+      "rag_example_id": "rag_083",
+      "created_at": "2025-12-15T10:22:00Z",
+      "ruleset_id": "DE_USTG",
+      "feature_id": "supply_date_or_period",
+      "correction_type": "UNCLEAR_TO_PRESENT",
+      "similarity_to_nearest": 0.28,
+      "usage_count": 1
+    }
+  ]
+}
+```
+
+### 13.6 GET /api/stats/rag/examples/{rag_example_id}/detail
+
+Detail-Ansicht eines RAG-Beispiels für Seminar-Demo.
+
+**Response 200**
+
+```json
+{
+  "rag_example_id": "rag_084",
+  "created_at": "2025-12-15T11:45:00Z",
+  "source": {
+    "document_id": "doc_123",
+    "feedback_id": "fb_001",
+    "project_id": "prj_..."
+  },
+  "metadata": {
+    "ruleset_id": "DE_USTG",
+    "feature_id": "supplier_tax_or_vat_id",
+    "correction_type": "MISSING_TO_PRESENT"
+  },
+  "content": {
+    "original_text_snippet": "... Sanitär Müller, Hauptstr. 12, 12345 Musterstadt ...",
+    "original_llm_result": {
+      "status": "MISSING",
+      "confidence": 65,
+      "rationale": "No tax ID found in document"
+    },
+    "corrected_result": {
+      "status": "PRESENT",
+      "value": "DE123456789",
+      "user_note": "USt-IdNr. steht im Fußbereich"
+    }
+  },
+  "embedding_info": {
+    "text_embedded": "sanitär müller hauptstr musterstadt ust-idnr fußbereich",
+    "embedding_preview": [0.023, -0.156, 0.089, "..."],
+    "nearest_neighbors": [
+      { "rag_example_id": "rag_045", "similarity": 0.78 },
+      { "rag_example_id": "rag_067", "similarity": 0.65 }
+    ]
+  },
+  "usage_stats": {
+    "times_retrieved": 3,
+    "times_helpful": 2,
+    "last_used": "2025-12-15T14:30:00Z"
+  }
+}
+```
+
+### 13.7 GET /api/stats/system
+
+System-Information für Admin-Dashboard.
+
+**Response 200**
+
+```json
+{
+  "components": {
+    "backend": { "status": "ok", "version": "0.1.0", "uptime_sec": 174600 },
+    "database": { "status": "ok", "type": "PostgreSQL", "version": "15.4", "connections_active": 5, "connections_max": 100 },
+    "ollama": { "status": "ok", "version": "0.1.32", "models_loaded": 1 },
+    "chromadb": { "status": "ok", "version": "0.4.x", "collections": 1 },
+    "redis": { "status": "ok", "version": "7.2", "memory_used_mb": 128 }
+  },
+  "storage": {
+    "db_size_mb": 245.8,
+    "uploads_size_mb": 1024.5,
+    "generated_size_mb": 512.3,
+    "vectorstore_size_mb": 12.4,
+    "logs_size_mb": 85.2,
+    "total_used_mb": 1880.2,
+    "disk_free_mb": 48000
+  },
+  "activity_log": [
+    { "ts": "2025-12-15T14:30:00Z", "event": "LLM_RUN_COMPLETED", "detail": "doc_128 analyzed in 12.5s" },
+    { "ts": "2025-12-15T14:28:00Z", "event": "DOCUMENT_UPLOADED", "detail": "3 files uploaded to prj_..." },
+    { "ts": "2025-12-15T14:25:00Z", "event": "RAG_EXAMPLE_CREATED", "detail": "rag_084 from feedback fb_001" },
+    { "ts": "2025-12-15T14:20:00Z", "event": "MODEL_LOADED", "detail": "llama3.1:8b-instruct-q4 loaded" }
+  ]
+}
 
 ---
 
