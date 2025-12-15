@@ -1,4 +1,4 @@
-import { useQuery, useQueryClient } from '@tanstack/react-query'
+import { useQuery } from '@tanstack/react-query'
 import { useTranslation } from 'react-i18next'
 import { Link } from 'react-router-dom'
 import { FileText, CheckCircle, AlertTriangle, XCircle, Loader2, AlertCircle, FolderOpen, BarChart3, RefreshCw } from 'lucide-react'
@@ -6,7 +6,6 @@ import { api } from '@/lib/api'
 
 export default function Dashboard() {
   const { t } = useTranslation()
-  const queryClient = useQueryClient()
 
   const { data: stats, isLoading, error, refetch } = useQuery({
     queryKey: ['dashboard-stats'],

@@ -53,9 +53,7 @@ export function LogoSpinner({
     const angle = (i * 360 / tickCount) - 90; // Start bei 12 Uhr (-90°)
     const radian = (angle * Math.PI) / 180;
 
-    // Position der Markierung
-    const x1 = center + (radius - 6) * Math.cos(radian);
-    const y1 = center + (radius - 6) * Math.sin(radian);
+    // Position der Markierung (äußerer Punkt)
     const x2 = center + radius * Math.cos(radian);
     const y2 = center + radius * Math.sin(radian);
 

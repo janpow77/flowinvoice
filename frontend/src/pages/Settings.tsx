@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { CheckCircle, XCircle, Globe, Cpu, AlertTriangle, RefreshCw, Thermometer, Zap } from 'lucide-react'
@@ -35,28 +35,31 @@ export default function Settings() {
   const { data: performanceSettings } = useQuery({
     queryKey: ['performance-settings'],
     queryFn: () => api.getPerformanceSettings(),
-    onSuccess: (data: { uvicorn_workers: number; celery_concurrency: number }) => {
-      setUvicornWorkers(data.uvicorn_workers)
-      setCeleryWorkers(data.celery_concurrency)
-    },
   })
+
+  // Sync performance settings to state
+  useEffect(() => {
+    if (performanceSettings) {
+      setUvicornWorkers(performanceSettings.uvicorn_workers)
+      setCeleryWorkers(performanceSettings.celery_concurrency)
+    }
+  }, [performanceSettings])
 
   // GPU Settings Query
   const { data: gpuSettings } = useQuery({
     queryKey: ['gpu-settings'],
     queryFn: () => api.getGpuSettings(),
-    onSuccess: (data: {
-      gpu_memory_fraction: number
-      num_parallel: number
-      context_size: number
-      thermal_throttle_temp: number
-    }) => {
-      setGpuMemoryFraction(data.gpu_memory_fraction)
-      setNumParallel(data.num_parallel)
-      setContextSize(data.context_size)
-      setThermalThrottleTemp(data.thermal_throttle_temp)
-    },
   })
+
+  // Sync GPU settings to state
+  useEffect(() => {
+    if (gpuSettings) {
+      setGpuMemoryFraction(gpuSettings.gpu_memory_fraction)
+      setNumParallel(gpuSettings.num_parallel)
+      setContextSize(gpuSettings.context_size)
+      setThermalThrottleTemp(gpuSettings.thermal_throttle_temp)
+    }
+  }, [gpuSettings])
 
   // System Metrics (live)
   const { data: systemMetrics } = useQuery({

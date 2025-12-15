@@ -102,4 +102,5 @@ export interface ProviderInfo {
   default_model: string
   is_default: boolean
   available?: boolean
+  models?: string[]
 }
