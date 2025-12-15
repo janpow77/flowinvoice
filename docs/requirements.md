@@ -607,3 +607,494 @@ Das System ist nur „fertig“, wenn:
 **MVP 4:** Feedback Versionierung + DataGrid-after-feedback
 **MVP 5:** Training pipeline + Model registry + Evaluation + Learning dashboard
 
+
+# flowaudit – Beleganalyse (UStG + Zuwendungszweck) mit lokaler KI
+**Konzept- & Setup-Guide (GitHub-Repo-Startpunkt)**  
+Stand: 12.12.2025
+
+Dieses Repository beschreibt ein System, mit dem Nutzer **ohne Prompt-Eingabe** PDF‑Belege hochladen (oder aus einem Schulungsset auswählen) und eine **Ergebnisliste** erhalten. Die KI läuft **unsichtbar im Backend** (lokal über Ollama oder alternativ über Cloud‑API).
+
+Das System unterstützt zwei Modi:
+- **Training (Anlernen):** Belege hochladen/auswählen, Goldstandard pro Modul erfassen (Labels + Begründung).
+- **Prüfen (Module 1–3):** Vorhabenprofil erfassen/auswählen, Belege hochladen, Analyse starten, Ergebnisse ansehen, Feedback speichern.
+
+---
+
+## 1. Ziele und Grundprinzipien
+
+### 1.1 Nutzerinteraktion (keine Prompts)
+- Frontend bietet **nur**:
+  - Datei‑Upload (PDF; optional Batch)
+  - Auswahl aus Schulungsbelegen
+  - Start‑Button „Analyse“
+  - Ergebnisliste + Detailansicht + Feedback
+- **Kein** Freitext‑Promptfeld. Prompts sind **fest im Backend versioniert**.
+
+### 1.2 Fachliche Module
+- **Modul 1 – UStG‑Rechnungspflichtangaben**  
+  Fokus auf formale Anforderungen (Vorsteuer‑Relevanz als Prüfhilfe). Typische Pflichtangaben ergeben sich aus **§ 14 Abs. 4 UStG**, Sonderfälle aus **§ 14a UStG**, Vorsteuerabzug aus **§ 15 Abs. 1 UStG**.
+- **Modul 2 – Vorhabenzusammenhang / Zuwendungszweck**  
+  Prüfung, ob der Beleg sachlich/zeitlich/organisatorisch plausibel zum Vorhaben passt (Zweckbindung).
+- **Modul 3 – Risiko / Vergabe / weitere Prüfregeln (optional erweiterbar)**  
+  Z. B. vergaberechtliche Indikatoren, Plausibilitäten, typische Fehlerbilder, Checklistenlogik.
+
+### 1.3 „Wiedererkennung“ der 50 Schulungsbelege
+Ein LLM „merkt“ Belege nicht wie ein Speicher. Für **sofortige Wiedererkennung** nutzen wir im Backend:
+- **Fingerprint (SHA‑256)** über PDF‑Bytes oder normalisierten Extrakt‑Text
+- Lookup in DB → wenn bekannt: Ergebnis **aus DB** statt Inferenz
+
+---
+
+## 2. Architektur
+
+### 2.1 Komponenten (Docker‑Stack)
+- **frontend** (React oder Vue) – Upload, Training‑Formulare, Ergebnisliste, Detail, Feedback
+- **api** (FastAPI) – Upload‑Endpoints, Projektprofile, Job‑Start, Ergebnis‑API
+- **worker** (Celery/RQ/Arq) – Batch‑Analyse, Parallelisierung, robuste Jobs
+- **db** (PostgreSQL) – Belege, Projekte, Ergebnisse, Trainingsdaten, Feedback, Prompt‑Versionen
+- **ollama** (lokales LLM) – Inferenz über HTTP (z. B. Llama/Qwen/Mistral)
+- **traefik** (optional) – Reverse Proxy, HTTPS (oder Cloudflare Tunnel)
+- **minio** (optional) – Objekt‑Storage für PDFs (statt Dateisystem)
+- **pgadmin** (optional) – DB‑UI
+
+### 2.2 Datenfluss (Prüfmodus)
+1. Upload PDF(s) → `api` speichert Datei + extrahiert Text
+2. Fingerprint berechnen → bekannte Belege?  
+   - Ja → Ergebnis aus DB laden  
+   - Nein → Job an `worker` geben
+3. Worker:
+   - Prompt‑Version laden (fest versioniert)
+   - Modul 1–3 ausführen (lokales LLM oder Cloud)
+   - JSON validieren → DB schreiben
+4. Frontend pollt Status → Ergebnisliste → Detailansicht → Feedback speichern
+
+### 2.3 Datenfluss (Trainingsmodus)
+1. Upload/Select Beleg → extrahierter Text sichtbar (optional)
+2. Goldstandard pro Modul erfassen (ok/missing/unclear etc.)
+3. Speicherung als **Training Example** (Goldstandard)  
+4. Optional: „KI‑Vorschlag holen“ → dann manuell korrigieren → als Goldstandard speichern
+
+---
+
+## 3. Repo‑Struktur (Vorschlag)
+
+```text
+flowaudit-invoice-ai/
+├─ README.md
+├─ docs/
+│  ├─ 01_architektur.md
+│  ├─ 02_datenmodell.md
+│  ├─ 03_prompts.md
+│  ├─ 04_security.md
+│  ├─ 05_training_workflow.md
+│  └─ 06_codex_workflow.md
+├─ deploy/
+│  ├─ docker-compose.yml
+│  ├─ docker-compose.override.example.yml
+│  ├─ traefik/
+│  │  ├─ traefik.yml
+│  │  └─ dynamic.yml
+│  └─ cloudflared/
+│     └─ config.yml
+├─ backend/
+│  ├─ Dockerfile
+│  ├─ pyproject.toml
+│  ├─ app/
+│  │  ├─ main.py
+│  │  ├─ config.py
+│  │  ├─ api/
+│  │  │  ├─ routes_invoices.py
+│  │  │  ├─ routes_projects.py
+│  │  │  ├─ routes_training.py
+│  │  │  └─ routes_results.py
+│  │  ├─ services/
+│  │  │  ├─ pdf_extract.py
+│  │  │  ├─ fingerprint.py
+│  │  │  ├─ llm_client_ollama.py
+│  │  │  ├─ llm_prompts.py
+│  │  │  ├─ validators.py
+│  │  │  └─ scoring.py
+│  │  ├─ db/
+│  │  │  ├─ session.py
+│  │  │  ├─ models.py
+│  │  │  └─ migrations/
+│  │  └─ worker/
+│  │     ├─ tasks.py
+│  │     └─ queue.py
+│  └─ tests/
+├─ frontend/
+│  ├─ Dockerfile
+│  ├─ package.json
+│  └─ src/
+│     ├─ pages/
+│     │  ├─ Training.tsx
+│     │  ├─ Check.tsx
+│     │  └─ Projects.tsx
+│     ├─ components/
+│     │  ├─ UploadDropzone.tsx
+│     │  ├─ ResultsTable.tsx
+│     │  ├─ InvoiceDetail.tsx
+│     │  └─ ModuleTabs.tsx
+│     └─ lib/api.ts
+└─ data/
+   ├─ training_invoices/   (nur für Demo/Schulung; optional .gitignore)
+   └─ seed/
+      ├─ projects.json
+      └─ invoices_manifest.json
+```
+
+---
+
+## 4. Datenmodell (Minimal‑Variante)
+
+### 4.1 Tabellen
+**invoices**
+- `id` (PK)
+- `fingerprint` (unique, SHA‑256)
+- `file_name`
+- `storage_path` (oder minio key)
+- `text_extracted`
+- `created_at`
+
+**projects**
+- `id` (PK)
+- `code` (unique)
+- `title`
+- `description`
+- `funding_purpose`
+- `period_start`, `period_end`
+- `beneficiary_name`
+- `eligible_cost_categories` (JSON)
+- `ineligible_cost_examples` (JSON)
+- `created_at`
+
+**prompt_versions**
+- `id` (PK)
+- `module` (1/2/3)
+- `version` (z. B. `m1_v1.2`)
+- `prompt_template` (Text)
+- `schema_json` (JSON‑Schema)
+- `created_at`
+
+**ai_results**
+- `id` (PK)
+- `invoice_id` (FK)
+- `project_id` (FK, nullable)
+- `module` (1/2/3)
+- `model_name`
+- `prompt_version_id` (FK)
+- `result_json`
+- `status` (queued/running/done/failed)
+- `created_at`
+
+**training_examples**
+- `id` (PK)
+- `invoice_id` (FK)
+- `project_id` (FK, nullable)
+- `module` (1/2/3)
+- `label_json` (Goldstandard)
+- `source` (manual/corrected_from_ai)
+- `created_at`
+
+**feedback**
+- `id` (PK)
+- `ai_result_id` (FK)
+- `module`
+- `rating` (correct/partial/wrong)
+- `correction_json`
+- `comment`
+- `created_at`
+
+---
+
+## 5. Ergebnis‑Schemas (Beispiel)
+
+### 5.1 Modul 1 – UStG (Beispiel‑JSON)
+```json
+{
+  "invoice_number": "2025-001",
+  "issue_date": "2025-10-15",
+  "supplier_name": "Muster GmbH",
+  "customer_name": "Begünstigter e.V.",
+  "net_amount_total": "1000.00",
+  "vat_amount_total": "190.00",
+  "checks": [
+    {
+      "field": "supplier_name_and_address",
+      "required_by": "§ 14 Abs. 4 Nr. 1 UStG",
+      "status": "ok",
+      "comment": "Name und Anschrift des leistenden Unternehmers sind angegeben."
+    }
+  ],
+  "overall_assessment": "likely_valid",
+  "overall_comment": "Formale Pflichtangaben überwiegend vorhanden; keine offensichtlichen Ausschlussgründe erkennbar."
+}
+```
+
+### 5.2 Modul 2 – Vorhabenzusammenhang (Beispiel‑JSON)
+```json
+{
+  "project_relation": {
+    "relation_level": "yes",
+    "score": 0.86,
+    "mapped_cost_category": "Baukosten",
+    "time_plausible": true,
+    "beneficiary_plausible": true,
+    "reasons": [
+      "Leistungsbeschreibung bezieht sich auf Umbau/Installation im Projektstandort.",
+      "Rechnungsdatum liegt innerhalb des Förderzeitraums.",
+      "Kostenart ist im Projektprofil als förderfähig vorgesehen."
+    ]
+  }
+}
+```
+
+### 5.3 Modul 3 – Risikoindikatoren (Beispiel‑JSON)
+```json
+{
+  "risk": {
+    "risk_level": "medium",
+    "signals": [
+      "Leistungszeitpunkt nicht eindeutig angegeben",
+      "Positionen sehr allgemein beschrieben"
+    ],
+    "recommendations": [
+      "Leistungsnachweis/Abnahmeprotokoll anfordern",
+      "Projektzuordnung über Kostenträger prüfen"
+    ]
+  }
+}
+```
+
+---
+
+## 6. Setup auf dem NUC (Ubuntu Server)
+
+### 6.1 Basis‑Installation
+Empfohlen: Ubuntu Server LTS, SSH aktiviert.
+
+```bash
+sudo apt update && sudo apt upgrade -y
+sudo apt install -y ca-certificates curl gnupg git ufw
+```
+
+### 6.2 Docker installieren
+```bash
+curl -fsSL https://get.docker.com | sudo sh
+sudo usermod -aG docker $USER
+newgrp docker
+```
+
+### 6.3 NVIDIA (optional, für GPU‑LLM)
+Wenn GPU‑Inferenz genutzt wird: NVIDIA Treiber + Container Toolkit.
+(Die konkrete Version hängt vom System ab; anschließend Test mit `nvidia-smi`.)
+
+```bash
+# (Beispiel) Toolkit installieren, dann:
+docker run --rm --gpus all nvidia/cuda:12.2.0-base-ubuntu22.04 nvidia-smi
+```
+
+### 6.4 Repo clonen und starten
+```bash
+git clone https://github.com/<dein-user>/flowaudit-invoice-ai.git
+cd flowaudit-invoice-ai/deploy
+cp .env.example .env
+docker compose up -d --build
+```
+
+---
+
+## 7. Docker Compose (Minimal‑Beispiel)
+
+> Datei: `deploy/docker-compose.yml` (Platzhalter – im Repo ausformulieren)
+
+```yaml
+services:
+  db:
+    image: postgres:16
+    environment:
+      POSTGRES_USER: flowaudit
+      POSTGRES_PASSWORD: flowaudit
+      POSTGRES_DB: flowaudit
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+
+  ollama:
+    image: ollama/ollama
+    volumes:
+      - ollama_data:/root/.ollama
+    ports:
+      - "11434:11434"
+
+  api:
+    build: ../backend
+    environment:
+      DATABASE_URL: postgresql+psycopg://flowaudit:flowaudit@db:5432/flowaudit
+      OLLAMA_HOST: http://ollama:11434
+      STORAGE_PATH: /data/invoices
+    volumes:
+      - ../data:/data
+    ports:
+      - "9100:8000"
+    depends_on:
+      - db
+      - ollama
+
+  worker:
+    build: ../backend
+    command: ["python", "-m", "app.worker.queue"]
+    environment:
+      DATABASE_URL: postgresql+psycopg://flowaudit:flowaudit@db:5432/flowaudit
+      OLLAMA_HOST: http://ollama:11434
+      STORAGE_PATH: /data/invoices
+    volumes:
+      - ../data:/data
+    depends_on:
+      - db
+      - ollama
+
+  frontend:
+    build: ../frontend
+    ports:
+      - "3000:80"
+    depends_on:
+      - api
+
+volumes:
+  pgdata:
+  ollama_data:
+```
+
+---
+
+## 8. Sicherheitskonzept (Kurz)
+
+### 8.1 Zugriff
+- Idealfall: **Cloudflare Tunnel + Access** (kein Port‑Forwarding)
+- Alternativ: Reverse Proxy (Traefik) + HTTPS + Basic Auth/SSO
+- Keine öffentlichen DB‑Ports im Internet
+
+### 8.2 Daten
+- PDFs und Extrakt‑Texte enthalten ggf. personenbezogene Daten
+- Speicherung:
+  - Dateisystem in Volume **oder** S3‑kompatibel (MinIO)
+  - DB enthält Referenz + Ergebnisse + Hash
+- Logging: keine Volltexte in Logs
+
+### 8.3 Rollen
+- Admin: Projekte/Prompts/Seeds
+- Trainer: Trainingslabels pflegen
+- Nutzer: Upload/Prüfen/Feedback
+
+---
+
+## 9. Schulungsmodus (die 50 Belege)
+
+### 9.1 Seed‑Belege vorbereiten
+- Lege Schulungs‑PDFs ab: `data/training_invoices/`
+- Erstelle Manifest: `data/seed/invoices_manifest.json` (Dateiname, Code, Beschreibung)
+
+### 9.2 Seed‑Projekte vorbereiten
+- `data/seed/projects.json` enthält 1–3 Projektprofile (Titel, Zweck, Zeitraum, Kostenarten)
+
+### 9.3 Erstbefüllung
+Ein Script `backend/app/db/seed.py`:
+- liest Projekte/Manifest
+- importiert PDFs (Fingerprint + Text)
+- legt Trainingsbeispiele an (optional leer)
+- optional: erzeugt KI‑Vorschläge und speichert sie als „draft“
+
+---
+
+## 10. Implementierungs‑Schritte (Roadmap)
+
+### Schritt 1 – Skeleton
+- Docker Compose lauffähig (db, api, frontend, ollama)
+- Health‑Endpoints + Versioning
+
+### Schritt 2 – Upload + Extraktion
+- `POST /api/invoices/upload`
+- PDF speichern
+- Text extrahieren (`pdfplumber` / `pypdf`)
+- Fingerprint bilden
+
+### Schritt 3 – Datenmodell + Migration
+- SQLAlchemy Models
+- Alembic Migration
+
+### Schritt 4 – Analyse‑Jobs
+- `POST /api/run/analyze` startet Jobs (Batch)
+- Worker führt Module 1–3 aus
+- Status‑Polling + Ergebnis‑API
+
+### Schritt 5 – Trainingsseite
+- Goldstandard‑Formulare + Speicherung
+- optional: KI‑Vorbefüllung
+
+### Schritt 6 – Feedback‑Loop
+- Detailansicht + Feedback speichern
+- Export: `training_examples` + `feedback` → JSONL
+
+### Schritt 7 – Retrieval / Few‑Shot (optional)
+- Ähnliche Trainingsbelege suchen (Embedding oder simpler TF‑IDF)
+- 1–3 Beispiele in Prompt einbetten, um Konsistenz zu erhöhen
+
+### Schritt 8 – Fine‑Tuning (optional)
+- Export JSONL
+- Modell fein‑tunen (lokal via LoRA oder extern)
+- Modell in Ollama als neues Modell registrieren
+- Konfiguration umstellen (`MODEL_NAME=jan-ustg-v1`)
+
+---
+
+## 11. Codex‑Workflow (damit du das Repo „programmieren lässt“)
+
+### 11.1 Arbeitsweise
+- Erzeuge pro Feature ein **Issue** im Repo
+- Lass Codex jeweils **nur** einen klaren Scope umsetzen
+- Verlange:
+  - keine Änderungen außerhalb des Scope
+  - Tests/Run‑Commands
+  - kurze Begründung der Architekturentscheidung
+
+### 11.2 Beispiel‑Prompts an Codex (Copy/Paste)
+
+**Issue 1: Datenmodell + Alembic**
+> Implementiere SQLAlchemy‑Modelle und Alembic‑Migrationen gemäß docs/02_datenmodell.md.  
+> Erzeuge Tabellen: invoices, projects, prompt_versions, ai_results, training_examples, feedback.  
+> Nutze klare Constraints (unique fingerprint, FK‑Beziehungen).  
+> Schreibe außerdem ein Seed‑Script für projects.json.
+
+**Issue 2: Upload‑Endpoint**
+> Implementiere `POST /api/invoices/upload` (multipart PDF).  
+> Speichere Datei in STORAGE_PATH, extrahiere Text, berechne SHA‑256 Fingerprint.  
+> Lege invoice‑Datensatz an oder reuse bei bekanntem Fingerprint.  
+> Gib JSON mit invoice_id und fingerprint zurück.
+
+**Issue 3: Modul‑Runner**
+> Implementiere Worker‑Task `analyze_invoice(invoice_id, project_id)` mit Modulen 1–3.  
+> Prompts aus prompt_versions laden (Versioning).  
+> LLM via Ollama‑HTTP aufrufen; Output als JSON validieren; Ergebnis in ai_results schreiben.
+
+---
+
+## 12. Betrieb, Updates, Backups
+
+### 12.1 Updates
+```bash
+git pull
+docker compose up -d --build
+```
+
+### 12.2 DB‑Backup (Beispiel)
+```bash
+docker exec -t deploy-db-1 pg_dump -U flowaudit flowaudit > backup_flowaudit.sql
+```
+
+### 12.3 Daten‑Backup zu QNAP (Beispiel rsync)
+```bash
+rsync -avz ./data/ user@qnap:/Backups/flowaudit/data/
+```
+
