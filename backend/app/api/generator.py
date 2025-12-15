@@ -3,17 +3,19 @@
 FlowAudit Generator API (Admin)
 
 Endpoints für PDF-Generator (Seminarbetrieb).
+Erfordert API-Key-Authentifizierung für sensible Endpoints.
 """
 
 import json
 from pathlib import Path
 from typing import Any
 
-from fastapi import APIRouter, Depends, Header, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, status
 from fastapi.responses import HTMLResponse
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.api.auth import AdminAuth
 from app.database import get_async_session
 from app.models.export import GeneratorJob
 from app.worker.tasks import generate_invoices_task
@@ -169,6 +171,7 @@ async def get_template_preview(template_id: str):
 
 @router.post("/generator/run", status_code=status.HTTP_202_ACCEPTED)
 async def run_generator(
+    _auth: AdminAuth,
     project_id: str | None = None,
     ruleset_id: str = "DE_USTG",
     language: str = "de",
@@ -183,10 +186,11 @@ async def run_generator(
     beneficiary_data: dict[str, Any] | None = None,
     project_context: dict[str, Any] | None = None,
     session: AsyncSession = Depends(get_async_session),
-    x_role: str = Header(default="user", alias="X-Role"),
 ) -> dict[str, Any]:
     """
     Startet Generator-Job (Admin only).
+
+    Erfordert X-API-Key Header mit gültigem Admin-API-Key.
 
     Args:
         project_id: Optional Projekt-ID
@@ -209,11 +213,6 @@ async def run_generator(
     Returns:
         Generator-Job-Info.
     """
-    if x_role != "admin":
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="Admin role required",
-        )
 
     # Validierung der Begünstigtendaten (falls vorhanden)
     if beneficiary_data:
@@ -309,11 +308,13 @@ async def get_generator_job(
 @router.get("/generator/jobs/{generator_job_id}/solutions")
 async def get_generator_solutions(
     generator_job_id: str,
+    _auth: AdminAuth,
     session: AsyncSession = Depends(get_async_session),
-    x_role: str = Header(default="user", alias="X-Role"),
 ) -> dict[str, Any]:
     """
     Gibt Lösungen zurück (Admin only).
+
+    Erfordert X-API-Key Header mit gültigem Admin-API-Key.
 
     Args:
         generator_job_id: Job-ID
@@ -321,11 +322,6 @@ async def get_generator_solutions(
     Returns:
         Lösungen für generierte Rechnungen.
     """
-    if x_role != "admin":
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="Admin role required",
-        )
 
     result = await session.execute(
         select(GeneratorJob).where(GeneratorJob.id == generator_job_id)

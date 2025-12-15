@@ -84,10 +84,20 @@ app = FastAPI(
 )
 
 # CORS Middleware - Origins aus Konfiguration (CORS_ORIGINS env var)
+# WICHTIG: allow_credentials=True ist nur sicher mit expliziten Origins, nicht mit "*"
+_cors_origins = config.cors_origins_list
+_allow_credentials = "*" not in _cors_origins  # Keine Credentials bei Wildcard!
+
+if "*" in _cors_origins and not config.debug:
+    logger.warning(
+        "CORS ist auf '*' konfiguriert. Dies ist nur für Entwicklung geeignet. "
+        "Setzen Sie CORS_ORIGINS auf explizite Origins für Produktion."
+    )
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=config.cors_origins_list,
-    allow_credentials=True,
+    allow_origins=_cors_origins,
+    allow_credentials=_allow_credentials,
     allow_methods=["*"],
     allow_headers=["*"],
 )

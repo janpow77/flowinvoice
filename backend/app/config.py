@@ -93,6 +93,13 @@ class Settings(BaseSettings):
     generator_enabled: bool = True
     generator_max_count: int = 100
 
+    # API Authentication
+    # Setzen Sie ADMIN_API_KEY für Produktionsumgebungen
+    admin_api_key: SecretStr | None = Field(
+        default=None,
+        description="API-Key für Admin-Endpoints (Generator, etc.). Muss in Produktion gesetzt werden."
+    )
+
     # Performance / Worker settings
     uvicorn_workers: int = Field(default=4, ge=1, le=8)
     celery_concurrency: int = Field(default=4, ge=1, le=8)
@@ -131,17 +138,52 @@ class Settings(BaseSettings):
         return [origin.strip() for origin in self.cors_origins.split(",") if origin.strip()]
 
     @model_validator(mode="after")
-    def warn_default_secret_key(self) -> "Settings":
-        """Warnt wenn der Default-Secret-Key verwendet wird."""
+    def validate_production_settings(self) -> "Settings":
+        """Validiert und warnt bei unsicheren Default-Einstellungen."""
+        issues: list[str] = []
+
+        # Secret Key prüfen
         default_key = "flowaudit_dev_secret_key_change_in_production"
         if self.secret_key.get_secret_value() == default_key:
-            warning_msg = (
-                "SICHERHEITSWARNUNG: Der Default-Secret-Key wird verwendet! "
-                "Setzen Sie SECRET_KEY als Umgebungsvariable für Produktion."
+            issues.append("SECRET_KEY verwendet den Default-Wert")
+
+        # Database URL prüfen (enthält Default-Credentials?)
+        default_db_url = "postgresql+asyncpg://flowaudit:flowaudit_secret@localhost:5432/flowaudit"
+        if self.database_url == default_db_url:
+            issues.append("DATABASE_URL verwendet Default-Credentials")
+
+        # Chroma Token prüfen
+        if self.chroma_token == "flowaudit_chroma_token":
+            issues.append("CHROMA_TOKEN verwendet den Default-Wert")
+
+        # CORS mit Credentials und Wildcard prüfen
+        if self.cors_origins == "*":
+            issues.append(
+                "CORS_ORIGINS ist auf '*' gesetzt - dies ist unsicher mit Credentials. "
+                "Setzen Sie explizite Origins für Produktion."
             )
-            warnings.warn(warning_msg, UserWarning, stacklevel=2)
-            logger.warning(warning_msg)
+
+        # Warnungen ausgeben wenn nicht im Debug-Modus
+        if issues and not self.debug:
+            for issue in issues:
+                warning_msg = f"SICHERHEITSWARNUNG: {issue}"
+                warnings.warn(warning_msg, UserWarning, stacklevel=2)
+                logger.warning(warning_msg)
+
         return self
+
+    @property
+    def is_production_ready(self) -> bool:
+        """Prüft ob die Konfiguration für Produktion geeignet ist."""
+        default_key = "flowaudit_dev_secret_key_change_in_production"
+        default_db_url = "postgresql+asyncpg://flowaudit:flowaudit_secret@localhost:5432/flowaudit"
+
+        return (
+            self.secret_key.get_secret_value() != default_key
+            and self.database_url != default_db_url
+            and self.chroma_token != "flowaudit_chroma_token"
+            and self.cors_origins != "*"
+        )
 
 
 class RetryConfig(BaseSettings):
