@@ -6,12 +6,16 @@ Zentrale Konfiguration für alle Komponenten des Systems.
 Verwendet pydantic-settings für Umgebungsvariablen-Validierung.
 """
 
+import logging
+import warnings
 from functools import lru_cache
 from pathlib import Path
 from typing import Literal
 
-from pydantic import Field, SecretStr, field_validator
+from pydantic import Field, SecretStr, field_validator, model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
+
+logger = logging.getLogger(__name__)
 
 
 class Settings(BaseSettings):
@@ -30,6 +34,12 @@ class Settings(BaseSettings):
     debug: bool = False
     log_level: Literal["DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"] = "INFO"
     secret_key: SecretStr = Field(default="flowaudit_dev_secret_key_change_in_production")
+
+    # CORS - Erlaubte Origins (kommasepariert)
+    cors_origins: str = Field(
+        default="http://localhost:5173,http://localhost:3000",
+        description="Kommaseparierte Liste erlaubter CORS-Origins"
+    )
 
     # Database
     database_url: str = Field(
@@ -112,6 +122,26 @@ class Settings(BaseSettings):
     def logs_path(self) -> Path:
         """Vollständiger Pfad für Logs."""
         return self.storage_path / self.logs_dir
+
+    @property
+    def cors_origins_list(self) -> list[str]:
+        """Liste der erlaubten CORS-Origins."""
+        if self.cors_origins == "*":
+            return ["*"]
+        return [origin.strip() for origin in self.cors_origins.split(",") if origin.strip()]
+
+    @model_validator(mode="after")
+    def warn_default_secret_key(self) -> "Settings":
+        """Warnt wenn der Default-Secret-Key verwendet wird."""
+        default_key = "flowaudit_dev_secret_key_change_in_production"
+        if self.secret_key.get_secret_value() == default_key:
+            warning_msg = (
+                "SICHERHEITSWARNUNG: Der Default-Secret-Key wird verwendet! "
+                "Setzen Sie SECRET_KEY als Umgebungsvariable für Produktion."
+            )
+            warnings.warn(warning_msg, UserWarning, stacklevel=2)
+            logger.warning(warning_msg)
+        return self
 
 
 class RetryConfig(BaseSettings):

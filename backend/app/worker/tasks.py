@@ -315,12 +315,19 @@ async def _generate_invoices_async(generator_job_id: str) -> dict[str, Any]:
             # Konfiguration auslesen
             count = job.count or 20
             templates = job.templates_enabled or ["T1_HANDWERK", "T3_CORPORATE"]
-            error_rate = job.settings.get("error_rate_total", 5.0) if job.settings else 5.0
-            severity = job.settings.get("severity", 2) if job.settings else 2
+            settings = job.settings or {}
+
+            error_rate = settings.get("error_rate_total", 5.0)
+            severity = settings.get("severity", 2)
+
+            # Erweiterte Konfiguration (jetzt tatsächlich verwendet)
+            per_feature_error_rates = settings.get("per_feature_error_rates", {})
+            alias_noise_probability = settings.get("alias_noise_probability", 10.0)
+            date_format_profiles = settings.get("date_format_profiles", ["DD.MM.YYYY"])
 
             # Begünstigtendaten und Projektkontext aus Settings (optional)
-            beneficiary_data = job.settings.get("beneficiary_data") if job.settings else None
-            project_context = job.settings.get("project_context") if job.settings else None
+            beneficiary_data = settings.get("beneficiary_data")
+            project_context = settings.get("project_context")
 
             # Ausgabeverzeichnis erstellen
             output_dir = Path(job.output_dir or f"/data/generated/{generator_job_id}")
@@ -334,7 +341,7 @@ async def _generate_invoices_async(generator_job_id: str) -> dict[str, Any]:
                 template = random.choice(templates)
                 has_error = random.random() * 100 < error_rate
 
-                # Generiere Rechnungsdaten (mit optionalen Begünstigtendaten)
+                # Generiere Rechnungsdaten (mit allen Parametern)
                 invoice_data = _generate_invoice_data(
                     template=template,
                     index=i + 1,
@@ -343,6 +350,9 @@ async def _generate_invoices_async(generator_job_id: str) -> dict[str, Any]:
                     ruleset_id=job.ruleset_id,
                     beneficiary_data=beneficiary_data,
                     project_context=project_context,
+                    date_format_profiles=date_format_profiles,
+                    per_feature_error_rates=per_feature_error_rates,
+                    alias_noise_probability=alias_noise_probability,
                 )
 
                 # Dateiname
@@ -403,6 +413,9 @@ def _generate_invoice_data(
     ruleset_id: str,
     beneficiary_data: dict[str, Any] | None = None,
     project_context: dict[str, Any] | None = None,
+    date_format_profiles: list[str] | None = None,
+    per_feature_error_rates: dict[str, float] | None = None,
+    alias_noise_probability: float = 10.0,
 ) -> dict[str, Any]:
     """
     Generiert Rechnungsdaten basierend auf Template.
@@ -418,6 +431,9 @@ def _generate_invoice_data(
             Optional: legal_form, country, vat_id, aliases
         project_context: Optional - Projektkontext
             Optional: project_id, project_name
+        date_format_profiles: Datumsformate zur Auswahl (z.B. ["DD.MM.YYYY", "YYYY-MM-DD"])
+        per_feature_error_rates: Feature-spezifische Fehlerraten
+        alias_noise_probability: Wahrscheinlichkeit (%), einen Alias zu verwenden
 
     Returns:
         Dict mit Rechnungsdaten inkl. ggf. injizierten Fehlern
@@ -425,6 +441,11 @@ def _generate_invoice_data(
     # Basisdaten
     today = datetime.now()
     invoice_date = today - timedelta(days=random.randint(1, 30))
+
+    # Datumsformat aus Profilen wählen
+    date_formats = date_format_profiles or ["DD.MM.YYYY"]
+    date_format = random.choice(date_formats)
+    date_format_python = _convert_date_format(date_format)
 
     # Template-spezifische Daten
     templates_config = {
@@ -468,8 +489,10 @@ def _generate_invoice_data(
     vat_amount = round(net_amount * vat_rate / 100, 2)
     gross_amount = round(net_amount + vat_amount, 2)
 
-    # Empfängerdaten aus Begünstigtendaten oder Standard
-    customer_name, customer_address = _resolve_customer_data(beneficiary_data)
+    # Empfängerdaten aus Begünstigtendaten oder Standard (mit Alias-Noise)
+    customer_name, customer_address = _resolve_customer_data(
+        beneficiary_data, alias_noise_probability
+    )
 
     # Leistungsbeschreibung ggf. mit Projektbezug
     description = _build_description(config["description"], project_context)
@@ -477,16 +500,18 @@ def _generate_invoice_data(
     # USt-IdNr generieren (plausibel)
     vat_id = _generate_vat_id(beneficiary_data)
 
+    supply_date = invoice_date - timedelta(days=random.randint(1, 14))
+
     data = {
         "invoice_number": f"{today.year}-{index:04d}",
-        "invoice_date": invoice_date.strftime("%d.%m.%Y"),
+        "invoice_date": invoice_date.strftime(date_format_python),
         "supplier_name": config["supplier"],
         "supplier_address": config["supplier_address"],
         "vat_id": vat_id,
         "customer_name": customer_name,
         "customer_address": customer_address,
         "description": description,
-        "supply_date": (invoice_date - timedelta(days=random.randint(1, 14))).strftime("%d.%m.%Y"),
+        "supply_date": supply_date.strftime(date_format_python),
         "net_amount": f"{net_amount:,.2f}".replace(",", "X").replace(".", ",").replace("X", "."),
         "vat_rate": vat_rate,
         "vat_amount": f"{vat_amount:,.2f}".replace(",", "X").replace(".", ",").replace("X", "."),
@@ -500,21 +525,47 @@ def _generate_invoice_data(
         "project_id": project_context.get("project_id") if project_context else None,
     }
 
-    # Fehler injizieren
+    # Fehler injizieren (mit Feature-spezifischen Raten)
     if has_error:
-        data = _inject_errors(data, severity, beneficiary_data)
+        data = _inject_errors(
+            data, severity, beneficiary_data, per_feature_error_rates or {}
+        )
 
     return data
 
 
+def _convert_date_format(format_str: str) -> str:
+    """
+    Konvertiert Datumsformat-Strings zu Python strftime-Format.
+
+    Args:
+        format_str: Format wie "DD.MM.YYYY" oder "YYYY-MM-DD"
+
+    Returns:
+        Python strftime Format
+    """
+    conversions = {
+        "DD.MM.YYYY": "%d.%m.%Y",
+        "DD/MM/YYYY": "%d/%m/%Y",
+        "MM/DD/YYYY": "%m/%d/%Y",
+        "YYYY-MM-DD": "%Y-%m-%d",
+        "DD-MM-YYYY": "%d-%m-%Y",
+        "D.M.YYYY": "%-d.%-m.%Y",
+        "DD. MMMM YYYY": "%d. %B %Y",
+    }
+    return conversions.get(format_str, "%d.%m.%Y")
+
+
 def _resolve_customer_data(
     beneficiary_data: dict[str, Any] | None,
+    alias_noise_probability: float = 10.0,
 ) -> tuple[str, str]:
     """
     Ermittelt Empfängername und -adresse aus Begünstigtendaten.
 
     Args:
         beneficiary_data: Begünstigtendaten oder None
+        alias_noise_probability: Wahrscheinlichkeit (%), einen Alias zu verwenden
 
     Returns:
         Tuple (customer_name, customer_address)
@@ -525,6 +576,12 @@ def _resolve_customer_data(
     # Name aus Begünstigtendaten (ggf. mit Rechtsform)
     name = beneficiary_data.get("beneficiary_name", "")
     legal_form = beneficiary_data.get("legal_form", "")
+
+    # Alias-Noise: Mit gewisser Wahrscheinlichkeit Alias verwenden
+    aliases = beneficiary_data.get("aliases", [])
+    if aliases and random.random() * 100 < alias_noise_probability:
+        name = random.choice(aliases)
+        legal_form = ""  # Bei Alias keine Rechtsform hinzufügen
 
     if legal_form and legal_form not in name:
         customer_name = f"{name} {legal_form}"
@@ -597,6 +654,7 @@ def _inject_errors(
     data: dict[str, Any],
     severity: int,
     beneficiary_data: dict[str, Any] | None = None,
+    per_feature_error_rates: dict[str, float] | None = None,
 ) -> dict[str, Any]:
     """
     Injiziert Fehler in Rechnungsdaten.
@@ -605,10 +663,13 @@ def _inject_errors(
         data: Rechnungsdaten
         severity: Schweregrad (1-5, bestimmt Anzahl der Fehler)
         beneficiary_data: Begünstigtendaten (für spezifische Fehlertypen)
+        per_feature_error_rates: Feature-spezifische Fehlerraten (z.B. {"invoice_number": 30.0})
 
     Returns:
         Modifizierte Rechnungsdaten mit injizierten Fehlern
     """
+    feature_rates = per_feature_error_rates or {}
+
     # Basis-Fehlertypen (immer verfügbar)
     error_types: list[tuple[str, Any]] = [
         ("missing_invoice_number", lambda d: d.update({
@@ -685,9 +746,34 @@ def _inject_errors(
             })
         ))
 
-    # Anzahl der Fehler basierend auf Severity
-    num_errors = min(severity, len(error_types))
-    selected_errors = random.sample(error_types, num_errors)
+    # Fehler basierend auf Feature-spezifischen Raten oder Severity auswählen
+    selected_errors: list[tuple[str, Any]] = []
+
+    if feature_rates:
+        # Feature-spezifische Auswahl: Jeder Fehler hat eigene Rate
+        for error_name, error_func in error_types:
+            # Mapping von Fehlernamen auf Feature-Keys
+            feature_key_map = {
+                "missing_invoice_number": "invoice_number",
+                "invalid_vat_id": "vat_id",
+                "missing_date": "invoice_date",
+                "calculation_error": "gross_amount",
+                "missing_description": "description",
+                "vat_id_missing": "vat_id",
+                "beneficiary_name_typo": "beneficiary_name",
+                "beneficiary_alias_used": "beneficiary_alias",
+                "beneficiary_wrong_address": "beneficiary_address",
+                "beneficiary_completely_wrong": "beneficiary",
+            }
+            feature_key = feature_key_map.get(error_name, error_name)
+            rate = feature_rates.get(feature_key, 0.0)
+
+            if random.random() * 100 < rate:
+                selected_errors.append((error_name, error_func))
+    else:
+        # Fallback: Anzahl der Fehler basierend auf Severity
+        num_errors = min(severity, len(error_types))
+        selected_errors = random.sample(error_types, num_errors)
 
     for error_name, error_func in selected_errors:
         error_func(data)

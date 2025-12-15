@@ -4,6 +4,7 @@ import { Link } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { FolderOpen, Plus, Calendar, FileText, X, AlertCircle, Loader2 } from 'lucide-react'
 import { api } from '@/lib/api'
+import type { Project, RulesetInfo } from '@/lib/types'
 
 interface CreateProjectForm {
   title: string
@@ -116,7 +117,7 @@ export default function Projects() {
       {/* Project Grid */}
       {projects && projects.length > 0 ? (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-          {projects.map((project: any) => (
+          {projects.map((project: Project) => (
             <Link
               key={project.id}
               to={`/projects/${project.id}`}
@@ -239,7 +240,7 @@ export default function Projects() {
                       onChange={(e) => setFormData({ ...formData, ruleset_id: e.target.value })}
                       className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
                     >
-                      {rulesets?.map((ruleset: any) => (
+                      {rulesets?.map((ruleset: RulesetInfo) => (
                         <option key={ruleset.id} value={ruleset.id}>
                           {t(`rulesets.${ruleset.id}`) || ruleset.name}
                         </option>

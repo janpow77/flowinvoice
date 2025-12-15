@@ -1,8 +1,6 @@
 # Pfad: /backend/pyproject.toml
-"""
-FlowAudit Backend - Python Project Configuration
-FastAPI-basiertes Backend für transparente Rechnungsprüfung mit LLMs
-"""
+# FlowAudit Backend - Python Project Configuration
+# FastAPI-basiertes Backend für transparente Rechnungsprüfung mit LLMs
 
 [project]
 name = "flowaudit-backend"
