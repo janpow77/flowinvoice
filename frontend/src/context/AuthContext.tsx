@@ -19,8 +19,8 @@ import { useNavigate } from 'react-router-dom';
 const TOKEN_KEY = 'flowaudit_token';
 const TOKEN_EXPIRY_KEY = 'flowaudit_token_expiry';
 
-// Inaktivitäts-Timeout in Millisekunden (15 Minuten)
-const INACTIVITY_TIMEOUT = 15 * 60 * 1000;
+// Inaktivitäts-Timeout in Millisekunden (10 Minuten gemäß Nutzerkonzept)
+const INACTIVITY_TIMEOUT = 10 * 60 * 1000;
 
 interface AuthContextType {
   /** Ist der Benutzer eingeloggt? */
@@ -102,7 +102,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
     };
   }, [token]);
 
-  // Inaktivitäts-Timer: Logout nach 15 Minuten Inaktivität
+  // Inaktivitäts-Timer: Logout nach 10 Minuten Inaktivität
   useEffect(() => {
     if (!token) return;
 
