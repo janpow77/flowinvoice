@@ -5,6 +5,7 @@ import { CheckCircle, XCircle, Globe, Cpu, AlertTriangle, RefreshCw, Thermometer
 import clsx from 'clsx'
 import { api } from '@/lib/api'
 import { languages, changeLanguage, getCurrentLanguage, type LanguageCode } from '@/lib/i18n'
+import type { ProviderInfo } from '@/lib/types'
 
 export default function Settings() {
   const { t } = useTranslation()
@@ -168,7 +169,7 @@ export default function Settings() {
         </p>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          {providers?.map((provider: any) => {
+          {providers?.map((provider: ProviderInfo) => {
             const isHealthy = health?.[provider.provider]
             const isSelected = provider.is_default
 

@@ -1,12 +1,15 @@
+import { useState } from 'react'
 import { useParams } from 'react-router-dom'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { CheckCircle, AlertTriangle, XCircle, Play, ThumbsUp, ThumbsDown } from 'lucide-react'
+import { CheckCircle, AlertTriangle, XCircle, Play, ThumbsUp, ThumbsDown, Loader2 } from 'lucide-react'
 import clsx from 'clsx'
 import { api } from '@/lib/api'
+import type { PrecheckError } from '@/lib/types'
 
 export default function DocumentDetail() {
   const { id } = useParams<{ id: string }>()
   const queryClient = useQueryClient()
+  const [feedbackSubmitted, setFeedbackSubmitted] = useState<'CORRECT' | 'INCORRECT' | null>(null)
 
   const { data: document, isLoading } = useQuery({
     queryKey: ['document', id],
@@ -17,6 +20,19 @@ export default function DocumentDetail() {
   const analyzeMutation = useMutation({
     mutationFn: () => api.analyzeDocument(id!),
     onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['document', id] })
+    },
+  })
+
+  const feedbackMutation = useMutation({
+    mutationFn: (rating: 'CORRECT' | 'INCORRECT') =>
+      api.submitFeedback({
+        document_id: id!,
+        result_id: document?.analysis_result?.id || id!,
+        rating: rating === 'CORRECT' ? 'CORRECT' : 'INCORRECT',
+      }),
+    onSuccess: (_, rating) => {
+      setFeedbackSubmitted(rating)
       queryClient.invalidateQueries({ queryKey: ['document', id] })
     },
   })
@@ -81,7 +97,7 @@ export default function DocumentDetail() {
 
           {document.precheck_errors && document.precheck_errors.length > 0 ? (
             <div className="space-y-2">
-              {document.precheck_errors.map((error: any, i: number) => (
+              {document.precheck_errors.map((error: PrecheckError, i: number) => (
                 <div
                   key={i}
                   className={clsx(
@@ -160,14 +176,42 @@ export default function DocumentDetail() {
             {/* Feedback Buttons */}
             <div className="mt-6 flex items-center space-x-4">
               <span className="text-sm text-gray-500">War diese Analyse korrekt?</span>
-              <button className="flex items-center px-3 py-1 text-sm text-green-600 border border-green-200 rounded-lg hover:bg-green-50">
-                <ThumbsUp className="h-4 w-4 mr-1" />
-                Ja
-              </button>
-              <button className="flex items-center px-3 py-1 text-sm text-red-600 border border-red-200 rounded-lg hover:bg-red-50">
-                <ThumbsDown className="h-4 w-4 mr-1" />
-                Nein
-              </button>
+              {feedbackSubmitted ? (
+                <span className={clsx(
+                  'flex items-center px-3 py-1 text-sm rounded-lg',
+                  feedbackSubmitted === 'CORRECT' ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'
+                )}>
+                  <CheckCircle className="h-4 w-4 mr-1" />
+                  Feedback gesendet
+                </span>
+              ) : (
+                <>
+                  <button
+                    onClick={() => feedbackMutation.mutate('CORRECT')}
+                    disabled={feedbackMutation.isPending}
+                    className="flex items-center px-3 py-1 text-sm text-green-600 border border-green-200 rounded-lg hover:bg-green-50 disabled:opacity-50"
+                  >
+                    {feedbackMutation.isPending ? (
+                      <Loader2 className="h-4 w-4 mr-1 animate-spin" />
+                    ) : (
+                      <ThumbsUp className="h-4 w-4 mr-1" />
+                    )}
+                    Ja
+                  </button>
+                  <button
+                    onClick={() => feedbackMutation.mutate('INCORRECT')}
+                    disabled={feedbackMutation.isPending}
+                    className="flex items-center px-3 py-1 text-sm text-red-600 border border-red-200 rounded-lg hover:bg-red-50 disabled:opacity-50"
+                  >
+                    {feedbackMutation.isPending ? (
+                      <Loader2 className="h-4 w-4 mr-1 animate-spin" />
+                    ) : (
+                      <ThumbsDown className="h-4 w-4 mr-1" />
+                    )}
+                    Nein
+                  </button>
+                </>
+              )}
             </div>
           </div>
         )}

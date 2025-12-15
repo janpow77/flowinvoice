@@ -6,6 +6,7 @@ import { FileText, Upload, CheckCircle, AlertTriangle, XCircle, Clock, Eye, Aler
 import { Link } from 'react-router-dom'
 import clsx from 'clsx'
 import { api } from '@/lib/api'
+import type { Document, DocumentStatus } from '@/lib/types'
 
 const statusConfig = {
   UPLOADED: { icon: Clock, color: 'text-gray-500', label: 'Hochgeladen' },
@@ -22,6 +23,7 @@ const statusConfig = {
 export default function Documents() {
   const { t } = useTranslation()
   const [uploading, setUploading] = useState(false)
+  const [uploadErrors, setUploadErrors] = useState<string[]>([])
   const queryClient = useQueryClient()
 
   const { data: documents, isLoading, error, refetch } = useQuery({
@@ -41,13 +43,22 @@ export default function Documents() {
     if (acceptedFiles.length === 0) return
 
     setUploading(true)
-    try {
-      for (const file of acceptedFiles) {
+    setUploadErrors([])
+    const errors: string[] = []
+
+    for (const file of acceptedFiles) {
+      try {
         await uploadMutation.mutateAsync(file)
+      } catch (err) {
+        const message = err instanceof Error ? err.message : 'Unbekannter Fehler'
+        errors.push(`${file.name}: ${message}`)
       }
-    } finally {
-      setUploading(false)
     }
+
+    if (errors.length > 0) {
+      setUploadErrors(errors)
+    }
+    setUploading(false)
   }, [uploadMutation])
 
   const { getRootProps, getInputProps, isDragActive } = useDropzone({
@@ -107,6 +118,31 @@ export default function Documents() {
         </p>
       </div>
 
+      {/* Upload Errors */}
+      {uploadErrors.length > 0 && (
+        <div className="bg-red-50 border border-red-200 rounded-lg p-4">
+          <div className="flex items-start">
+            <AlertCircle className="h-5 w-5 text-red-600 mt-0.5" />
+            <div className="ml-3">
+              <h3 className="text-sm font-medium text-red-800">
+                {uploadErrors.length === 1 ? 'Upload fehlgeschlagen' : `${uploadErrors.length} Uploads fehlgeschlagen`}
+              </h3>
+              <ul className="mt-2 text-sm text-red-600 list-disc list-inside">
+                {uploadErrors.map((err, i) => (
+                  <li key={i}>{err}</li>
+                ))}
+              </ul>
+              <button
+                onClick={() => setUploadErrors([])}
+                className="mt-2 text-sm text-red-700 hover:text-red-800 underline"
+              >
+                Schließen
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Document List */}
       <div className="bg-white rounded-lg border border-gray-200">
         <div className="px-6 py-4 border-b border-gray-200">
@@ -117,8 +153,8 @@ export default function Documents() {
           <div className="p-6 text-center text-gray-500">Lade Dokumente...</div>
         ) : documents && documents.length > 0 ? (
           <div className="divide-y divide-gray-200">
-            {documents.map((doc: any) => {
-              const status = statusConfig[doc.status as keyof typeof statusConfig] || statusConfig.UPLOADED
+            {documents.map((doc: Document) => {
+              const status = statusConfig[doc.status as DocumentStatus] || statusConfig.UPLOADED
               const StatusIcon = status.icon
 
               return (
