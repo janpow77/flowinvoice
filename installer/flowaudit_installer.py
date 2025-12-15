@@ -1337,7 +1337,7 @@ import asyncio
 import json
 from sqlalchemy import select
 
-from app.database import init_db, get_async_session_context
+from app.database import init_db, get_session_context
 from app.models.user import User
 from app.core.security import get_password_hash
 
@@ -1347,7 +1347,7 @@ ADMIN_PW = json.loads({json.dumps(j_pw)})
 
 async def run():
     await init_db()
-    async with get_async_session_context() as s:
+    async with get_session_context() as s:
         res = await s.execute(select(User).where(User.username == ADMIN_USER))
         existing = res.scalar_one_or_none()
         if existing:
