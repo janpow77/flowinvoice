@@ -1,0 +1,177 @@
+# Pfad: /docker/docker-compose.yml
+"""
+FlowAudit Docker Compose Configuration
+Seminar-System für transparente Rechnungsprüfung mit LLMs
+Target: ASUS NUC (64 GB RAM), optional GPU
+"""
+
+services:
+  # PostgreSQL Database
+  db:
+    image: postgres:16-alpine
+    container_name: flowaudit-db
+    environment:
+      POSTGRES_USER: flowaudit
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-flowaudit_secret}
+      POSTGRES_DB: flowaudit
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./postgres/init.sql:/docker-entrypoint-initdb.d/init.sql:ro
+    ports:
+      - "5432:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U flowaudit -d flowaudit"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+
+  # Redis for Task Queue and Caching
+  redis:
+    image: redis:7-alpine
+    container_name: flowaudit-redis
+    command: redis-server --appendonly yes
+    volumes:
+      - redis_data:/data
+    ports:
+      - "6379:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+
+  # ChromaDB for RAG Vector Store
+  chromadb:
+    image: chromadb/chroma:latest
+    container_name: flowaudit-chromadb
+    environment:
+      CHROMA_SERVER_AUTH_CREDENTIALS_PROVIDER: chromadb.auth.token.TokenAuthCredentialsProvider
+      CHROMA_SERVER_AUTH_TOKEN_TRANSPORT_HEADER: X-Chroma-Token
+      CHROMA_SERVER_AUTH_CREDENTIALS: ${CHROMA_TOKEN:-flowaudit_chroma_token}
+      PERSIST_DIRECTORY: /chroma/chroma
+      ANONYMIZED_TELEMETRY: "false"
+    volumes:
+      - chroma_data:/chroma/chroma
+    ports:
+      - "8001:8000"
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/api/v1/heartbeat"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    restart: unless-stopped
+
+  # Ollama - Local LLM Inference
+  ollama:
+    build:
+      context: ./ollama
+      dockerfile: Dockerfile
+    container_name: flowaudit-ollama
+    volumes:
+      - ollama_data:/root/.ollama
+    ports:
+      - "11434:11434"
+    environment:
+      - OLLAMA_HOST=0.0.0.0
+    # Uncomment for GPU support
+    # deploy:
+    #   resources:
+    #     reservations:
+    #       devices:
+    #         - driver: nvidia
+    #           count: 1
+    #           capabilities: [gpu]
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:11434/api/tags"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    restart: unless-stopped
+
+  # FastAPI Backend
+  backend:
+    build:
+      context: ../backend
+      dockerfile: Dockerfile
+    container_name: flowaudit-backend
+    environment:
+      - DATABASE_URL=postgresql+asyncpg://flowaudit:${POSTGRES_PASSWORD:-flowaudit_secret}@db:5432/flowaudit
+      - REDIS_URL=redis://redis:6379/0
+      - CHROMA_HOST=chromadb
+      - CHROMA_PORT=8000
+      - CHROMA_TOKEN=${CHROMA_TOKEN:-flowaudit_chroma_token}
+      - OLLAMA_HOST=http://ollama:11434
+      - STORAGE_PATH=/data
+      - SECRET_KEY=${SECRET_KEY:-flowaudit_dev_secret_key_change_in_production}
+      - DEBUG=${DEBUG:-false}
+      - LOG_LEVEL=${LOG_LEVEL:-INFO}
+    volumes:
+      - ../data:/data
+      - ../backend/app:/app/app:ro
+    ports:
+      - "8000:8000"
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      chromadb:
+        condition: service_healthy
+      ollama:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/api/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    restart: unless-stopped
+
+  # Celery Worker for Background Tasks
+  worker:
+    build:
+      context: ../backend
+      dockerfile: Dockerfile
+    container_name: flowaudit-worker
+    command: celery -A app.worker.celery_app worker --loglevel=info --concurrency=2
+    environment:
+      - DATABASE_URL=postgresql+asyncpg://flowaudit:${POSTGRES_PASSWORD:-flowaudit_secret}@db:5432/flowaudit
+      - REDIS_URL=redis://redis:6379/0
+      - CHROMA_HOST=chromadb
+      - CHROMA_PORT=8000
+      - CHROMA_TOKEN=${CHROMA_TOKEN:-flowaudit_chroma_token}
+      - OLLAMA_HOST=http://ollama:11434
+      - STORAGE_PATH=/data
+    volumes:
+      - ../data:/data
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      ollama:
+        condition: service_healthy
+    restart: unless-stopped
+
+  # React Frontend
+  frontend:
+    build:
+      context: ../frontend
+      dockerfile: Dockerfile
+    container_name: flowaudit-frontend
+    ports:
+      - "3000:80"
+    depends_on:
+      - backend
+    restart: unless-stopped
+
+volumes:
+  postgres_data:
+  redis_data:
+  chroma_data:
+  ollama_data:
+
+networks:
+  default:
+    name: flowaudit-network
