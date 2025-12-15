@@ -9,7 +9,7 @@ from datetime import datetime
 from typing import TYPE_CHECKING
 from uuid import uuid4
 
-from sqlalchemy import BigInteger, DateTime, Enum, ForeignKey, String, Text, UniqueConstraint
+from sqlalchemy import BigInteger, Boolean, DateTime, Enum, ForeignKey, Integer, String, Text, UniqueConstraint
 from sqlalchemy.dialects.postgresql import JSONB, UUID
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
@@ -60,6 +60,15 @@ class Document(Base):
     )
     error_message: Mapped[str | None] = mapped_column(Text, nullable=True)
 
+    # Parse-Ergebnisse
+    raw_text: Mapped[str | None] = mapped_column(Text, nullable=True)
+    extracted_data: Mapped[dict | None] = mapped_column(JSONB, nullable=True)
+    page_count: Mapped[int | None] = mapped_column(Integer, nullable=True)
+
+    # Precheck-Ergebnisse
+    precheck_passed: Mapped[bool | None] = mapped_column(Boolean, nullable=True)
+    precheck_errors: Mapped[list | None] = mapped_column(JSONB, nullable=True)
+
     # Ruleset
     ruleset_id: Mapped[str | None] = mapped_column(String(50), nullable=True)
     ruleset_version: Mapped[str | None] = mapped_column(String(20), nullable=True)
@@ -97,6 +106,11 @@ class Document(Base):
     def __repr__(self) -> str:
         """String-Repräsentation."""
         return f"<Document {self.original_filename} [{self.status.value}]>"
+
+    @property
+    def file_path(self) -> str:
+        """Alias für storage_path."""
+        return self.storage_path
 
     @property
     def latest_parse_run(self) -> "ParseRun | None":
