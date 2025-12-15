@@ -985,7 +985,7 @@ Allows UI to show which examples would be used.
 
 ---
 
-## 13. Statistics
+## 13. Statistics & Dashboard (Informationsmenü)
 
 ### 13.1 GET /api/projects/{project_id}/stats
 
@@ -1018,7 +1018,306 @@ Allows UI to show which examples would be used.
 
 ### 13.2 GET /api/stats/global
 
-Aggregated statistics for dashboard.
+Aggregated statistics for dashboard overview.
+
+**Response 200**
+
+```json
+{
+  "overview": {
+    "total_analyses": 1247,
+    "total_projects": 12,
+    "total_documents": 540,
+    "total_rag_examples": 84,
+    "session_analyses": 6,
+    "uptime_hours": 48.5
+  },
+  "accuracy": {
+    "overall_accuracy_percent": 87.3,
+    "feature_accuracy": {
+      "invoice_number": 98.2,
+      "invoice_date": 96.5,
+      "supplier_name_address": 89.1,
+      "supplier_tax_or_vat_id": 82.4
+    }
+  },
+  "by_provider": {
+    "LOCAL_OLLAMA": { "count": 980, "avg_time_ms": 12500 },
+    "OPENAI": { "count": 200, "avg_time_ms": 3200 },
+    "ANTHROPIC": { "count": 50, "avg_time_ms": 4100 },
+    "GEMINI": { "count": 17, "avg_time_ms": 2800 }
+  },
+  "time_trend": {
+    "period": "7d",
+    "data_points": [
+      { "date": "2025-12-09", "count": 45, "accuracy": 85.2 },
+      { "date": "2025-12-10", "count": 52, "accuracy": 86.1 },
+      { "date": "2025-12-11", "count": 38, "accuracy": 87.8 },
+      { "date": "2025-12-12", "count": 61, "accuracy": 88.2 },
+      { "date": "2025-12-13", "count": 44, "accuracy": 87.5 },
+      { "date": "2025-12-14", "count": 55, "accuracy": 88.9 },
+      { "date": "2025-12-15", "count": 12, "accuracy": 91.7 }
+    ]
+  }
+}
+```
+
+### 13.3 GET /api/stats/feedback
+
+Feedback-Statistiken für Didaktik-Dashboard.
+
+**Response 200**
+
+```json
+{
+  "summary": {
+    "total_feedback_entries": 312,
+    "rating_distribution": {
+      "CORRECT": 245,
+      "PARTIAL": 52,
+      "WRONG": 15
+    },
+    "avg_corrections_per_analysis": 0.8
+  },
+  "errors_by_feature": [
+    {
+      "feature_id": "supplier_tax_or_vat_id",
+      "total_errors": 45,
+      "error_types": {
+        "MISSING": 28,
+        "UNCLEAR": 12,
+        "WRONG_VALUE": 5
+      },
+      "most_common_correction": "USt-IdNr. statt Steuernummer erkannt"
+    },
+    {
+      "feature_id": "supply_date_or_period",
+      "total_errors": 32,
+      "error_types": {
+        "MISSING": 8,
+        "UNCLEAR": 18,
+        "WRONG_VALUE": 6
+      },
+      "most_common_correction": "Lieferzeitraum falsch interpretiert"
+    }
+  ],
+  "rag_improvement": {
+    "accuracy_before_rag": 78.5,
+    "accuracy_after_rag": 87.3,
+    "improvement_percent": 11.2,
+    "examples_contributing": 84
+  },
+  "feedback_timeline": [
+    { "date": "2025-12-09", "correct": 35, "partial": 8, "wrong": 2 },
+    { "date": "2025-12-10", "correct": 42, "partial": 6, "wrong": 1 },
+    { "date": "2025-12-11", "correct": 28, "partial": 9, "wrong": 3 }
+  ]
+}
+```
+
+### 13.4 GET /api/stats/llm
+
+Lokale und externe LLM-Statistiken (Modell-Telemetrie).
+
+**Response 200**
+
+```json
+{
+  "active_provider": "LOCAL_OLLAMA",
+  "active_model": "llama3.1:8b-instruct-q4",
+  "local_model_stats": {
+    "model_name": "llama3.1:8b-instruct-q4",
+    "model_size_gb": 4.7,
+    "quantization": "Q4_K_M",
+    "loaded": true,
+    "context_window": 8192,
+    "total_requests": 980,
+    "avg_tokens_in": 2100,
+    "avg_tokens_out": 650,
+    "total_tokens_processed": 2695000,
+    "avg_inference_time_ms": 12500,
+    "min_inference_time_ms": 8200,
+    "max_inference_time_ms": 28400,
+    "tokens_per_second_avg": 52.0
+  },
+  "resource_usage": {
+    "current_cpu_percent": 45.2,
+    "current_ram_mb": 8420,
+    "current_ram_percent": 13.2,
+    "gpu_available": true,
+    "gpu_name": "Intel UHD Graphics",
+    "gpu_memory_used_mb": 2048,
+    "gpu_memory_total_mb": 4096,
+    "gpu_utilization_percent": 78.5
+  },
+  "error_stats": {
+    "timeout_count": 3,
+    "parse_error_count": 1,
+    "connection_error_count": 0,
+    "last_error": {
+      "timestamp": "2025-12-14T18:32:00Z",
+      "type": "TIMEOUT",
+      "message": "Request exceeded 120s timeout"
+    }
+  },
+  "external_providers": {
+    "OPENAI": {
+      "total_requests": 200,
+      "total_tokens": 520000,
+      "avg_latency_ms": 3200,
+      "estimated_cost_usd": 12.50
+    },
+    "ANTHROPIC": {
+      "total_requests": 50,
+      "total_tokens": 145000,
+      "avg_latency_ms": 4100,
+      "estimated_cost_usd": 5.80
+    },
+    "GEMINI": {
+      "total_requests": 17,
+      "total_tokens": 42000,
+      "avg_latency_ms": 2800,
+      "estimated_cost_usd": 0.85
+    }
+  }
+}
+```
+
+### 13.5 GET /api/stats/rag
+
+ChromaDB/RAG-Übersicht für didaktische Zwecke.
+
+**Response 200**
+
+```json
+{
+  "collection_stats": {
+    "collection_name": "flowaudit_corrections",
+    "total_examples": 84,
+    "embedding_model": "sentence-transformers/all-MiniLM-L6-v2",
+    "embedding_dimension": 384,
+    "storage_size_mb": 12.4
+  },
+  "by_ruleset": {
+    "DE_USTG": 72,
+    "EU_VAT": 8,
+    "UK_VAT": 4
+  },
+  "by_feature": [
+    { "feature_id": "supplier_tax_or_vat_id", "count": 18 },
+    { "feature_id": "supply_date_or_period", "count": 14 },
+    { "feature_id": "customer_name_address", "count": 12 },
+    { "feature_id": "invoice_number", "count": 10 },
+    { "feature_id": "line_items", "count": 9 }
+  ],
+  "retrieval_stats": {
+    "total_retrievals": 456,
+    "avg_similarity_score": 0.72,
+    "cache_hit_rate": 0.35
+  },
+  "recent_examples": [
+    {
+      "rag_example_id": "rag_084",
+      "created_at": "2025-12-15T11:45:00Z",
+      "ruleset_id": "DE_USTG",
+      "feature_id": "supplier_tax_or_vat_id",
+      "correction_type": "MISSING_TO_PRESENT",
+      "similarity_to_nearest": 0.12,
+      "usage_count": 3
+    },
+    {
+      "rag_example_id": "rag_083",
+      "created_at": "2025-12-15T10:22:00Z",
+      "ruleset_id": "DE_USTG",
+      "feature_id": "supply_date_or_period",
+      "correction_type": "UNCLEAR_TO_PRESENT",
+      "similarity_to_nearest": 0.28,
+      "usage_count": 1
+    }
+  ]
+}
+```
+
+### 13.6 GET /api/stats/rag/examples/{rag_example_id}/detail
+
+Detail-Ansicht eines RAG-Beispiels für Seminar-Demo.
+
+**Response 200**
+
+```json
+{
+  "rag_example_id": "rag_084",
+  "created_at": "2025-12-15T11:45:00Z",
+  "source": {
+    "document_id": "doc_123",
+    "feedback_id": "fb_001",
+    "project_id": "prj_..."
+  },
+  "metadata": {
+    "ruleset_id": "DE_USTG",
+    "feature_id": "supplier_tax_or_vat_id",
+    "correction_type": "MISSING_TO_PRESENT"
+  },
+  "content": {
+    "original_text_snippet": "... Sanitär Müller, Hauptstr. 12, 12345 Musterstadt ...",
+    "original_llm_result": {
+      "status": "MISSING",
+      "confidence": 65,
+      "rationale": "No tax ID found in document"
+    },
+    "corrected_result": {
+      "status": "PRESENT",
+      "value": "DE123456789",
+      "user_note": "USt-IdNr. steht im Fußbereich"
+    }
+  },
+  "embedding_info": {
+    "text_embedded": "sanitär müller hauptstr musterstadt ust-idnr fußbereich",
+    "embedding_preview": [0.023, -0.156, 0.089, "..."],
+    "nearest_neighbors": [
+      { "rag_example_id": "rag_045", "similarity": 0.78 },
+      { "rag_example_id": "rag_067", "similarity": 0.65 }
+    ]
+  },
+  "usage_stats": {
+    "times_retrieved": 3,
+    "times_helpful": 2,
+    "last_used": "2025-12-15T14:30:00Z"
+  }
+}
+```
+
+### 13.7 GET /api/stats/system
+
+System-Information für Admin-Dashboard.
+
+**Response 200**
+
+```json
+{
+  "components": {
+    "backend": { "status": "ok", "version": "0.1.0", "uptime_sec": 174600 },
+    "database": { "status": "ok", "type": "PostgreSQL", "version": "15.4", "connections_active": 5, "connections_max": 100 },
+    "ollama": { "status": "ok", "version": "0.1.32", "models_loaded": 1 },
+    "chromadb": { "status": "ok", "version": "0.4.x", "collections": 1 },
+    "redis": { "status": "ok", "version": "7.2", "memory_used_mb": 128 }
+  },
+  "storage": {
+    "db_size_mb": 245.8,
+    "uploads_size_mb": 1024.5,
+    "generated_size_mb": 512.3,
+    "vectorstore_size_mb": 12.4,
+    "logs_size_mb": 85.2,
+    "total_used_mb": 1880.2,
+    "disk_free_mb": 48000
+  },
+  "activity_log": [
+    { "ts": "2025-12-15T14:30:00Z", "event": "LLM_RUN_COMPLETED", "detail": "doc_128 analyzed in 12.5s" },
+    { "ts": "2025-12-15T14:28:00Z", "event": "DOCUMENT_UPLOADED", "detail": "3 files uploaded to prj_..." },
+    { "ts": "2025-12-15T14:25:00Z", "event": "RAG_EXAMPLE_CREATED", "detail": "rag_084 from feedback fb_001" },
+    { "ts": "2025-12-15T14:20:00Z", "event": "MODEL_LOADED", "detail": "llama3.1:8b-instruct-q4 loaded" }
+  ]
+}
 
 ---
 
