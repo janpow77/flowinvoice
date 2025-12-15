@@ -5,6 +5,7 @@ FlowAudit Feedback API
 Endpoints für Human-in-the-loop Feedback.
 """
 
+import logging
 from typing import Any
 
 from fastapi import APIRouter, Depends, HTTPException, status
@@ -12,11 +13,15 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.database import get_async_session
-from app.models.document import Document
+from app.models.document import Document, ParseRun
 from app.models.enums import DocumentStatus
-from app.models.feedback import Feedback
+from app.models.feedback import Feedback, RagExample
+from app.models.llm import LlmRun
 from app.models.result import FinalResult
+from app.rag import get_vectorstore
 from app.schemas.feedback import FeedbackCreate, FeedbackListItem, FeedbackResponse
+
+logger = logging.getLogger(__name__)
 
 router = APIRouter()
 
@@ -64,8 +69,94 @@ async def create_feedback(
 
     await session.flush()
 
-    # TODO: RAG-Beispiel erstellen wenn Korrekturen vorhanden
+    # RAG-Beispiel erstellen wenn Korrekturen vorhanden
     stored_rag_example_id = None
+
+    if data.overrides and len(data.overrides) > 0:
+        try:
+            # Parse-Run für Originaltext laden
+            parse_run_result = await session.execute(
+                select(ParseRun)
+                .where(ParseRun.document_id == document_id)
+                .order_by(ParseRun.created_at.desc())
+                .limit(1)
+            )
+            parse_run = parse_run_result.scalar_one_or_none()
+
+            # LLM-Run für Original-Ergebnis laden
+            llm_run_result = await session.execute(
+                select(LlmRun)
+                .where(LlmRun.document_id == document_id)
+                .order_by(LlmRun.created_at.desc())
+                .limit(1)
+            )
+            llm_run = llm_run_result.scalar_one_or_none()
+
+            # Für jede Korrektur ein RAG-Beispiel erstellen
+            for override in data.overrides:
+                # Embedding-Text zusammenstellen
+                embedding_parts = []
+                if parse_run and parse_run.raw_text:
+                    # Ersten 500 Zeichen des Originaltexts
+                    embedding_parts.append(parse_run.raw_text[:500])
+                embedding_parts.append(f"Feature: {override.feature_id}")
+                embedding_parts.append(f"Original: {override.original_value}")
+                embedding_parts.append(f"Korrigiert: {override.corrected_value}")
+                if override.reason:
+                    embedding_parts.append(f"Grund: {override.reason}")
+
+                embedding_text = "\n".join(embedding_parts)
+
+                # RAG-Beispiel in DB erstellen
+                rag_example = RagExample(
+                    document_id=document_id,
+                    feedback_id=feedback.id,
+                    project_id=document.project_id,
+                    ruleset_id=document.ruleset_id or "DE_USTG",
+                    feature_id=override.feature_id,
+                    correction_type=override.correction_type or "manual_correction",
+                    original_text_snippet=parse_run.raw_text[:1000] if parse_run and parse_run.raw_text else None,
+                    original_llm_result={
+                        "feature_id": override.feature_id,
+                        "value": override.original_value,
+                    } if override.original_value else None,
+                    corrected_result={
+                        "feature_id": override.feature_id,
+                        "value": override.corrected_value,
+                        "reason": override.reason,
+                    },
+                    embedding_text=embedding_text,
+                )
+                session.add(rag_example)
+                await session.flush()
+
+                # In ChromaDB speichern
+                try:
+                    vectorstore = get_vectorstore()
+                    vectorstore.add_error_example(
+                        error_id=rag_example.id,
+                        error_type=override.correction_type or "manual_correction",
+                        feature_id=override.feature_id,
+                        context_text=parse_run.raw_text[:500] if parse_run and parse_run.raw_text else "",
+                        wrong_value=str(override.original_value) if override.original_value else "",
+                        correct_value=str(override.corrected_value) if override.corrected_value else "",
+                        reasoning=override.reason or "Manuelle Korrektur durch Benutzer",
+                        ruleset_id=document.ruleset_id or "DE_USTG",
+                    )
+                except Exception as e:
+                    logger.warning(f"Failed to store RAG example in ChromaDB: {e}")
+
+                # Erste ID für Response speichern
+                if stored_rag_example_id is None:
+                    stored_rag_example_id = rag_example.id
+
+            logger.info(f"Created {len(data.overrides)} RAG examples from feedback {feedback.id}")
+
+        except Exception as e:
+            logger.exception(f"Error creating RAG examples: {e}")
+            # Fehler bei RAG-Erstellung sollte Feedback nicht verhindern
+
+    await session.commit()
 
     return FeedbackResponse(
         id=feedback.id,
