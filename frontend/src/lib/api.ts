@@ -1,11 +1,46 @@
 import axios from 'axios'
 
+// Token-Speicher Key (muss mit AuthContext übereinstimmen)
+const TOKEN_KEY = 'flowaudit_token'
+
 const apiClient = axios.create({
   baseURL: '/api',
   headers: {
     'Content-Type': 'application/json',
   },
 })
+
+// Request Interceptor: Fügt Authorization Header hinzu
+apiClient.interceptors.request.use(
+  (config) => {
+    const token = localStorage.getItem(TOKEN_KEY)
+    if (token) {
+      config.headers.Authorization = `Bearer ${token}`
+    }
+    return config
+  },
+  (error) => {
+    return Promise.reject(error)
+  }
+)
+
+// Response Interceptor: Behandelt 401 Unauthorized
+apiClient.interceptors.response.use(
+  (response) => response,
+  (error) => {
+    if (error.response?.status === 401) {
+      // Token ungültig oder abgelaufen - zum Login umleiten
+      localStorage.removeItem(TOKEN_KEY)
+      localStorage.removeItem('flowaudit_token_expiry')
+
+      // Nur umleiten wenn nicht bereits auf Login-Seite
+      if (!window.location.pathname.includes('/login')) {
+        window.location.href = '/login'
+      }
+    }
+    return Promise.reject(error)
+  }
+)
 
 export const api = {
   // Dashboard

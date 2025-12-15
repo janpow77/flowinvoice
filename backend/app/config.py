@@ -100,6 +100,17 @@ class Settings(BaseSettings):
         description="API-Key für Admin-Endpoints (Generator, etc.). Muss in Produktion gesetzt werden."
     )
 
+    # JWT Authentication
+    jwt_algorithm: str = "HS256"
+    jwt_expire_hours: int = 24
+
+    # Demo-Benutzer (für Entwicklung/Seminare - in Produktion deaktivieren!)
+    # Format: "username:password_hash" (bcrypt) oder "username:plaintext" im Debug-Modus
+    demo_users: str = Field(
+        default="admin:admin,user:user",
+        description="Kommaseparierte Liste von Demo-Benutzern (username:password)"
+    )
+
     # Performance / Worker settings
     uvicorn_workers: int = Field(default=4, ge=1, le=8)
     celery_concurrency: int = Field(default=4, ge=1, le=8)
