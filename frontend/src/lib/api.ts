@@ -30,6 +30,17 @@ export const api = {
     return response.data
   },
 
+  updateProject: async (id: string, data: {
+    title?: string
+    description?: string
+    ruleset_id?: string
+    start_date?: string
+    end_date?: string
+  }) => {
+    const response = await apiClient.put(`/projects/${id}`, data)
+    return response.data
+  },
+
   createProject: async (data: {
     title: string
     description?: string
