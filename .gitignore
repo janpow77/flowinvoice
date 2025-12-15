@@ -44,3 +44,6 @@ coverage/
 
 # Vite
 .vite/
+# DEB packages (built locally)
+installer/*.deb
+installer/build/
