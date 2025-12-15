@@ -167,11 +167,13 @@ jobs:
           echo "version=${VERSION}" >> $GITHUB_OUTPUT
 
       - name: Build Windows Executable
+        shell: pwsh
         run: |
           cd installer
+          # Build ohne Icon (optional: Icon später hinzufügen wenn vorhanden)
           pyinstaller --onefile --windowed `
             --name flowaudit-installer-${{ steps.version.outputs.version }}-windows `
-            --icon ../frontend/public/favicon.ico `
+            --add-data "../frontend/public/auditlogo.png;." `
             flowaudit_installer.py
 
       - name: Upload Windows Binary
