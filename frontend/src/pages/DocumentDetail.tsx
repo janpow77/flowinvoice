@@ -77,11 +77,11 @@ export default function DocumentDetail() {
 
           {document.extracted_data ? (
             <div className="space-y-3">
-              {Object.entries(document.extracted_data).map(([key, val]: [string, any]) => (
+              {Object.entries(document.extracted_data).map(([key, val]) => (
                 <div key={key} className="flex justify-between">
                   <span className="text-sm text-gray-500">{key}</span>
                   <span className="text-sm font-medium text-gray-900">
-                    {val?.value || '-'}
+                    {(val as { value?: string })?.value || '-'}
                   </span>
                 </div>
               ))}

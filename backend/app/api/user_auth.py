@@ -6,12 +6,12 @@ Endpoints für Benutzer-Authentifizierung mit JWT-Tokens.
 """
 
 import logging
-from datetime import datetime, timedelta, timezone
-from typing import Annotated, Any
+from datetime import UTC, datetime, timedelta
+from typing import Annotated
 
-from jose import jwt, JWTError
-from fastapi import APIRouter, Depends, Form, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
+from jose import JWTError, jwt
 from pydantic import BaseModel
 
 from app.config import get_settings
@@ -101,14 +101,14 @@ def _create_access_token(username: str, is_admin: bool) -> tuple[str, int]:
     """
     settings = get_settings()
 
-    expire = datetime.now(timezone.utc) + timedelta(hours=settings.jwt_expire_hours)
+    expire = datetime.now(UTC) + timedelta(hours=settings.jwt_expire_hours)
     expires_in = settings.jwt_expire_hours * 3600
 
     payload = {
         "sub": username,
         "is_admin": is_admin,
         "exp": expire,
-        "iat": datetime.now(timezone.utc),
+        "iat": datetime.now(UTC),
     }
 
     token = jwt.encode(
@@ -141,7 +141,7 @@ def decode_token(token: str) -> TokenData | None:
         if username is None or exp_timestamp is None:
             return None
 
-        exp = datetime.fromtimestamp(exp_timestamp, tz=timezone.utc)
+        exp = datetime.fromtimestamp(exp_timestamp, tz=UTC)
         return TokenData(username=username, exp=exp)
     except JWTError as e:
         logger.debug(f"JWT error: {e}")

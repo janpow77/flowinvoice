@@ -7,7 +7,6 @@ und wirtschaftlichen Zusammenhangs einer Rechnung mit dem Förderzweck.
 """
 
 from datetime import date
-from typing import Optional
 
 from pydantic import BaseModel, Field
 
@@ -42,11 +41,11 @@ class DimensionAssessment(BaseModel):
     )
 
     # Pflichtangaben bei UNCLEAR
-    unclear_reason: Optional[UnclearReason] = Field(
+    unclear_reason: UnclearReason | None = Field(
         default=None,
         description="Grund für UNCLEAR-Status (Pflicht bei result=UNCLEAR)",
     )
-    required_clarification: Optional[str] = Field(
+    required_clarification: str | None = Field(
         default=None,
         description="Benötigte Information zur Klärung",
     )
@@ -80,10 +79,10 @@ class GrantPurposeAuditRequest(BaseModel):
     invoice_date: date = Field(
         ..., description="Rechnungsdatum"
     )
-    service_period_start: Optional[date] = Field(
+    service_period_start: date | None = Field(
         default=None, description="Beginn Leistungszeitraum"
     )
-    service_period_end: Optional[date] = Field(
+    service_period_end: date | None = Field(
         default=None, description="Ende Leistungszeitraum"
     )
     net_amount: float = Field(
@@ -97,21 +96,21 @@ class GrantPurposeAuditRequest(BaseModel):
     )
 
     # Projektkontext
-    project_name: Optional[str] = Field(
+    project_name: str | None = Field(
         default=None, description="Projektname"
     )
-    project_description: Optional[str] = Field(
+    project_description: str | None = Field(
         default=None, description="Projektbeschreibung"
     )
-    project_start: Optional[date] = Field(
+    project_start: date | None = Field(
         default=None, description="Projektbeginn"
     )
-    project_end: Optional[date] = Field(
+    project_end: date | None = Field(
         default=None, description="Projektende"
     )
 
     # Begünstigtendaten
-    beneficiary_name: Optional[str] = Field(
+    beneficiary_name: str | None = Field(
         default=None, description="Name des Begünstigten"
     )
     beneficiary_aliases: list[str] = Field(

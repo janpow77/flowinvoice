@@ -14,7 +14,7 @@ import httpx
 from app.config import get_settings
 from app.models.enums import Provider
 
-from .base import BaseLLMProvider, LLMMessage, LLMRequest, LLMResponse
+from .base import BaseLLMProvider, LLMRequest, LLMResponse
 
 logger = logging.getLogger(__name__)
 

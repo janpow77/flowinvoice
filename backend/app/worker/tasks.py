@@ -9,15 +9,13 @@ import asyncio
 import csv
 import json
 import logging
-import os
 import random
 import shutil
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 from io import StringIO
 from pathlib import Path
 from typing import Any
 
-from celery import shared_task
 from sqlalchemy import select
 
 from app.config import get_settings
@@ -241,7 +239,7 @@ async def _analyze_document_async(
                 semantic_check=analysis_result.semantic_check,
                 economic_check=analysis_result.economic_check,
                 beneficiary_match=analysis_result.beneficiary_match,
-                warnings=[w for w in analysis_result.warnings],
+                warnings=list(analysis_result.warnings),
                 overall_assessment=analysis_result.overall_assessment,
                 confidence=analysis_result.confidence,
                 input_tokens=analysis_result.llm_response.input_tokens,
@@ -399,7 +397,7 @@ async def _generate_invoices_async(generator_job_id: str) -> dict[str, Any]:
                 "solutions_file": str(solutions_file),
             }
 
-        except Exception as e:
+        except Exception:
             job.status = "FAILED"
             await session.commit()
             raise
@@ -1095,7 +1093,7 @@ async def _cleanup_async() -> dict[str, Any]:
 
     # 4. Datenbank-Bereinigung (abgeschlossene Jobs älter als 90 Tage)
     async with async_session_maker() as session:
-        cutoff_date = datetime.now(timezone.utc) - timedelta(days=90)
+        cutoff_date = datetime.now(UTC) - timedelta(days=90)
 
         # Alte Export-Jobs löschen
         old_exports = await session.execute(
@@ -1115,7 +1113,7 @@ async def _cleanup_async() -> dict[str, Any]:
     return {
         "status": "success",
         "stats": cleanup_stats,
-        "timestamp": datetime.now(timezone.utc).isoformat(),
+        "timestamp": datetime.now(UTC).isoformat(),
     }
 
 

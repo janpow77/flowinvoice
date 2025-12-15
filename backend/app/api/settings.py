@@ -7,7 +7,7 @@ Endpoints für Einstellungen und Provider-Konfiguration.
 
 from typing import Any
 
-from fastapi import APIRouter, Depends, Header, HTTPException, Path, status
+from fastapi import APIRouter, Depends, HTTPException, Path, status
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -22,7 +22,6 @@ from app.schemas.settings import (
     ModelPullResponse,
     OllamaModelsResponse,
     ProviderTestResponse,
-    SettingsResponse,
     SettingsUpdate,
 )
 
@@ -477,7 +476,6 @@ async def update_performance_settings(
     Returns:
         Aktualisierte Settings + Hinweis auf Neustart.
     """
-    import os
     from pathlib import Path
 
     # Validierung

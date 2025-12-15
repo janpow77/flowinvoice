@@ -8,10 +8,8 @@ für gescannte Dokumente.
 """
 
 import logging
-import os
 import re
 import subprocess
-import tempfile
 import time
 from dataclasses import dataclass, field
 from datetime import date, datetime
@@ -23,8 +21,8 @@ import pdfplumber
 
 # Optionale OCR-Imports
 try:
-    from pdf2image import convert_from_path
     import pytesseract
+    from pdf2image import convert_from_path
     _PDF2IMAGE_AVAILABLE = True
 except ImportError:
     _PDF2IMAGE_AVAILABLE = False

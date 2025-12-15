@@ -7,7 +7,6 @@ Didaktischer Hinweis: Mögliche Risiken - keine rechtliche Bewertung.
 """
 
 from datetime import date
-from typing import Optional
 
 from pydantic import BaseModel, Field
 
@@ -44,24 +43,24 @@ class RiskContext(BaseModel):
     """Kontext für Risikobewertung."""
 
     # Statistische Vergleichsdaten
-    median_amount: Optional[float] = Field(
+    median_amount: float | None = Field(
         default=None, description="Median-Betrag vergleichbarer Rechnungen"
     )
-    std_deviation: Optional[float] = Field(
+    std_deviation: float | None = Field(
         default=None, description="Standardabweichung der Beträge"
     )
-    vendor_frequency: Optional[int] = Field(
+    vendor_frequency: int | None = Field(
         default=None, description="Anzahl Rechnungen dieses Lieferanten"
     )
-    total_vendor_count: Optional[int] = Field(
+    total_vendor_count: int | None = Field(
         default=None, description="Gesamtanzahl verschiedener Lieferanten"
     )
 
     # Projektzeitraum
-    project_start: Optional[date] = Field(
+    project_start: date | None = Field(
         default=None, description="Projektbeginn"
     )
-    project_end: Optional[date] = Field(
+    project_end: date | None = Field(
         default=None, description="Projektende"
     )
 
@@ -70,7 +69,7 @@ class RiskAssessmentRequest(BaseModel):
     """Anfrage für Risikobewertung."""
 
     # Rechnungsdaten
-    invoice_id: Optional[str] = Field(
+    invoice_id: str | None = Field(
         default=None, description="Rechnungs-ID"
     )
     vendor_name: str = Field(
@@ -88,23 +87,23 @@ class RiskAssessmentRequest(BaseModel):
     description: str = Field(
         ..., description="Leistungsbeschreibung"
     )
-    service_period_start: Optional[date] = Field(
+    service_period_start: date | None = Field(
         default=None, description="Beginn Leistungszeitraum"
     )
-    service_period_end: Optional[date] = Field(
+    service_period_end: date | None = Field(
         default=None, description="Ende Leistungszeitraum"
     )
-    invoice_recipient: Optional[str] = Field(
+    invoice_recipient: str | None = Field(
         default=None, description="Rechnungsempfänger"
     )
 
     # Vergleichskontext
-    context: Optional[RiskContext] = Field(
+    context: RiskContext | None = Field(
         default=None, description="Statistischer Kontext"
     )
 
     # Begünstigtendaten
-    beneficiary_name: Optional[str] = Field(
+    beneficiary_name: str | None = Field(
         default=None, description="Name des Begünstigten"
     )
 
@@ -125,7 +124,7 @@ class RiskAssessmentResult(BaseModel):
         le=1.0,
         description="Aggregierter Risiko-Score (0.0-1.0)",
     )
-    highest_severity: Optional[Severity] = Field(
+    highest_severity: Severity | None = Field(
         default=None,
         description="Höchster erkannter Schweregrad",
     )

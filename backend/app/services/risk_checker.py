@@ -8,13 +8,11 @@ Didaktische Hinweise für Seminarbetrieb - keine rechtliche Bewertung.
 
 import re
 from datetime import datetime
-from typing import Optional
 
 from app.models.enums import RiskIndicator, Severity
 from app.schemas.risk import (
     RiskAssessmentRequest,
     RiskAssessmentResult,
-    RiskContext,
     RiskFinding,
 )
 
@@ -104,7 +102,7 @@ class RiskChecker:
 
     def _check_high_amount(
         self, request: RiskAssessmentRequest
-    ) -> Optional[RiskFinding]:
+    ) -> RiskFinding | None:
         """Prüft auf ungewöhnlich hohe Beträge."""
         amount = request.net_amount
         context = request.context
@@ -135,7 +133,7 @@ class RiskChecker:
 
     def _check_vendor_clustering(
         self, request: RiskAssessmentRequest
-    ) -> Optional[RiskFinding]:
+    ) -> RiskFinding | None:
         """Prüft auf auffällige Lieferantenhäufung."""
         context = request.context
 
@@ -160,7 +158,7 @@ class RiskChecker:
 
     def _check_missing_period(
         self, request: RiskAssessmentRequest
-    ) -> Optional[RiskFinding]:
+    ) -> RiskFinding | None:
         """Prüft auf fehlenden Leistungszeitraum."""
         if not request.service_period_start and not request.service_period_end:
             return RiskFinding(
@@ -174,7 +172,7 @@ class RiskChecker:
 
     def _check_round_amount(
         self, request: RiskAssessmentRequest
-    ) -> Optional[RiskFinding]:
+    ) -> RiskFinding | None:
         """Prüft auf runde Pauschalbeträge."""
         amount = request.net_amount
 
@@ -203,7 +201,7 @@ class RiskChecker:
 
     def _check_outside_project_period(
         self, request: RiskAssessmentRequest
-    ) -> Optional[RiskFinding]:
+    ) -> RiskFinding | None:
         """Prüft ob Leistung außerhalb Projektzeitraum liegt."""
         context = request.context
 
@@ -236,7 +234,7 @@ class RiskChecker:
 
     def _check_project_reference(
         self, request: RiskAssessmentRequest
-    ) -> Optional[RiskFinding]:
+    ) -> RiskFinding | None:
         """Prüft auf fehlenden Projektbezug in Beschreibung."""
         desc_lower = request.description.lower()
 
@@ -264,7 +262,7 @@ class RiskChecker:
 
     def _check_recipient_mismatch(
         self, request: RiskAssessmentRequest
-    ) -> Optional[RiskFinding]:
+    ) -> RiskFinding | None:
         """Prüft auf Abweichung Empfänger/Begünstigter."""
         if not request.invoice_recipient or not request.beneficiary_name:
             return None
@@ -304,7 +302,7 @@ class RiskChecker:
 
     def _get_highest_severity(
         self, findings: list[RiskFinding]
-    ) -> Optional[Severity]:
+    ) -> Severity | None:
         """Ermittelt höchsten Schweregrad."""
         if not findings:
             return None

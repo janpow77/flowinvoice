@@ -5,7 +5,7 @@ FlowAudit Statistics API
 Endpoints für Dashboard-Statistiken.
 """
 
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 from typing import Any
 
 from fastapi import APIRouter, Depends
@@ -19,14 +19,6 @@ from app.models.feedback import Feedback, RagExample
 from app.models.llm import LlmRun
 from app.models.project import Project
 from app.models.user import User
-from app.schemas.stats import (
-    FeedbackStatsResponse,
-    GlobalStatsResponse,
-    LlmStatsResponse,
-    ProjectStatsResponse,
-    RagStatsResponse,
-    SystemStatsResponse,
-)
 from app.schemas.user import ActiveUsersResponse
 
 router = APIRouter()
@@ -257,9 +249,9 @@ async def get_system_stats(
     """
     import psutil
 
-    # System-Info
-    cpu_percent = psutil.cpu_percent()
-    memory = psutil.virtual_memory()
+    # System-Info (cpu/memory für zukünftige Erweiterung)
+    _cpu_percent = psutil.cpu_percent()  # noqa: F841
+    _memory = psutil.virtual_memory()  # noqa: F841
     disk = psutil.disk_usage("/")
 
     return {
@@ -307,8 +299,8 @@ async def get_system_stats(
 
 @router.get("/stats/users/active", response_model=ActiveUsersResponse)
 async def get_active_user_count(
+    admin: CurrentAdmin,
     session: AsyncSession = Depends(get_async_session),
-    admin: CurrentAdmin = None,
 ) -> ActiveUsersResponse:
     """
     Zählt aktuell aktive Benutzer (Admin-only).
@@ -320,16 +312,16 @@ async def get_active_user_count(
         Anzahl aktiver Benutzer und Zeitstempel.
     """
     # Zeitfenster: 10 Minuten (entspricht Inaktivitäts-Timeout)
-    cutoff = datetime.now(timezone.utc) - timedelta(minutes=10)
+    cutoff = datetime.now(UTC) - timedelta(minutes=10)
 
     count = await session.scalar(
         select(func.count(User.id)).where(
             User.last_active_at >= cutoff,
-            User.is_active == True,
+            User.is_active.is_(True),
         )
     ) or 0
 
     return ActiveUsersResponse(
         active_users=count,
-        timestamp=datetime.now(timezone.utc).isoformat(),
+        timestamp=datetime.now(UTC).isoformat(),
     )

@@ -6,7 +6,7 @@ Endpoints für RAG-Beispiele und Retrieval.
 """
 
 import logging
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from typing import Any
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
@@ -15,7 +15,6 @@ from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.database import get_async_session
-from app.models.document import Document
 from app.models.feedback import RagExample
 from app.models.llm import LLMPayload
 from app.rag import get_rag_service, get_vectorstore
@@ -245,7 +244,7 @@ async def retrieve_rag_examples(
         rag_example = rag_result.scalar_one_or_none()
         if rag_example:
             rag_example.usage_count += 1
-            rag_example.last_used_at = datetime.now(timezone.utc)
+            rag_example.last_used_at = datetime.now(UTC)
 
     await session.commit()
 

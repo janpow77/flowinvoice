@@ -341,7 +341,7 @@ async def get_generator_solutions(
         solutions_path = Path(job.solutions_file)
         if solutions_path.exists():
             try:
-                with open(solutions_path, "r", encoding="utf-8") as f:
+                with open(solutions_path, encoding="utf-8") as f:
                     solutions_data = json.load(f)
 
                 # Einträge formatieren
@@ -364,7 +364,7 @@ async def get_generator_solutions(
                 raise HTTPException(
                     status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
                     detail=f"Error reading solutions file: {e}",
-                )
+                ) from e
         else:
             raise HTTPException(
                 status_code=status.HTTP_404_NOT_FOUND,

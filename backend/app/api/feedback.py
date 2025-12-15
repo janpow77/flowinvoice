@@ -83,14 +83,14 @@ async def create_feedback(
             )
             parse_run = parse_run_result.scalar_one_or_none()
 
-            # LLM-Run für Original-Ergebnis laden
+            # LLM-Run für Original-Ergebnis laden (für zukünftige Nutzung)
             llm_run_result = await session.execute(
                 select(LlmRun)
                 .where(LlmRun.document_id == document_id)
                 .order_by(LlmRun.created_at.desc())
                 .limit(1)
             )
-            llm_run = llm_run_result.scalar_one_or_none()
+            _llm_run = llm_run_result.scalar_one_or_none()  # noqa: F841
 
             # Für jede Korrektur ein RAG-Beispiel erstellen
             for override in data.overrides:

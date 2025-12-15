@@ -6,7 +6,6 @@ Embedding-Generierung für RAG-System.
 """
 
 import logging
-from typing import Any
 
 from sentence_transformers import SentenceTransformer
 
