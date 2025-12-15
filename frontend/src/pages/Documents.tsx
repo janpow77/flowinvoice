@@ -1,7 +1,8 @@
 import { useState, useCallback } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
+import { useTranslation } from 'react-i18next'
 import { useDropzone } from 'react-dropzone'
-import { FileText, Upload, CheckCircle, AlertTriangle, XCircle, Clock, Eye } from 'lucide-react'
+import { FileText, Upload, CheckCircle, AlertTriangle, XCircle, Clock, Eye, AlertCircle, RefreshCw } from 'lucide-react'
 import { Link } from 'react-router-dom'
 import clsx from 'clsx'
 import { api } from '@/lib/api'
@@ -19,12 +20,14 @@ const statusConfig = {
 }
 
 export default function Documents() {
+  const { t } = useTranslation()
   const [uploading, setUploading] = useState(false)
   const queryClient = useQueryClient()
 
-  const { data: documents, isLoading } = useQuery({
+  const { data: documents, isLoading, error, refetch } = useQuery({
     queryKey: ['documents'],
     queryFn: () => api.getDocuments(),
+    retry: 2,
   })
 
   const uploadMutation = useMutation({
@@ -52,6 +55,30 @@ export default function Documents() {
     accept: { 'application/pdf': ['.pdf'] },
     disabled: uploading,
   })
+
+  // Error state
+  if (error) {
+    return (
+      <div className="bg-red-50 border border-red-200 rounded-lg p-6">
+        <div className="flex items-center">
+          <AlertCircle className="h-6 w-6 text-red-600" />
+          <div className="ml-3">
+            <h3 className="text-lg font-medium text-red-800">{t('common.error')}</h3>
+            <p className="text-sm text-red-600 mt-1">
+              {t('errors.network')}
+            </p>
+          </div>
+        </div>
+        <button
+          onClick={() => refetch()}
+          className="mt-4 px-4 py-2 bg-red-100 text-red-700 rounded-lg hover:bg-red-200 transition-colors flex items-center"
+        >
+          <RefreshCw className="h-4 w-4 mr-2" />
+          {t('common.retry')}
+        </button>
+      </div>
+    )
+  }
 
   return (
     <div className="space-y-6">

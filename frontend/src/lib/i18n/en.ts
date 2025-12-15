@@ -42,6 +42,7 @@ export const en = {
     info: 'Info',
     noData: 'No data available',
     all: 'All',
+    retry: 'Retry',
   },
 
   // Dashboard
