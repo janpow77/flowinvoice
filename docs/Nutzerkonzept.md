@@ -41,6 +41,9 @@ Das System unterscheidet streng zwischen zwei Rollen:
     * Kann Nutzer anlegen/sperren.
     * Sieht Systemstatistiken (z.B. aktive Nutzer).
     * Konfiguriert globale Einstellungen (Rulesets).
+      *  Admins dürfen keine fachlichen Prüfentscheidungen treffen, sondern ausschließlich Systemfunktionen ausführen.
+
+
 2.  **User (Auditor):**
     * Kann Projekte erstellen.
     * Kann Dokumente hochladen und prüfen.
@@ -143,6 +146,16 @@ def verify_password(plain_password: str, hashed_password: str) -> bool:
 def get_password_hash(password: str) -> str:
     return pwd_context.hash(password)
 ```
+
+
+4.3a Session-Timeout: Server-seitige Ergänzung (optional)
+
+Client-seitig ist gut.
+Besser wäre zusätzlich:
+
+exp im JWT auf z. B. 30–60 Minuten
+
+Refresh nur bei Aktivität
 
 ### 4.4. Auth-Dependency mit Throttling
 
