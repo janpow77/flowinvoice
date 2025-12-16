@@ -84,10 +84,11 @@ services:
       # Thermal throttle threshold (Celsius)
       - THERMAL_THROTTLE_TEMP=${THERMAL_THROTTLE_TEMP:-80}
     # NVIDIA GPU Support (docker-compose compatible syntax)
-    device_requests:
-      - driver: nvidia
-        count: 1
-        capabilities: [gpu]
+    #device_requests:
+    #  - driver: nvidia
+    #    count: 1
+    #    capabilities: [gpu]
+    gpus:"1"
     # Memory limit for container
     mem_limit: ${OLLAMA_CONTAINER_MEMORY:-16G}
     healthcheck:
