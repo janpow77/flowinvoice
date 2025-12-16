@@ -88,7 +88,7 @@ services:
     #  - driver: nvidia
     #    count: 1
     #    capabilities: [gpu]
-    gpus:"1"
+    gpus: "1"
     # Memory limit for container
     mem_limit: ${OLLAMA_CONTAINER_MEMORY:-16G}
     healthcheck:
