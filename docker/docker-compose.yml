@@ -83,12 +83,14 @@ services:
       - OLLAMA_NUM_CTX=${OLLAMA_NUM_CTX:-4096}
       # Thermal throttle threshold (Celsius)
       - THERMAL_THROTTLE_TEMP=${THERMAL_THROTTLE_TEMP:-80}
-    # NVIDIA GPU Support (docker-compose compatible syntax)
-    #device_requests:
-    #  - driver: nvidia
-    #    count: 1
-    #    capabilities: [gpu]
-    gpus: all
+    # NVIDIA GPU Support (Compose-Spec compatible for Portainer)
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: all
+              capabilities: [gpu]
     # Memory limit for container
     mem_limit: ${OLLAMA_CONTAINER_MEMORY:-16G}
     healthcheck:
@@ -181,7 +183,3 @@ volumes:
   redis_data:
   chroma_data:
   ollama_data:
-
-networks:
-  default:
-    name: flowaudit-network
