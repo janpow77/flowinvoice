@@ -54,8 +54,6 @@ services:
       - chroma_data:/chroma/chroma
     ports:
       - "${CHROMADB_PORT:-8001}:8000"
-    healthcheck:
-      disable: true
     restart: unless-stopped
 
   # Ollama - Local LLM Inference (with NVIDIA GPU support)
