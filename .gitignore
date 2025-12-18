@@ -48,3 +48,7 @@ coverage/
 # DEB packages (built locally)
 installer/*.deb
 installer/build/
+
+# Data directory (Docker volumes)
+data/*
+!data/.gitkeep

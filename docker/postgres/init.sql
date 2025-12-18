@@ -5,6 +5,7 @@
 -- Extensions
 CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
 CREATE EXTENSION IF NOT EXISTS "pgcrypto";
+CREATE EXTENSION IF NOT EXISTS "vector";  -- pgvector für RAG-Embeddings
 
 -- Enums
 CREATE TYPE document_status AS ENUM (
