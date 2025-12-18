@@ -9,7 +9,7 @@ from datetime import UTC, datetime, timedelta
 from typing import Any
 
 from fastapi import APIRouter, Depends
-from sqlalchemy import func, select
+from sqlalchemy import Integer, func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.deps import CurrentAdmin
@@ -59,8 +59,8 @@ async def get_global_stats(
         select(
             LlmRun.provider,
             func.count(LlmRun.id).label("count"),
-            func.avg(LlmRun.input_tokens).label("avg_input"),
-            func.avg(LlmRun.output_tokens).label("avg_output"),
+            func.avg(LlmRun.token_usage["input"].astext.cast(Integer)).label("avg_input"),
+            func.avg(LlmRun.token_usage["output"].astext.cast(Integer)).label("avg_output"),
         ).group_by(LlmRun.provider)
     )
     for row in provider_query.all():
@@ -136,9 +136,9 @@ async def get_project_stats(
     # LLM-Run Stats für Projekt-Dokumente
     llm_stats_query = await session.execute(
         select(
-            func.avg(LlmRun.input_tokens).label("avg_in"),
-            func.avg(LlmRun.output_tokens).label("avg_out"),
-            func.avg(LlmRun.latency_ms).label("avg_latency"),
+            func.avg(LlmRun.token_usage["input"].astext.cast(Integer)).label("avg_in"),
+            func.avg(LlmRun.token_usage["output"].astext.cast(Integer)).label("avg_out"),
+            func.avg(LlmRun.timings_ms["llm"].astext.cast(Integer)).label("avg_latency"),
         )
         .join(Document, LlmRun.document_id == Document.id)
         .where(Document.project_id == project_id)
@@ -266,14 +266,17 @@ async def get_llm_stats(
     total_llm_runs = await session.scalar(select(func.count(LlmRun.id))) or 0
 
     # Aggregierte LLM-Statistiken
+    input_tokens_col = LlmRun.token_usage["input"].astext.cast(Integer)
+    output_tokens_col = LlmRun.token_usage["output"].astext.cast(Integer)
+    latency_col = LlmRun.timings_ms["llm"].astext.cast(Integer)
     llm_agg_query = await session.execute(
         select(
-            func.avg(LlmRun.input_tokens).label("avg_in"),
-            func.avg(LlmRun.output_tokens).label("avg_out"),
-            func.sum(LlmRun.input_tokens + LlmRun.output_tokens).label("total_tokens"),
-            func.avg(LlmRun.latency_ms).label("avg_latency"),
-            func.min(LlmRun.latency_ms).label("min_latency"),
-            func.max(LlmRun.latency_ms).label("max_latency"),
+            func.avg(input_tokens_col).label("avg_in"),
+            func.avg(output_tokens_col).label("avg_out"),
+            func.sum(input_tokens_col + output_tokens_col).label("total_tokens"),
+            func.avg(latency_col).label("avg_latency"),
+            func.min(latency_col).label("min_latency"),
+            func.max(latency_col).label("max_latency"),
         )
     )
     llm_agg = llm_agg_query.first()
