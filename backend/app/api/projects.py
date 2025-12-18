@@ -41,8 +41,8 @@ async def create_project(
     project = Project(
         ruleset_id_hint=data.ruleset_id_hint,
         ui_language_hint=data.ui_language_hint,
-        beneficiary=data.beneficiary.model_dump(),
-        project=data.project.model_dump(),
+        beneficiary=data.beneficiary.model_dump(mode='json'),
+        project=data.project.model_dump(mode='json'),
     )
 
     session.add(project)
@@ -185,9 +185,9 @@ async def update_project(
     if data.ui_language_hint is not None:
         project.ui_language_hint = data.ui_language_hint
     if data.beneficiary is not None:
-        project.beneficiary = data.beneficiary.model_dump()
+        project.beneficiary = data.beneficiary.model_dump(mode='json')
     if data.project is not None:
-        project.project = data.project.model_dump()
+        project.project = data.project.model_dump(mode='json')
 
     await session.flush()
 
