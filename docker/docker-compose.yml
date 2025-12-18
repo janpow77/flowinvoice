@@ -4,9 +4,9 @@
 # Target: ASUS NUC (64 GB RAM), optional GPU
 
 services:
-  # PostgreSQL Database
+  # PostgreSQL Database (mit pgvector für RAG-Embeddings)
   db:
-    image: postgres:16-alpine
+    image: pgvector/pgvector:pg16
     container_name: flowaudit-db
     environment:
       POSTGRES_USER: flowaudit
