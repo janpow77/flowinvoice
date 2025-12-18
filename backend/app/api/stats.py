@@ -200,7 +200,7 @@ async def get_feedback_stats(
 
     # Durchschnittliche Korrekturen pro Feedback
     feedbacks_with_corrections = await session.scalar(
-        select(func.count(Feedback.id)).where(Feedback.corrections.isnot(None))
+        select(func.count(Feedback.id)).where(Feedback.overrides.isnot(None))
     ) or 0
 
     # RAG-Examples-Statistik
