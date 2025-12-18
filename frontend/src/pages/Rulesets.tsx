@@ -13,7 +13,6 @@ import {
   X,
   Save,
   Trash2,
-  Check,
   FileText,
 } from 'lucide-react'
 import clsx from 'clsx'
@@ -358,7 +357,7 @@ export default function Rulesets() {
         <div className="bg-white rounded-lg border border-gray-200 p-6">
           <h3 className="text-lg font-semibold text-gray-900 mb-4">{t('rulesets.legalReferences')}</h3>
           <div className="space-y-2">
-            {ruleset.legal_references?.map((ref, idx) => (
+            {ruleset.legal_references?.map((ref: LegalReference, idx: number) => (
               <div key={idx} className="flex items-start gap-2 text-sm">
                 <FileText className="h-4 w-4 text-gray-400 mt-0.5" />
                 <div>
@@ -382,7 +381,7 @@ export default function Rulesets() {
           </div>
 
           <div className="space-y-2">
-            {ruleset.features?.map((feature) => (
+            {ruleset.features?.map((feature: Feature) => (
               <div
                 key={feature.feature_id}
                 className="border border-gray-200 rounded-lg overflow-hidden"
@@ -701,7 +700,10 @@ export default function Rulesets() {
                         type="checkbox"
                         checked={feature.applies_to?.standard_invoice ?? true}
                         onChange={(e) => handleUpdateFeature(index, {
-                          applies_to: { ...feature.applies_to, standard_invoice: e.target.checked }
+                          applies_to: {
+                            standard_invoice: e.target.checked,
+                            small_amount_invoice: feature.applies_to?.small_amount_invoice ?? false
+                          }
                         })}
                         className="rounded border-gray-300 text-primary-600 focus:ring-primary-500"
                       />
@@ -712,7 +714,10 @@ export default function Rulesets() {
                         type="checkbox"
                         checked={feature.applies_to?.small_amount_invoice ?? false}
                         onChange={(e) => handleUpdateFeature(index, {
-                          applies_to: { ...feature.applies_to, small_amount_invoice: e.target.checked }
+                          applies_to: {
+                            standard_invoice: feature.applies_to?.standard_invoice ?? true,
+                            small_amount_invoice: e.target.checked
+                          }
                         })}
                         className="rounded border-gray-300 text-primary-600 focus:ring-primary-500"
                       />
