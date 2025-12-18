@@ -48,7 +48,7 @@ CREATE TYPE provider_type AS ENUM (
     'GEMINI'
 );
 
-CREATE TYPE feedback_rating AS ENUM (
+CREATE TYPE feedbackrating AS ENUM (
     'CORRECT',
     'PARTIAL',
     'WRONG'
@@ -246,7 +246,7 @@ CREATE TABLE feedback (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
     document_id UUID REFERENCES documents(id) ON DELETE CASCADE,
     final_result_id UUID REFERENCES final_results(id),
-    rating feedback_rating NOT NULL,
+    rating feedbackrating NOT NULL,
     comment TEXT,
     overrides JSONB DEFAULT '[]',
     accept_result BOOLEAN DEFAULT false,
