@@ -15,6 +15,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.api.deps import CurrentAdmin
 from app.database import get_async_session
 from app.models.document import Document
+from app.models.enums import FeedbackRating
 from app.models.feedback import Feedback, RagExample
 from app.models.llm import LlmRun
 from app.models.project import Project
@@ -45,7 +46,7 @@ async def get_global_stats(
     # Feedback-basierte Genauigkeit
     total_feedback = await session.scalar(select(func.count(Feedback.id))) or 0
     correct_feedback = await session.scalar(
-        select(func.count(Feedback.id)).where(Feedback.rating == "CORRECT")
+        select(func.count(Feedback.id)).where(Feedback.rating == FeedbackRating.CORRECT)
     ) or 0
 
     accuracy_percent = (
@@ -188,13 +189,13 @@ async def get_feedback_stats(
 
     # Rating-Verteilung
     correct_count = await session.scalar(
-        select(func.count(Feedback.id)).where(Feedback.rating == "CORRECT")
+        select(func.count(Feedback.id)).where(Feedback.rating == FeedbackRating.CORRECT)
     ) or 0
     partial_count = await session.scalar(
-        select(func.count(Feedback.id)).where(Feedback.rating == "PARTIAL")
+        select(func.count(Feedback.id)).where(Feedback.rating == FeedbackRating.PARTIAL)
     ) or 0
     wrong_count = await session.scalar(
-        select(func.count(Feedback.id)).where(Feedback.rating.in_(["WRONG", "INCORRECT"]))
+        select(func.count(Feedback.id)).where(Feedback.rating == FeedbackRating.WRONG)
     ) or 0
 
     # Durchschnittliche Korrekturen pro Feedback
