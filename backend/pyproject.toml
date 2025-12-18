@@ -45,7 +45,7 @@ dependencies = [
     "sentence-transformers>=2.3.1",
 
     # Validation & Serialization
-    "pydantic>=2.5.3",
+    "pydantic[email]>=2.5.3",
     "pydantic-settings>=2.1.0",
 
     # Security

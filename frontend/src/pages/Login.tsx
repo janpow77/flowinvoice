@@ -74,18 +74,12 @@ const cssAnimations = `
   }
 `;
 
-// Springender Fisch - verwendet das echte Logo
+// Springender Fisch - verwendet das echte Logo (PNG)
 const JumpingFish = () => (
   <img
-    src="/auditlogo.svg"
+    src="/auditlogo.png"
     alt="Jumping Fish"
     className="w-full h-full object-contain"
-    onError={(e) => {
-      const target = e.target as HTMLImageElement;
-      if (!target.src.endsWith('.png')) {
-        target.src = '/auditlogo.png';
-      }
-    }}
   />
 );
 
@@ -221,15 +215,9 @@ export default function Login() {
         {/* Logo und Überschrift */}
         <div className="text-center mb-8">
           <img
-            src="/auditlogo.svg"
+            src="/auditlogo.png"
             alt="FlowAudit Logo"
             className="h-24 w-auto mx-auto mb-4 drop-shadow-lg"
-            onError={(e) => {
-              const target = e.target as HTMLImageElement;
-              if (!target.src.endsWith('.png')) {
-                target.src = '/auditlogo.png';
-              }
-            }}
           />
           <h1 className="text-5xl sm:text-6xl font-extrabold text-white drop-shadow-lg tracking-tight">
             flowaudit
