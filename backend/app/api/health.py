@@ -60,7 +60,7 @@ async def health_check(
 
         async with httpx.AsyncClient(timeout=5.0) as client:
             response = await client.get(
-                f"http://{settings.chroma_host}:{settings.chroma_port}/api/v1/heartbeat"
+                f"http://{settings.chroma_host}:{settings.chroma_port}/api/v2/heartbeat"
             )
             services["vectorstore"] = "ok" if response.status_code == 200 else "error"
     except Exception:
