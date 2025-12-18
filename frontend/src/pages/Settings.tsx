@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { CheckCircle, XCircle, Globe, Cpu, AlertTriangle, RefreshCw, Thermometer, Zap, Moon, Sun, Key, Trash2, Play, Loader2, Server, Cloud } from 'lucide-react'
+import { CheckCircle, Globe, Cpu, AlertTriangle, RefreshCw, Thermometer, Zap, Moon, Sun, Key, Trash2, Play, Loader2, Server, Cloud } from 'lucide-react'
 import clsx from 'clsx'
 import { api } from '@/lib/api'
 import { languages, changeLanguage, getCurrentLanguage, type LanguageCode } from '@/lib/i18n'
