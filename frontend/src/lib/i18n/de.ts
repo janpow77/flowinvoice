@@ -8,6 +8,7 @@ export const de = {
     dashboard: 'Dashboard',
     projects: 'Projekte',
     documents: 'Dokumente',
+    rulesets: 'Regelwerke',
     statistics: 'Statistik',
     settings: 'Einstellungen',
   },
@@ -189,6 +190,8 @@ export const de = {
 
   // Rulesets
   rulesets: {
+    title: 'Regelwerke',
+    description: 'Verwalten Sie die Prüfregelwerke für verschiedene Steuersysteme',
     DE_USTG: 'Deutschland (UStG)',
     EU_VAT: 'EU (MwSt-Richtlinie)',
     UK_VAT: 'UK (HMRC VAT)',
@@ -197,6 +200,33 @@ export const de = {
     conditionalFeatures: 'Bedingte Merkmale',
     smallAmountInvoice: 'Kleinbetragsrechnung',
     reducedRequirements: 'Reduzierte Anforderungen',
+    // Actions
+    createRuleset: 'Neues Regelwerk',
+    editRuleset: 'Regelwerk bearbeiten',
+    view: 'Anzeigen',
+    edit: 'Bearbeiten',
+    noRulesets: 'Keine Regelwerke vorhanden',
+    noRulesetsDesc: 'Erstellen Sie Ihr erstes Regelwerk für die Rechnungsprüfung',
+    // Detail view
+    legalReferences: 'Rechtsgrundlagen',
+    features: 'Merkmale',
+    featuresCount: 'Merkmale',
+    // Form fields
+    basicInfo: 'Grundinformationen',
+    rulesetId: 'Regelwerk-ID',
+    version: 'Version',
+    titleDe: 'Titel (Deutsch)',
+    titleEn: 'Titel (Englisch)',
+    jurisdiction: 'Rechtsraum',
+    currency: 'Währung',
+    // Features
+    addFeature: 'Merkmal hinzufügen',
+    noFeatures: 'Keine Merkmale definiert',
+    addFirstFeature: 'Erstes Merkmal hinzufügen',
+    // Required levels
+    required: 'Pflicht',
+    conditional: 'Bedingt',
+    optional: 'Optional',
   },
 
   // Tax Selector

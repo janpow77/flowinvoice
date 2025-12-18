@@ -283,6 +283,26 @@ export const api = {
     return response.data
   },
 
+  createRuleset: async (data: Record<string, unknown>) => {
+    const response = await apiClient.post('/rulesets', data, {
+      headers: { 'X-Role': 'admin' },
+    })
+    return response.data
+  },
+
+  updateRuleset: async (id: string, version: string, data: Record<string, unknown>) => {
+    const response = await apiClient.put(`/rulesets/${id}/${version}`, data, {
+      headers: { 'X-Role': 'admin' },
+    })
+    return response.data
+  },
+
+  // Project Statistics
+  getProjectStats: async (projectId: string) => {
+    const response = await apiClient.get(`/projects/${projectId}/stats`)
+    return response.data
+  },
+
   // System Monitoring
   getSystemMetrics: async () => {
     const response = await apiClient.get('/system/metrics')

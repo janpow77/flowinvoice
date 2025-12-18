@@ -1,18 +1,67 @@
+import { useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { useTranslation } from 'react-i18next'
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, LineChart, Line } from 'recharts'
-import { AlertCircle, RefreshCw, Loader2 } from 'lucide-react'
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts'
+import { AlertCircle, RefreshCw, Loader2, Filter, FolderOpen } from 'lucide-react'
 import { api } from '@/lib/api'
 
 const COLORS = ['#22c55e', '#f59e0b', '#ef4444', '#3b82f6', '#8b5cf6']
 
+// Feature ID to German name mapping
+const FEATURE_NAMES_DE: Record<string, string> = {
+  supplier_name_address: 'Lieferantenname/-adresse',
+  customer_name_address: 'Kundenname/-adresse',
+  supplier_tax_or_vat_id: 'Steuernummer/USt-ID',
+  invoice_date: 'Rechnungsdatum',
+  invoice_number: 'Rechnungsnummer',
+  supply_description: 'Leistungsbeschreibung',
+  supply_date_or_period: 'Liefer-/Leistungszeitraum',
+  net_amount: 'Nettobetrag',
+  vat_rate: 'Steuersatz',
+  vat_amount: 'Steuerbetrag',
+  gross_amount: 'Bruttobetrag',
+  tax_exemption_reason: 'Steuerbefreiungsgrund',
+  calculation: 'Berechnung',
+  vat_id: 'USt-IdNr',
+}
+
+interface Project {
+  id: string
+  title: string
+}
+
 export default function Statistics() {
-  const { t } = useTranslation()
-  const { data: stats, isLoading, error, refetch } = useQuery({
+  const { t, i18n } = useTranslation()
+  const lang = i18n.language
+  const [selectedProjectId, setSelectedProjectId] = useState<string>('all')
+
+  // Fetch projects for filter
+  const { data: projects } = useQuery({
+    queryKey: ['projects'],
+    queryFn: () => api.getProjects(),
+  })
+
+  // Fetch global stats
+  const { data: globalStats, isLoading: isLoadingGlobal, error: globalError, refetch: refetchGlobal } = useQuery({
     queryKey: ['statistics'],
     queryFn: () => api.getDetailedStats(),
     retry: 2,
+    enabled: selectedProjectId === 'all',
   })
+
+  // Fetch project-specific stats
+  const { data: projectStats, isLoading: isLoadingProject, error: projectError, refetch: refetchProject } = useQuery({
+    queryKey: ['project-stats', selectedProjectId],
+    queryFn: () => api.getProjectStats(selectedProjectId),
+    retry: 2,
+    enabled: selectedProjectId !== 'all',
+  })
+
+  const stats = selectedProjectId === 'all' ? globalStats : null
+  const projStats = selectedProjectId !== 'all' ? projectStats : null
+  const isLoading = selectedProjectId === 'all' ? isLoadingGlobal : isLoadingProject
+  const error = selectedProjectId === 'all' ? globalError : projectError
+  const refetch = selectedProjectId === 'all' ? refetchGlobal : refetchProject
 
   if (isLoading) {
     return (
@@ -46,174 +95,211 @@ export default function Statistics() {
     )
   }
 
-  // Extract data from API response, with fallback to mock data
+  // Extract data from API response - NO MOCK DATA FALLBACK
   const feedbackStats = stats?.feedback?.summary || {}
   const llmStats = stats?.llm || {}
   const ragStats = stats?.rag || {}
 
-  // Use API data if available, otherwise use fallback
+  // Get feature errors from API (no fallback)
   const feedbackErrors = stats?.feedback?.errors_by_feature as { feature_id: string; error_count: number }[] | undefined
   const errorByFeature = feedbackErrors && feedbackErrors.length > 0
     ? feedbackErrors.map((f) => ({
-        name: f.feature_id,
+        name: lang === 'de' ? (FEATURE_NAMES_DE[f.feature_id] || f.feature_id) : f.feature_id,
         count: f.error_count,
       }))
-    : [
-        { name: 'invoice_number', count: 12 },
-        { name: 'vat_id', count: 8 },
-        { name: 'supply_date', count: 6 },
-        { name: 'net_amount', count: 4 },
-        { name: 'calculation', count: 3 },
-      ]
+    : []
 
+  // Rating distribution - actual values only (0 if no data)
   const ratingDist = feedbackStats.rating_distribution || {}
-  const assessmentDistribution = [
-    { name: 'OK', value: ratingDist.CORRECT || 65 },
-    { name: 'Prüfung', value: ratingDist.PARTIAL || 25 },
-    { name: 'Abgelehnt', value: ratingDist.WRONG || 10 },
-  ]
+  const totalRatings = (ratingDist.CORRECT || 0) + (ratingDist.PARTIAL || 0) + (ratingDist.WRONG || 0)
+  const assessmentDistribution = totalRatings > 0
+    ? [
+        { name: 'OK', value: ratingDist.CORRECT || 0 },
+        { name: lang === 'de' ? 'Prüfung' : 'Review', value: ratingDist.PARTIAL || 0 },
+        { name: lang === 'de' ? 'Abgelehnt' : 'Rejected', value: ratingDist.WRONG || 0 },
+      ]
+    : []
 
-  // Learning curve - static for now until we implement timeline tracking
-  const learningCurve = [
-    { day: 'Mo', correct: 60, total: 80 },
-    { day: 'Di', correct: 70, total: 85 },
-    { day: 'Mi', correct: 75, total: 82 },
-    { day: 'Do', correct: 82, total: 90 },
-    { day: 'Fr', correct: 88, total: 95 },
-  ]
-
-  // Error source breakdown from API
+  // Error source breakdown from API (0 if no data)
   const errorsBySource = stats?.feedback?.errors_by_source || {}
-  const taxLawErrors = errorsBySource.TAX_LAW?.percentage || 45
-  const beneficiaryErrors = errorsBySource.BENEFICIARY_DATA?.percentage || 30
-  const locationErrors = errorsBySource.LOCATION_VALIDATION?.percentage || 25
+  const taxLawErrors = errorsBySource.TAX_LAW?.percentage || 0
+  const beneficiaryErrors = errorsBySource.BENEFICIARY_DATA?.percentage || 0
+  const locationErrors = errorsBySource.LOCATION_VALIDATION?.percentage || 0
 
-  // Summary stats
+  // Summary stats (actual values)
   const totalFeedback = feedbackStats.total_feedback_entries || 0
   const totalLlmRequests = llmStats.local_model_stats?.total_requests || 0
   const totalRagExamples = ragStats.collection_stats?.total_examples || 0
 
+  // Project-specific counters
+  const projectCounters = projStats?.counters || {}
+
   return (
     <div className="space-y-6">
-      <h2 className="text-xl font-semibold text-gray-900">Statistiken & Lernkurve</h2>
+      {/* Header with Project Filter */}
+      <div className="flex items-center justify-between">
+        <h2 className="text-xl font-semibold text-gray-900">
+          {lang === 'de' ? 'Statistiken' : 'Statistics'}
+        </h2>
+
+        <div className="flex items-center gap-3">
+          <Filter className="h-5 w-5 text-gray-400" />
+          <select
+            value={selectedProjectId}
+            onChange={(e) => setSelectedProjectId(e.target.value)}
+            className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
+          >
+            <option value="all">{lang === 'de' ? 'Alle Projekte' : 'All Projects'}</option>
+            {projects?.map((project: Project) => (
+              <option key={project.id} value={project.id}>
+                {project.title}
+              </option>
+            ))}
+          </select>
+        </div>
+      </div>
+
+      {/* Project-specific Stats (when a project is selected) */}
+      {selectedProjectId !== 'all' && projStats && (
+        <div className="bg-white rounded-lg border border-gray-200 p-6">
+          <div className="flex items-center gap-2 mb-4">
+            <FolderOpen className="h-5 w-5 text-primary-600" />
+            <h3 className="text-lg font-semibold text-gray-900">
+              {lang === 'de' ? 'Projekt-Übersicht' : 'Project Overview'}
+            </h3>
+          </div>
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+            <div className="p-4 bg-gray-50 rounded-lg">
+              <p className="text-2xl font-bold text-gray-700">{projectCounters.documents_total || 0}</p>
+              <p className="text-sm text-gray-600">{lang === 'de' ? 'Dokumente' : 'Documents'}</p>
+            </div>
+            <div className="p-4 bg-green-50 rounded-lg">
+              <p className="text-2xl font-bold text-green-700">{projectCounters.accepted || 0}</p>
+              <p className="text-sm text-green-600">{lang === 'de' ? 'Akzeptiert' : 'Accepted'}</p>
+            </div>
+            <div className="p-4 bg-yellow-50 rounded-lg">
+              <p className="text-2xl font-bold text-yellow-700">{projectCounters.review_pending || 0}</p>
+              <p className="text-sm text-yellow-600">{lang === 'de' ? 'Prüfung' : 'Review'}</p>
+            </div>
+            <div className="p-4 bg-red-50 rounded-lg">
+              <p className="text-2xl font-bold text-red-700">{projectCounters.rejected || 0}</p>
+              <p className="text-sm text-red-600">{lang === 'de' ? 'Abgelehnt' : 'Rejected'}</p>
+            </div>
+          </div>
+        </div>
+      )}
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Error by Feature */}
         <div className="bg-white rounded-lg border border-gray-200 p-6">
-          <h3 className="text-lg font-semibold text-gray-900 mb-4">Fehler nach Merkmal</h3>
-          <div className="h-64">
-            <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={errorByFeature}>
-                <CartesianGrid strokeDasharray="3 3" />
-                <XAxis dataKey="name" tick={{ fontSize: 12 }} />
-                <YAxis />
-                <Tooltip />
-                <Bar dataKey="count" fill="#3b82f6" />
-              </BarChart>
-            </ResponsiveContainer>
-          </div>
+          <h3 className="text-lg font-semibold text-gray-900 mb-4">
+            {lang === 'de' ? 'Fehler nach Merkmal' : 'Errors by Feature'}
+          </h3>
+          {errorByFeature.length > 0 ? (
+            <div className="h-64">
+              <ResponsiveContainer width="100%" height="100%">
+                <BarChart data={errorByFeature}>
+                  <CartesianGrid strokeDasharray="3 3" />
+                  <XAxis dataKey="name" tick={{ fontSize: 10 }} angle={-45} textAnchor="end" height={80} />
+                  <YAxis />
+                  <Tooltip />
+                  <Bar dataKey="count" fill="#3b82f6" />
+                </BarChart>
+              </ResponsiveContainer>
+            </div>
+          ) : (
+            <div className="h-64 flex items-center justify-center text-gray-500">
+              <p>{lang === 'de' ? 'Keine Fehler erfasst' : 'No errors recorded'}</p>
+            </div>
+          )}
         </div>
 
         {/* Assessment Distribution */}
         <div className="bg-white rounded-lg border border-gray-200 p-6">
-          <h3 className="text-lg font-semibold text-gray-900 mb-4">Bewertungsverteilung</h3>
-          <div className="h-64">
-            <ResponsiveContainer width="100%" height="100%">
-              <PieChart>
-                <Pie
-                  data={assessmentDistribution}
-                  cx="50%"
-                  cy="50%"
-                  labelLine={false}
-                  label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}
-                  outerRadius={80}
-                  fill="#8884d8"
-                  dataKey="value"
-                >
-                  {assessmentDistribution.map((_, index) => (
-                    <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
-                  ))}
-                </Pie>
-                <Tooltip />
-              </PieChart>
-            </ResponsiveContainer>
-          </div>
-        </div>
-
-        {/* Learning Curve */}
-        <div className="lg:col-span-2 bg-white rounded-lg border border-gray-200 p-6">
-          <h3 className="text-lg font-semibold text-gray-900 mb-4">Lernkurve</h3>
-          <p className="text-sm text-gray-500 mb-4">
-            Zeigt die Verbesserung der KI-Analyse über Zeit
-          </p>
-          <div className="h-64">
-            <ResponsiveContainer width="100%" height="100%">
-              <LineChart data={learningCurve}>
-                <CartesianGrid strokeDasharray="3 3" />
-                <XAxis dataKey="day" />
-                <YAxis />
-                <Tooltip />
-                <Line
-                  type="monotone"
-                  dataKey="correct"
-                  stroke="#22c55e"
-                  strokeWidth={2}
-                  name="Korrekt"
-                />
-                <Line
-                  type="monotone"
-                  dataKey="total"
-                  stroke="#3b82f6"
-                  strokeWidth={2}
-                  name="Gesamt"
-                />
-              </LineChart>
-            </ResponsiveContainer>
-          </div>
+          <h3 className="text-lg font-semibold text-gray-900 mb-4">
+            {lang === 'de' ? 'Bewertungsverteilung' : 'Assessment Distribution'}
+          </h3>
+          {assessmentDistribution.length > 0 && totalRatings > 0 ? (
+            <div className="h-64">
+              <ResponsiveContainer width="100%" height="100%">
+                <PieChart>
+                  <Pie
+                    data={assessmentDistribution}
+                    cx="50%"
+                    cy="50%"
+                    labelLine={false}
+                    label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}
+                    outerRadius={80}
+                    fill="#8884d8"
+                    dataKey="value"
+                  >
+                    {assessmentDistribution.map((_, index) => (
+                      <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                    ))}
+                  </Pie>
+                  <Tooltip />
+                </PieChart>
+              </ResponsiveContainer>
+            </div>
+          ) : (
+            <div className="h-64 flex items-center justify-center text-gray-500">
+              <p>{lang === 'de' ? 'Keine Bewertungen vorhanden' : 'No assessments available'}</p>
+            </div>
+          )}
         </div>
 
         {/* Summary Stats */}
         <div className="lg:col-span-2 bg-white rounded-lg border border-gray-200 p-6">
-          <h3 className="text-lg font-semibold text-gray-900 mb-4">Übersicht</h3>
+          <h3 className="text-lg font-semibold text-gray-900 mb-4">
+            {lang === 'de' ? 'Übersicht' : 'Overview'}
+          </h3>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <div className="p-4 bg-gray-50 rounded-lg">
               <p className="text-2xl font-bold text-gray-700">{totalFeedback}</p>
-              <p className="text-sm text-gray-600">Feedback-Einträge</p>
+              <p className="text-sm text-gray-600">{lang === 'de' ? 'Feedback-Einträge' : 'Feedback Entries'}</p>
             </div>
             <div className="p-4 bg-gray-50 rounded-lg">
               <p className="text-2xl font-bold text-gray-700">{totalLlmRequests}</p>
-              <p className="text-sm text-gray-600">LLM-Anfragen</p>
+              <p className="text-sm text-gray-600">{lang === 'de' ? 'LLM-Anfragen' : 'LLM Requests'}</p>
             </div>
             <div className="p-4 bg-gray-50 rounded-lg">
               <p className="text-2xl font-bold text-gray-700">{totalRagExamples}</p>
-              <p className="text-sm text-gray-600">RAG-Beispiele</p>
+              <p className="text-sm text-gray-600">{lang === 'de' ? 'RAG-Beispiele' : 'RAG Examples'}</p>
             </div>
           </div>
         </div>
 
         {/* Error Source Breakdown */}
         <div className="lg:col-span-2 bg-white rounded-lg border border-gray-200 p-6">
-          <h3 className="text-lg font-semibold text-gray-900 mb-4">Fehlerquellen</h3>
+          <h3 className="text-lg font-semibold text-gray-900 mb-4">
+            {lang === 'de' ? 'Fehlerquellen' : 'Error Sources'}
+          </h3>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <div className="p-4 bg-blue-50 rounded-lg">
               <p className="text-2xl font-bold text-blue-700">{taxLawErrors}%</p>
-              <p className="text-sm text-blue-600">Steuerrechtliche Fehler</p>
+              <p className="text-sm text-blue-600">
+                {lang === 'de' ? 'Steuerrechtliche Fehler' : 'Tax Law Errors'}
+              </p>
               <p className="text-xs text-blue-500 mt-1">
-                Fehlende Pflichtangaben, Formatfehler
+                {lang === 'de' ? 'Fehlende Pflichtangaben, Formatfehler' : 'Missing required fields, format errors'}
               </p>
             </div>
             <div className="p-4 bg-purple-50 rounded-lg">
               <p className="text-2xl font-bold text-purple-700">{beneficiaryErrors}%</p>
-              <p className="text-sm text-purple-600">Begünstigtendaten</p>
+              <p className="text-sm text-purple-600">
+                {lang === 'de' ? 'Begünstigtendaten' : 'Beneficiary Data'}
+              </p>
               <p className="text-xs text-purple-500 mt-1">
-                Name/Adresse stimmt nicht überein
+                {lang === 'de' ? 'Name/Adresse stimmt nicht überein' : 'Name/address mismatch'}
               </p>
             </div>
             <div className="p-4 bg-orange-50 rounded-lg">
               <p className="text-2xl font-bold text-orange-700">{locationErrors}%</p>
-              <p className="text-sm text-orange-600">Standortvalidierung</p>
+              <p className="text-sm text-orange-600">
+                {lang === 'de' ? 'Standortvalidierung' : 'Location Validation'}
+              </p>
               <p className="text-xs text-orange-500 mt-1">
-                Durchführungsort weicht ab
+                {lang === 'de' ? 'Durchführungsort weicht ab' : 'Implementation location differs'}
               </p>
             </div>
           </div>

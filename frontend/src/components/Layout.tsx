@@ -5,6 +5,7 @@ import {
   LayoutDashboard,
   FolderOpen,
   FileText,
+  Book,
   BarChart3,
   Settings,
 } from 'lucide-react'
@@ -19,6 +20,7 @@ const navigation = [
   { key: 'dashboard', href: '/', icon: LayoutDashboard },
   { key: 'projects', href: '/projects', icon: FolderOpen },
   { key: 'documents', href: '/documents', icon: FileText },
+  { key: 'rulesets', href: '/rulesets', icon: Book },
   { key: 'statistics', href: '/statistics', icon: BarChart3 },
   { key: 'settings', href: '/settings', icon: Settings },
 ]
