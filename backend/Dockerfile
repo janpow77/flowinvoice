@@ -1,8 +1,9 @@
 # Pfad: /backend/Dockerfile
-"""
-FlowAudit Backend Docker Image
-Python 3.11 mit FastAPI und allen Abhängigkeiten
-"""
+#
+# FlowAudit Backend Docker Image
+# Python 3.11 mit FastAPI und allen Abhängigkeiten
+#
+
 
 FROM python:3.11-slim-bookworm
 

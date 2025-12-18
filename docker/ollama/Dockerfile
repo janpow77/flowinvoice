@@ -1,8 +1,8 @@
 # Pfad: /docker/ollama/Dockerfile
-"""
-FlowAudit Ollama Container
-Lokaler LLM-Inferenz-Server für Seminar-Betrieb
-"""
+#
+# FlowAudit Ollama Container
+# Lokaler LLM-Inferenz-Server für Seminar-Betrieb
+#
 
 FROM ollama/ollama:latest
 

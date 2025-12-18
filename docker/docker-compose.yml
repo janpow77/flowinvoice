@@ -1,9 +1,9 @@
 # Pfad: /docker/docker-compose.yml
-"""
-FlowAudit Docker Compose Configuration
-Seminar-System für transparente Rechnungsprüfung mit LLMs
-Target: ASUS NUC (64 GB RAM), optional GPU
-"""
+#
+# FlowAudit Docker Compose Configuration
+# Seminar-System für transparente Rechnungsprüfung mit LLMs
+# Target: ASUS NUC (64 GB RAM), optional GPU
+#
 
 services:
   # PostgreSQL Database
