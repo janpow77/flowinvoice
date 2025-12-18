@@ -414,6 +414,64 @@ export const api = {
     })
     return response.data
   },
+
+  // Generator
+  getGeneratorTemplates: async () => {
+    const response = await apiClient.get('/generator/templates')
+    return response.data.data
+  },
+
+  runGenerator: async (options: {
+    project_id?: string
+    ruleset_id?: string
+    count?: number
+    templates_enabled?: string[]
+    error_rate_total?: number
+    severity?: number
+    alias_noise_probability?: number
+    beneficiary_data?: {
+      beneficiary_name: string
+      street: string
+      zip: string
+      city: string
+      country?: string
+      vat_id?: string
+    }
+  }) => {
+    const params = new URLSearchParams()
+    if (options.project_id) params.append('project_id', options.project_id)
+    if (options.ruleset_id) params.append('ruleset_id', options.ruleset_id)
+    if (options.count) params.append('count', options.count.toString())
+    if (options.error_rate_total !== undefined) params.append('error_rate_total', options.error_rate_total.toString())
+    if (options.severity !== undefined) params.append('severity', options.severity.toString())
+    if (options.alias_noise_probability !== undefined) params.append('alias_noise_probability', options.alias_noise_probability.toString())
+    if (options.templates_enabled) {
+      options.templates_enabled.forEach(t => params.append('templates_enabled', t))
+    }
+
+    const response = await apiClient.post(`/generator/run?${params.toString()}`, {
+      beneficiary_data: options.beneficiary_data,
+    }, {
+      headers: {
+        'X-API-Key': localStorage.getItem('flowaudit_admin_key') || 'admin',
+      },
+    })
+    return response.data
+  },
+
+  getGeneratorJob: async (jobId: string) => {
+    const response = await apiClient.get(`/generator/jobs/${jobId}`)
+    return response.data
+  },
+
+  getGeneratorSolutions: async (jobId: string) => {
+    const response = await apiClient.get(`/generator/jobs/${jobId}/solutions`, {
+      headers: {
+        'X-API-Key': localStorage.getItem('flowaudit_admin_key') || 'admin',
+      },
+    })
+    return response.data
+  },
 }
 
 export default api

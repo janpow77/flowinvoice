@@ -6,6 +6,7 @@ import {
   FolderOpen,
   FileText,
   Book,
+  FileOutput,
   BarChart3,
   Settings,
 } from 'lucide-react'
@@ -21,6 +22,7 @@ const navigation = [
   { key: 'projects', href: '/projects', icon: FolderOpen },
   { key: 'documents', href: '/documents', icon: FileText },
   { key: 'rulesets', href: '/rulesets', icon: Book },
+  { key: 'generator', href: '/generator', icon: FileOutput },
   { key: 'statistics', href: '/statistics', icon: BarChart3 },
   { key: 'settings', href: '/settings', icon: Settings },
 ]
