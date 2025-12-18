@@ -34,18 +34,9 @@ export default function Layout({ children }: LayoutProps) {
         {/* Logo */}
         <Link to="/" className="h-16 flex items-center px-4 border-b border-gray-200 hover:bg-gray-50 transition-colors">
           <img
-            src="/auditlogo.svg"
+            src="/auditlogo.png"
             alt="FlowAudit Logo"
             className="h-10 w-10 object-contain"
-            onError={(e) => {
-              // Fallback: Try PNG if SVG fails
-              const target = e.target as HTMLImageElement;
-              if (!target.src.endsWith('.png')) {
-                target.src = '/auditlogo.png';
-              } else {
-                target.style.display = 'none';
-              }
-            }}
           />
           <span className="ml-3 text-xl font-bold text-gray-900">FlowAudit</span>
         </Link>
