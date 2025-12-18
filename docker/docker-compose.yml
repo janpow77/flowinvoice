@@ -55,7 +55,7 @@ services:
     ports:
       - "${CHROMADB_PORT:-8001}:8000"
     healthcheck:
-      disable: true
+      test: ["NONE"]
     restart: unless-stopped
 
   # Ollama - Local LLM Inference (with NVIDIA GPU support)
@@ -119,10 +119,14 @@ services:
     ports:
       - "${BACKEND_PORT:-8000}:8000"
     depends_on:
-      - db
-      - redis
-      - chromadb
-      - ollama
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      chromadb:
+        condition: service_started
+      ollama:
+        condition: service_healthy
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8000/api/health"]
       start_period: 30s
