@@ -303,6 +303,17 @@ export const api = {
     return response.data
   },
 
+  // Feature Names (from Rulesets)
+  getFeatureNames: async (rulesetId: string = 'DE_USTG') => {
+    const response = await apiClient.get(`/stats/feature-names/${rulesetId}`)
+    return response.data
+  },
+
+  getAllFeatureNames: async () => {
+    const response = await apiClient.get('/stats/all-feature-names')
+    return response.data
+  },
+
   // System Monitoring
   getSystemMetrics: async () => {
     const response = await apiClient.get('/system/metrics')

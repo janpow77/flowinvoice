@@ -7,27 +7,18 @@ import { api } from '@/lib/api'
 
 const COLORS = ['#22c55e', '#f59e0b', '#ef4444', '#3b82f6', '#8b5cf6']
 
-// Feature ID to German name mapping
-const FEATURE_NAMES_DE: Record<string, string> = {
-  supplier_name_address: 'Lieferantenname/-adresse',
-  customer_name_address: 'Kundenname/-adresse',
-  supplier_tax_or_vat_id: 'Steuernummer/USt-ID',
-  invoice_date: 'Rechnungsdatum',
-  invoice_number: 'Rechnungsnummer',
-  supply_description: 'Leistungsbeschreibung',
-  supply_date_or_period: 'Liefer-/Leistungszeitraum',
-  net_amount: 'Nettobetrag',
-  vat_rate: 'Steuersatz',
-  vat_amount: 'Steuerbetrag',
-  gross_amount: 'Bruttobetrag',
-  tax_exemption_reason: 'Steuerbefreiungsgrund',
-  calculation: 'Berechnung',
-  vat_id: 'USt-IdNr',
-}
-
 interface Project {
   id: string
   title: string
+  ruleset_id?: string
+}
+
+interface FeatureInfo {
+  name_de: string
+  name_en: string
+  category: string
+  required_level: string
+  legal_basis: string
 }
 
 export default function Statistics() {
@@ -40,6 +31,26 @@ export default function Statistics() {
     queryKey: ['projects'],
     queryFn: () => api.getProjects(),
   })
+
+  // Fetch all feature names from all rulesets
+  const { data: allFeatureNames } = useQuery({
+    queryKey: ['all-feature-names'],
+    queryFn: () => api.getAllFeatureNames(),
+  })
+
+  // Helper function to get feature name based on language and ruleset
+  const getFeatureName = (featureId: string, rulesetId: string = 'DE_USTG'): string => {
+    const rulesets = allFeatureNames?.rulesets || {}
+    const features = rulesets[rulesetId] || rulesets['DE_USTG'] || {}
+    const feature = features[featureId] as FeatureInfo | undefined
+
+    if (feature) {
+      return lang === 'de' ? feature.name_de : feature.name_en
+    }
+
+    // Fallback: Return feature_id formatted
+    return featureId.replace(/_/g, ' ')
+  }
 
   // Fetch global stats
   const { data: globalStats, isLoading: isLoadingGlobal, error: globalError, refetch: refetchGlobal } = useQuery({
@@ -104,7 +115,7 @@ export default function Statistics() {
   const feedbackErrors = stats?.feedback?.errors_by_feature as { feature_id: string; error_count: number }[] | undefined
   const errorByFeature = feedbackErrors && feedbackErrors.length > 0
     ? feedbackErrors.map((f) => ({
-        name: lang === 'de' ? (FEATURE_NAMES_DE[f.feature_id] || f.feature_id) : f.feature_id,
+        name: getFeatureName(f.feature_id),
         count: f.error_count,
       }))
     : []

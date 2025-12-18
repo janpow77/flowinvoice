@@ -14,7 +14,7 @@ from typing import Any
 
 from app.models.enums import Provider
 from app.services.parser import ParseResult
-from app.services.rule_engine import PrecheckResult
+from app.services.rule_engine import PrecheckResult, get_rule_engine
 
 from .anthropic import AnthropicProvider
 from .base import BaseLLMProvider, LLMMessage, LLMRequest, LLMResponse
@@ -229,21 +229,50 @@ class LLMAdapter:
         # Response parsen
         return self._parse_analysis_response(response)
 
+    def _format_ruleset_features(self, features: dict[str, Any]) -> str:
+        """
+        Formatiert Regelwerk-Features für den LLM-Prompt.
+
+        Args:
+            features: Dict der FeatureDefinition-Objekte
+
+        Returns:
+            Formatierter String für den Prompt
+        """
+        lines = []
+        for feature_id, feature_def in features.items():
+            required = "PFLICHT" if feature_def.required_level.value == "REQUIRED" else (
+                "BEDINGT" if feature_def.required_level.value == "CONDITIONAL" else "OPTIONAL"
+            )
+            lines.append(
+                f"- {feature_def.name_de} ({feature_id}): {required} | {feature_def.legal_basis}"
+            )
+        return "\n".join(lines)
+
     def _build_system_prompt(
         self,
         ruleset_id: str,
         precheck_result: PrecheckResult,
         rag_examples: list[dict[str, Any]] | None,
     ) -> str:
-        """Erstellt System-Prompt."""
+        """Erstellt System-Prompt mit Regelwerk-Features."""
+        # Regelwerk-Features laden
+        rule_engine = get_rule_engine(ruleset_id)
+        features_json = self._format_ruleset_features(rule_engine.features)
+
         prompt_parts = [
             "Du bist ein Experte für steuerliche Rechnungsprüfung.",
             f"Deine Aufgabe ist die Prüfung von Rechnungen nach dem Regelwerk {ruleset_id}.",
+            "",
+            "REGELWERK-MERKMALE:",
+            "Die folgenden Merkmale müssen geprüft werden:",
+            features_json,
             "",
             "WICHTIG:",
             "- Antworte IMMER auf Deutsch",
             "- Antworte im JSON-Format",
             "- Sei präzise und verweise auf konkrete Rechtsgrundlagen",
+            "- Nutze die deutschen Merkmalsnamen aus dem Regelwerk",
             "- Die Rechnung wurde bereits vorgeprüft. Du führst die semantische Analyse durch.",
             "",
         ]

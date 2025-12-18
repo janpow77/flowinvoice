@@ -20,8 +20,67 @@ from app.models.llm import LlmRun
 from app.models.project import Project
 from app.models.user import User
 from app.schemas.user import ActiveUsersResponse
+from app.services.rule_engine import RULESETS
 
 router = APIRouter()
+
+
+@router.get("/stats/feature-names/{ruleset_id}")
+async def get_feature_names(
+    ruleset_id: str = "DE_USTG",
+) -> dict[str, Any]:
+    """
+    Gibt Feature-Namen für ein Regelwerk zurück.
+
+    Args:
+        ruleset_id: Regelwerk-ID (DE_USTG, EU_VAT, UK_VAT)
+
+    Returns:
+        Dict mit feature_id -> {name_de, name_en, category, required_level, legal_basis}
+    """
+    features = RULESETS.get(ruleset_id, RULESETS.get("DE_USTG"))
+
+    result = {}
+    for feature_id, feature_def in features.items():
+        result[feature_id] = {
+            "name_de": feature_def.name_de,
+            "name_en": feature_def.name_en,
+            "category": feature_def.category.value,
+            "required_level": feature_def.required_level.value,
+            "legal_basis": feature_def.legal_basis,
+        }
+
+    return {
+        "ruleset_id": ruleset_id,
+        "features": result,
+    }
+
+
+@router.get("/stats/all-feature-names")
+async def get_all_feature_names() -> dict[str, Any]:
+    """
+    Gibt alle Feature-Namen aller Regelwerke zurück.
+
+    Returns:
+        Dict mit ruleset_id -> {feature_id -> feature_info}
+    """
+    result = {}
+
+    for ruleset_id, features in RULESETS.items():
+        ruleset_features = {}
+        for feature_id, feature_def in features.items():
+            ruleset_features[feature_id] = {
+                "name_de": feature_def.name_de,
+                "name_en": feature_def.name_en,
+                "category": feature_def.category.value,
+                "required_level": feature_def.required_level.value,
+                "legal_basis": feature_def.legal_basis,
+            }
+        result[ruleset_id] = ruleset_features
+
+    return {
+        "rulesets": result,
+    }
 
 
 @router.get("/stats/global")
