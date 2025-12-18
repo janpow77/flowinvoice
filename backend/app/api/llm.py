@@ -424,10 +424,10 @@ async def get_llm_providers() -> dict[str, Any]:
         {
             "id": "GOOGLE",
             "name": "Google Gemini",
-            "enabled": settings.google_api_key is not None,
+            "enabled": settings.gemini_api_key is not None,
             "is_default": False,
             "requires_api_key": True,
-            "api_key_set": settings.google_api_key is not None,
+            "api_key_set": settings.gemini_api_key is not None,
         },
     ]
 
@@ -489,8 +489,8 @@ async def get_llm_health() -> dict[str, Any]:
     providers.append({
         "id": "GOOGLE",
         "name": "Google Gemini",
-        "healthy": settings.google_api_key is not None,
-        "message": "API-Key konfiguriert" if settings.google_api_key else "Nicht konfiguriert",
+        "healthy": settings.gemini_api_key is not None,
+        "message": "API-Key konfiguriert" if settings.gemini_api_key else "Nicht konfiguriert",
     })
 
     return {"providers": providers}
