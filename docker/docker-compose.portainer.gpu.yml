@@ -1,9 +1,9 @@
-# Pfad: /docker/docker-compose.portainer.yml
-# FlowAudit Docker Compose für Portainer (verwendet Pre-built Images)
-# Diese Datei ist für Portainer Repository-Deployments optimiert
+# Pfad: /docker/docker-compose.portainer.gpu.yml
+# FlowAudit Docker Compose für Portainer MIT GPU-Support
+# Verwende diese Datei nur auf Systemen mit NVIDIA GPU und nvidia-container-toolkit
 #
 # WICHTIG: Bei Portainer "Repository" Deployment:
-# - Compose path: docker/docker-compose.portainer.yml
+# - Compose path: docker/docker-compose.portainer.gpu.yml
 # - Die stack.env Datei wird automatisch verwendet
 
 services:
@@ -66,8 +66,7 @@ services:
       start_period: 30s
     restart: unless-stopped
 
-  # Ollama - Local LLM Inference
-  # Hinweis: Für GPU-Support siehe docker-compose.portainer.gpu.yml
+  # Ollama - Local LLM Inference WITH NVIDIA GPU Support
   ollama:
     image: ollama/ollama:latest
     container_name: flowaudit-ollama
@@ -77,8 +76,18 @@ services:
       - "${OLLAMA_PORT:-11434}:11434"
     environment:
       - OLLAMA_HOST=0.0.0.0
+      - OLLAMA_GPU_MEMORY_FRACTION=${OLLAMA_GPU_MEMORY_FRACTION:-0.8}
+      - OLLAMA_NUM_GPU=${OLLAMA_NUM_GPU:-999}
       - OLLAMA_NUM_PARALLEL=${OLLAMA_NUM_PARALLEL:-2}
       - OLLAMA_NUM_CTX=${OLLAMA_NUM_CTX:-4096}
+    # NVIDIA GPU Support (requires nvidia-container-toolkit)
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: all
+              capabilities: [gpu]
     healthcheck:
       test: ["CMD-SHELL", "curl -sf http://localhost:11434/api/tags || exit 0"]
       interval: 30s
