@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { CheckCircle, XCircle, Globe, Cpu, AlertTriangle, RefreshCw, Thermometer, Zap } from 'lucide-react'
+import { CheckCircle, XCircle, Globe, Cpu, AlertTriangle, RefreshCw, Thermometer, Zap, Moon, Sun } from 'lucide-react'
 import clsx from 'clsx'
 import { api } from '@/lib/api'
 import { languages, changeLanguage, getCurrentLanguage, type LanguageCode } from '@/lib/i18n'
@@ -11,6 +11,12 @@ export default function Settings() {
   const { t } = useTranslation()
   const queryClient = useQueryClient()
   const [currentLang, setCurrentLang] = useState<LanguageCode>(getCurrentLanguage())
+  const [darkMode, setDarkMode] = useState<boolean>(() => {
+    // Check localStorage or system preference
+    const saved = localStorage.getItem('flowaudit_theme')
+    if (saved) return saved === 'dark'
+    return window.matchMedia('(prefers-color-scheme: dark)').matches
+  })
   const [uvicornWorkers, setUvicornWorkers] = useState<number>(4)
   const [celeryWorkers, setCeleryWorkers] = useState<number>(4)
   const [showRestartHint, setShowRestartHint] = useState(false)
@@ -89,6 +95,28 @@ export default function Settings() {
     setCurrentLang(lng)
   }
 
+  const handleDarkModeToggle = () => {
+    const newMode = !darkMode
+    setDarkMode(newMode)
+    localStorage.setItem('flowaudit_theme', newMode ? 'dark' : 'light')
+
+    // Apply dark mode class to document
+    if (newMode) {
+      document.documentElement.classList.add('dark')
+    } else {
+      document.documentElement.classList.remove('dark')
+    }
+  }
+
+  // Apply dark mode on mount
+  useEffect(() => {
+    if (darkMode) {
+      document.documentElement.classList.add('dark')
+    } else {
+      document.documentElement.classList.remove('dark')
+    }
+  }, [])
+
   const handlePerformanceSave = () => {
     updatePerformanceMutation.mutate({
       uvicorn_workers: uvicornWorkers,
@@ -161,6 +189,44 @@ export default function Settings() {
               )}
             </button>
           ))}
+        </div>
+      </div>
+
+      {/* Dark Mode Toggle */}
+      <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-6">
+        <div className="flex items-center gap-2 mb-4">
+          {darkMode ? (
+            <Moon className="h-5 w-5 text-primary-600" />
+          ) : (
+            <Sun className="h-5 w-5 text-primary-600" />
+          )}
+          <h3 className="text-lg font-semibold text-gray-900 dark:text-white">{t('settings.appearance')}</h3>
+        </div>
+        <p className="text-sm text-gray-500 dark:text-gray-400 mb-4">
+          {t('settings.appearanceDescription')}
+        </p>
+
+        <div className="flex items-center justify-between">
+          <div>
+            <p className="font-medium text-gray-900 dark:text-white">{t('settings.darkMode')}</p>
+            <p className="text-sm text-gray-500 dark:text-gray-400">
+              {t('settings.darkModeDescription')}
+            </p>
+          </div>
+          <button
+            onClick={handleDarkModeToggle}
+            className={clsx(
+              'relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2',
+              darkMode ? 'bg-primary-600' : 'bg-gray-200'
+            )}
+          >
+            <span
+              className={clsx(
+                'pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out',
+                darkMode ? 'translate-x-5' : 'translate-x-0'
+              )}
+            />
+          </button>
         </div>
       </div>
 
@@ -510,7 +576,7 @@ export default function Settings() {
       {/* System Info */}
       <div className="bg-white rounded-lg border border-gray-200 p-6">
         <h3 className="text-lg font-semibold text-gray-900 mb-4">{t('settings.systemInfo')}</h3>
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
+        <div className="grid grid-cols-2 md:grid-cols-5 gap-4 text-sm">
           <div>
             <p className="text-gray-500">{t('settings.version')}</p>
             <p className="font-medium">0.1.0</p>
@@ -518,6 +584,20 @@ export default function Settings() {
           <div>
             <p className="text-gray-500">{t('settings.backend')}</p>
             <p className="font-medium text-green-600">{t('common.online')}</p>
+          </div>
+          <div>
+            <p className="text-gray-500">Ollama (LLM)</p>
+            {health?.LOCAL_OLLAMA ? (
+              <p className="font-medium text-green-600 flex items-center gap-1">
+                <span className="w-2 h-2 bg-green-500 rounded-full"></span>
+                {t('common.online')}
+              </p>
+            ) : (
+              <p className="font-medium text-red-600 flex items-center gap-1">
+                <span className="w-2 h-2 bg-red-500 rounded-full"></span>
+                {t('common.offline')}
+              </p>
+            )}
           </div>
           <div>
             <p className="text-gray-500">{t('settings.chromadb')}</p>

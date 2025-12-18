@@ -101,12 +101,8 @@ export default function Layout({ children }: LayoutProps) {
             )?.key || 'dashboard'}`)}
           </h1>
 
+          {/* Platzhalter für zukünftige Header-Aktionen */}
           <div className="flex items-center space-x-4">
-            {/* Provider Status */}
-            <div className="flex items-center text-sm text-gray-500">
-              <span className="w-2 h-2 bg-green-500 rounded-full mr-2"></span>
-              Ollama {t('common.online')}
-            </div>
           </div>
         </header>
 

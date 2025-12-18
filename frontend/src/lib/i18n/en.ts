@@ -186,6 +186,11 @@ export const en = {
     conservative: 'Conservative',
     default: 'Default',
     aggressive: 'Aggressive',
+    // Appearance
+    appearance: 'Appearance',
+    appearanceDescription: 'Customize the look and feel of the application',
+    darkMode: 'Dark Mode',
+    darkModeDescription: 'Enable dark color mode for the user interface',
   },
 
   // Rulesets

@@ -28,9 +28,12 @@ router = APIRouter()
 @router.get("/stats/feature-names/{ruleset_id}")
 async def get_feature_names(
     ruleset_id: str = "DE_USTG",
+    session: AsyncSession = Depends(get_async_session),
 ) -> dict[str, Any]:
     """
     Gibt Feature-Namen für ein Regelwerk zurück.
+
+    Liest zuerst aus der Datenbank, dann als Fallback aus den hardcodierten Definitionen.
 
     Args:
         ruleset_id: Regelwerk-ID (DE_USTG, EU_VAT, UK_VAT)
@@ -38,34 +41,62 @@ async def get_feature_names(
     Returns:
         Dict mit feature_id -> {name_de, name_en, category, required_level, legal_basis}
     """
-    features = RULESETS.get(ruleset_id, RULESETS.get("DE_USTG"))
+    from app.models.ruleset import Ruleset
 
     result = {}
-    for feature_id, feature_def in features.items():
-        result[feature_id] = {
-            "name_de": feature_def.name_de,
-            "name_en": feature_def.name_en,
-            "category": feature_def.category.value,
-            "required_level": feature_def.required_level.value,
-            "legal_basis": feature_def.legal_basis,
-        }
+
+    # Zuerst aus Datenbank lesen
+    db_result = await session.execute(
+        select(Ruleset).where(Ruleset.ruleset_id == ruleset_id).order_by(Ruleset.version.desc())
+    )
+    db_ruleset = db_result.scalar_one_or_none()
+
+    if db_ruleset and db_ruleset.features:
+        # Features aus Datenbank
+        for feature in db_ruleset.features:
+            result[feature.get("feature_id", "")] = {
+                "name_de": feature.get("name_de", feature.get("feature_id", "")),
+                "name_en": feature.get("name_en", feature.get("feature_id", "")),
+                "category": feature.get("category", "TEXT"),
+                "required_level": feature.get("required_level", "OPTIONAL"),
+                "legal_basis": feature.get("legal_basis", ""),
+            }
+    else:
+        # Fallback: Hardcodierte Definitionen
+        features = RULESETS.get(ruleset_id, RULESETS.get("DE_USTG"))
+        for feature_id, feature_def in features.items():
+            result[feature_id] = {
+                "name_de": feature_def.name_de,
+                "name_en": feature_def.name_en,
+                "category": feature_def.category.value,
+                "required_level": feature_def.required_level.value,
+                "legal_basis": feature_def.legal_basis,
+            }
 
     return {
         "ruleset_id": ruleset_id,
         "features": result,
+        "source": "database" if db_ruleset else "builtin",
     }
 
 
 @router.get("/stats/all-feature-names")
-async def get_all_feature_names() -> dict[str, Any]:
+async def get_all_feature_names(
+    session: AsyncSession = Depends(get_async_session),
+) -> dict[str, Any]:
     """
     Gibt alle Feature-Namen aller Regelwerke zurück.
+
+    Kombiniert Datenbank-Regelwerke mit hardcodierten Definitionen.
 
     Returns:
         Dict mit ruleset_id -> {feature_id -> feature_info}
     """
+    from app.models.ruleset import Ruleset
+
     result = {}
 
+    # Zuerst hardcodierte Regelwerke
     for ruleset_id, features in RULESETS.items():
         ruleset_features = {}
         for feature_id, feature_def in features.items():
@@ -77,6 +108,24 @@ async def get_all_feature_names() -> dict[str, Any]:
                 "legal_basis": feature_def.legal_basis,
             }
         result[ruleset_id] = ruleset_features
+
+    # Dann Datenbank-Regelwerke hinzufügen/überschreiben
+    db_result = await session.execute(select(Ruleset))
+    db_rulesets = db_result.scalars().all()
+
+    for db_ruleset in db_rulesets:
+        if db_ruleset.features:
+            ruleset_features = {}
+            for feature in db_ruleset.features:
+                ruleset_features[feature.get("feature_id", "")] = {
+                    "name_de": feature.get("name_de", feature.get("feature_id", "")),
+                    "name_en": feature.get("name_en", feature.get("feature_id", "")),
+                    "category": feature.get("category", "TEXT"),
+                    "required_level": feature.get("required_level", "OPTIONAL"),
+                    "legal_basis": feature.get("legal_basis", ""),
+                }
+            # Überschreibe hardcodierte mit DB-Version
+            result[db_ruleset.ruleset_id] = ruleset_features
 
     return {
         "rulesets": result,

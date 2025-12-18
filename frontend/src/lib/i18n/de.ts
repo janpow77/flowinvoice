@@ -186,6 +186,11 @@ export const de = {
     conservative: 'Konservativ',
     default: 'Standard',
     aggressive: 'Aggressiv',
+    // Appearance
+    appearance: 'Erscheinungsbild',
+    appearanceDescription: 'Passen Sie das Aussehen der Anwendung an',
+    darkMode: 'Dunkelmodus',
+    darkModeDescription: 'Aktivieren Sie den dunklen Farbmodus für die Benutzeroberfläche',
   },
 
   // Rulesets
