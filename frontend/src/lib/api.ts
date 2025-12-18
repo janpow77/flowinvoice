@@ -356,6 +356,38 @@ export const api = {
     const response = await apiClient.get('/system/health/detailed')
     return response.data
   },
+
+  // Provider API Keys
+  setProviderApiKey: async (provider: string, apiKey: string) => {
+    const response = await apiClient.put(
+      `/settings/providers/${provider}/api-key`,
+      { api_key: apiKey }
+    )
+    return response.data
+  },
+
+  deleteProviderApiKey: async (provider: string) => {
+    const response = await apiClient.delete(`/settings/providers/${provider}/api-key`)
+    return response.data
+  },
+
+  testProvider: async (provider: string) => {
+    const response = await apiClient.post(`/settings/providers/${provider}/test`)
+    return response.data
+  },
+
+  // Ollama Models
+  getOllamaModels: async () => {
+    const response = await apiClient.get('/settings/providers/LOCAL_OLLAMA/models')
+    return response.data
+  },
+
+  pullOllamaModel: async (modelName: string) => {
+    const response = await apiClient.post('/settings/providers/LOCAL_OLLAMA/models/pull', {
+      model_name: modelName,
+    })
+    return response.data
+  },
 }
 
 export default api
