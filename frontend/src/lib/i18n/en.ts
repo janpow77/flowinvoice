@@ -8,6 +8,7 @@ export const en = {
     dashboard: 'Dashboard',
     projects: 'Projects',
     documents: 'Documents',
+    rulesets: 'Rulesets',
     statistics: 'Statistics',
     settings: 'Settings',
   },
@@ -185,10 +186,41 @@ export const en = {
     conservative: 'Conservative',
     default: 'Default',
     aggressive: 'Aggressive',
+    // Appearance
+    appearance: 'Appearance',
+    appearanceDescription: 'Customize the look and feel of the application',
+    darkMode: 'Dark Mode',
+    darkModeDescription: 'Enable dark color mode for the user interface',
+    // API Keys
+    apiKeys: 'API Keys',
+    apiKeysDescription: 'Configure API keys for external LLM providers',
+    apiKey: 'API Key',
+    apiKeyPlaceholder: 'sk-... or enter API key',
+    apiKeySet: 'API key configured',
+    apiKeyNotSet: 'No API key',
+    setApiKey: 'Set Key',
+    updateApiKey: 'Update Key',
+    deleteApiKey: 'Delete Key',
+    testConnection: 'Test Connection',
+    connectionSuccess: 'Connection successful',
+    connectionFailed: 'Connection failed',
+    latency: 'Latency',
+    // Provider names
+    providerOllama: 'Ollama (Local)',
+    providerOpenAI: 'OpenAI',
+    providerAnthropic: 'Anthropic (Claude)',
+    providerGemini: 'Google Gemini',
+    providerGrok: 'xAI Grok',
+    localProvider: 'Local Provider',
+    cloudProvider: 'Cloud Provider',
+    selectAsDefault: 'Set as Default',
+    currentDefault: 'Current Default',
   },
 
   // Rulesets
   rulesets: {
+    title: 'Rulesets',
+    description: 'Manage audit rulesets for different tax systems',
     DE_USTG: 'Germany (UStG)',
     EU_VAT: 'EU (VAT Directive)',
     UK_VAT: 'UK (HMRC VAT)',
@@ -197,6 +229,33 @@ export const en = {
     conditionalFeatures: 'Conditional Features',
     smallAmountInvoice: 'Small Amount Invoice',
     reducedRequirements: 'Reduced Requirements',
+    // Actions
+    createRuleset: 'New Ruleset',
+    editRuleset: 'Edit Ruleset',
+    view: 'View',
+    edit: 'Edit',
+    noRulesets: 'No rulesets available',
+    noRulesetsDesc: 'Create your first ruleset for invoice auditing',
+    // Detail view
+    legalReferences: 'Legal References',
+    features: 'Features',
+    featuresCount: 'features',
+    // Form fields
+    basicInfo: 'Basic Information',
+    rulesetId: 'Ruleset ID',
+    version: 'Version',
+    titleDe: 'Title (German)',
+    titleEn: 'Title (English)',
+    jurisdiction: 'Jurisdiction',
+    currency: 'Currency',
+    // Features
+    addFeature: 'Add Feature',
+    noFeatures: 'No features defined',
+    addFirstFeature: 'Add first feature',
+    // Required levels
+    required: 'Required',
+    conditional: 'Conditional',
+    optional: 'Optional',
   },
 
   // Tax Selector

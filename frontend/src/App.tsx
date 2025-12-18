@@ -11,6 +11,7 @@ const ProjectDetail = lazy(() => import('./pages/ProjectDetail'))
 const Documents = lazy(() => import('./pages/Documents'))
 const DocumentDetail = lazy(() => import('./pages/DocumentDetail'))
 const Statistics = lazy(() => import('./pages/Statistics'))
+const Rulesets = lazy(() => import('./pages/Rulesets'))
 const Settings = lazy(() => import('./pages/Settings'))
 const Login = lazy(() => import('./pages/Login'))
 
@@ -34,6 +35,7 @@ function App() {
                     <Route path="/projects/:id" element={<ProjectDetail />} />
                     <Route path="/documents" element={<Documents />} />
                     <Route path="/documents/:id" element={<DocumentDetail />} />
+                    <Route path="/rulesets" element={<Rulesets />} />
                     <Route path="/statistics" element={<Statistics />} />
                     <Route path="/settings" element={<Settings />} />
                   </Routes>

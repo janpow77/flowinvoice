@@ -8,6 +8,7 @@ export const de = {
     dashboard: 'Dashboard',
     projects: 'Projekte',
     documents: 'Dokumente',
+    rulesets: 'Regelwerke',
     statistics: 'Statistik',
     settings: 'Einstellungen',
   },
@@ -185,10 +186,41 @@ export const de = {
     conservative: 'Konservativ',
     default: 'Standard',
     aggressive: 'Aggressiv',
+    // Appearance
+    appearance: 'Erscheinungsbild',
+    appearanceDescription: 'Passen Sie das Aussehen der Anwendung an',
+    darkMode: 'Dunkelmodus',
+    darkModeDescription: 'Aktivieren Sie den dunklen Farbmodus für die Benutzeroberfläche',
+    // API Keys
+    apiKeys: 'API-Schlüssel',
+    apiKeysDescription: 'Konfigurieren Sie API-Schlüssel für externe LLM-Provider',
+    apiKey: 'API-Schlüssel',
+    apiKeyPlaceholder: 'sk-... oder API-Schlüssel eingeben',
+    apiKeySet: 'API-Schlüssel gesetzt',
+    apiKeyNotSet: 'Kein API-Schlüssel',
+    setApiKey: 'Schlüssel setzen',
+    updateApiKey: 'Schlüssel aktualisieren',
+    deleteApiKey: 'Schlüssel löschen',
+    testConnection: 'Verbindung testen',
+    connectionSuccess: 'Verbindung erfolgreich',
+    connectionFailed: 'Verbindung fehlgeschlagen',
+    latency: 'Latenz',
+    // Provider names
+    providerOllama: 'Ollama (Lokal)',
+    providerOpenAI: 'OpenAI',
+    providerAnthropic: 'Anthropic (Claude)',
+    providerGemini: 'Google Gemini',
+    providerGrok: 'xAI Grok',
+    localProvider: 'Lokaler Provider',
+    cloudProvider: 'Cloud Provider',
+    selectAsDefault: 'Als Standard auswählen',
+    currentDefault: 'Aktueller Standard',
   },
 
   // Rulesets
   rulesets: {
+    title: 'Regelwerke',
+    description: 'Verwalten Sie die Prüfregelwerke für verschiedene Steuersysteme',
     DE_USTG: 'Deutschland (UStG)',
     EU_VAT: 'EU (MwSt-Richtlinie)',
     UK_VAT: 'UK (HMRC VAT)',
@@ -197,6 +229,33 @@ export const de = {
     conditionalFeatures: 'Bedingte Merkmale',
     smallAmountInvoice: 'Kleinbetragsrechnung',
     reducedRequirements: 'Reduzierte Anforderungen',
+    // Actions
+    createRuleset: 'Neues Regelwerk',
+    editRuleset: 'Regelwerk bearbeiten',
+    view: 'Anzeigen',
+    edit: 'Bearbeiten',
+    noRulesets: 'Keine Regelwerke vorhanden',
+    noRulesetsDesc: 'Erstellen Sie Ihr erstes Regelwerk für die Rechnungsprüfung',
+    // Detail view
+    legalReferences: 'Rechtsgrundlagen',
+    features: 'Merkmale',
+    featuresCount: 'Merkmale',
+    // Form fields
+    basicInfo: 'Grundinformationen',
+    rulesetId: 'Regelwerk-ID',
+    version: 'Version',
+    titleDe: 'Titel (Deutsch)',
+    titleEn: 'Titel (Englisch)',
+    jurisdiction: 'Rechtsraum',
+    currency: 'Währung',
+    // Features
+    addFeature: 'Merkmal hinzufügen',
+    noFeatures: 'Keine Merkmale definiert',
+    addFirstFeature: 'Erstes Merkmal hinzufügen',
+    // Required levels
+    required: 'Pflicht',
+    conditional: 'Bedingt',
+    optional: 'Optional',
   },
 
   // Tax Selector

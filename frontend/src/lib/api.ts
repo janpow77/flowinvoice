@@ -83,7 +83,24 @@ export const api = {
     start_date?: string
     end_date?: string
   }) => {
-    const response = await apiClient.put(`/projects/${id}`, data)
+    // Transform Frontend-Daten in Backend-Schema
+    const backendData: Record<string, unknown> = {}
+
+    if (data.ruleset_id) {
+      backendData.ruleset_id_hint = data.ruleset_id
+    }
+
+    if (data.title || data.description || data.start_date || data.end_date) {
+      backendData.project = {
+        ...(data.title && { project_title: data.title }),
+        ...(data.description && { project_description: data.description }),
+        ...((data.start_date && data.end_date) && {
+          project_period: { start: data.start_date, end: data.end_date }
+        }),
+      }
+    }
+
+    const response = await apiClient.put(`/projects/${id}`, backendData)
     return response.data
   },
 
@@ -94,7 +111,27 @@ export const api = {
     start_date?: string
     end_date?: string
   }) => {
-    const response = await apiClient.post('/projects', data)
+    // Transform Frontend-Daten in Backend-Schema
+    const backendData = {
+      ruleset_id_hint: data.ruleset_id || null,
+      ui_language_hint: 'de',
+      beneficiary: {
+        name: data.title, // Projektname als Begünstigter-Name (Platzhalter)
+        street: 'Nicht angegeben',
+        zip: '00000',
+        city: 'Nicht angegeben',
+        country: 'DE',
+      },
+      project: {
+        project_title: data.title,
+        project_description: data.description || null,
+        project_period: data.start_date && data.end_date ? {
+          start: data.start_date,
+          end: data.end_date,
+        } : null,
+      },
+    }
+    const response = await apiClient.post('/projects', backendData)
     return response.data
   },
 
@@ -165,9 +202,27 @@ export const api = {
     result_id: string
     rating: 'CORRECT' | 'PARTIALLY_CORRECT' | 'INCORRECT'
     comment?: string
-    corrections?: Record<string, unknown>[]
+    corrections?: Array<{ feature_id: string; user_value: unknown; note?: string }>
+    accept_result?: boolean
   }) => {
-    const response = await apiClient.post('/feedback', data)
+    // Transform Frontend-Daten in Backend-Schema
+    // Rating-Mapping: Frontend -> Backend
+    const ratingMap: Record<string, string> = {
+      'CORRECT': 'CORRECT',
+      'PARTIALLY_CORRECT': 'PARTIAL',
+      'INCORRECT': 'WRONG',
+    }
+
+    const backendData = {
+      final_result_id: data.result_id,
+      rating: ratingMap[data.rating] || data.rating,
+      comment: data.comment || null,
+      overrides: data.corrections || [],
+      accept_result: data.accept_result || false,
+    }
+
+    // Backend-Endpoint ist /documents/{document_id}/feedback
+    const response = await apiClient.post(`/documents/${data.document_id}/feedback`, backendData)
     return response.data
   },
 
@@ -228,6 +283,37 @@ export const api = {
     return response.data
   },
 
+  createRuleset: async (data: Record<string, unknown>) => {
+    const response = await apiClient.post('/rulesets', data, {
+      headers: { 'X-Role': 'admin' },
+    })
+    return response.data
+  },
+
+  updateRuleset: async (id: string, version: string, data: Record<string, unknown>) => {
+    const response = await apiClient.put(`/rulesets/${id}/${version}`, data, {
+      headers: { 'X-Role': 'admin' },
+    })
+    return response.data
+  },
+
+  // Project Statistics
+  getProjectStats: async (projectId: string) => {
+    const response = await apiClient.get(`/projects/${projectId}/stats`)
+    return response.data
+  },
+
+  // Feature Names (from Rulesets)
+  getFeatureNames: async (rulesetId: string = 'DE_USTG') => {
+    const response = await apiClient.get(`/stats/feature-names/${rulesetId}`)
+    return response.data
+  },
+
+  getAllFeatureNames: async () => {
+    const response = await apiClient.get('/stats/all-feature-names')
+    return response.data
+  },
+
   // System Monitoring
   getSystemMetrics: async () => {
     const response = await apiClient.get('/system/metrics')
@@ -268,6 +354,38 @@ export const api = {
 
   getDetailedHealth: async () => {
     const response = await apiClient.get('/system/health/detailed')
+    return response.data
+  },
+
+  // Provider API Keys
+  setProviderApiKey: async (provider: string, apiKey: string) => {
+    const response = await apiClient.put(
+      `/settings/providers/${provider}/api-key`,
+      { api_key: apiKey }
+    )
+    return response.data
+  },
+
+  deleteProviderApiKey: async (provider: string) => {
+    const response = await apiClient.delete(`/settings/providers/${provider}/api-key`)
+    return response.data
+  },
+
+  testProvider: async (provider: string) => {
+    const response = await apiClient.post(`/settings/providers/${provider}/test`)
+    return response.data
+  },
+
+  // Ollama Models
+  getOllamaModels: async () => {
+    const response = await apiClient.get('/settings/providers/LOCAL_OLLAMA/models')
+    return response.data
+  },
+
+  pullOllamaModel: async (modelName: string) => {
+    const response = await apiClient.post('/settings/providers/LOCAL_OLLAMA/models/pull', {
+      model_name: modelName,
+    })
     return response.data
   },
 }

@@ -12,9 +12,13 @@ import re
 from dataclasses import dataclass
 from typing import Any
 
+from sqlalchemy import select
+from sqlalchemy.ext.asyncio import AsyncSession
+
 from app.models.enums import Provider
+from app.models.ruleset import Ruleset
 from app.services.parser import ParseResult
-from app.services.rule_engine import PrecheckResult
+from app.services.rule_engine import PrecheckResult, get_rule_engine
 
 from .anthropic import AnthropicProvider
 from .base import BaseLLMProvider, LLMMessage, LLMRequest, LLMResponse
@@ -167,6 +171,7 @@ class LLMAdapter:
         analysis_request: InvoiceAnalysisRequest,
         provider_type: Provider | None = None,
         model: str | None = None,
+        session: AsyncSession | None = None,
     ) -> InvoiceAnalysisResult:
         """
         Analysiert Rechnung mit LLM.
@@ -175,6 +180,7 @@ class LLMAdapter:
             analysis_request: Analyse-Request
             provider_type: Provider
             model: Modell-ID
+            session: Optional - DB-Session für Regelwerk-Lookup
 
         Returns:
             InvoiceAnalysisResult
@@ -198,11 +204,24 @@ class LLMAdapter:
                 ),
             )
 
+        # Regelwerk aus Datenbank laden, falls Session vorhanden
+        db_features: list[dict[str, Any]] | None = None
+        db_ruleset_info: dict[str, Any] | None = None
+        if session:
+            try:
+                db_features, db_ruleset_info = await self._fetch_ruleset_from_db(
+                    session, analysis_request.ruleset_id
+                )
+            except Exception as e:
+                logger.warning(f"Failed to fetch ruleset from DB: {e}")
+
         # Prompts erstellen
         system_prompt = self._build_system_prompt(
             analysis_request.ruleset_id,
             analysis_request.precheck_result,
             analysis_request.rag_examples,
+            db_features=db_features,
+            db_ruleset_info=db_ruleset_info,
         )
 
         user_prompt = self._build_user_prompt(
@@ -229,21 +248,115 @@ class LLMAdapter:
         # Response parsen
         return self._parse_analysis_response(response)
 
+    async def _fetch_ruleset_from_db(
+        self,
+        session: AsyncSession,
+        ruleset_id: str,
+    ) -> tuple[list[dict[str, Any]] | None, dict[str, Any] | None]:
+        """
+        Lädt Regelwerk aus der Datenbank.
+
+        Args:
+            session: DB-Session
+            ruleset_id: Ruleset-ID
+
+        Returns:
+            Tuple von (features_list, ruleset_info) oder (None, None)
+        """
+        result = await session.execute(
+            select(Ruleset)
+            .where(Ruleset.ruleset_id == ruleset_id)
+            .order_by(Ruleset.version.desc())
+        )
+        ruleset = result.scalar_one_or_none()
+
+        if ruleset and ruleset.features:
+            ruleset_info = {
+                "title_de": ruleset.title_de,
+                "title_en": ruleset.title_en,
+                "jurisdiction": ruleset.jurisdiction,
+                "legal_references": ruleset.legal_references or [],
+            }
+            return ruleset.features, ruleset_info
+
+        return None, None
+
+    def _format_ruleset_features(self, features: dict[str, Any]) -> str:
+        """
+        Formatiert Regelwerk-Features für den LLM-Prompt (aus Rule Engine).
+
+        Args:
+            features: Dict der FeatureDefinition-Objekte
+
+        Returns:
+            Formatierter String für den Prompt
+        """
+        lines = []
+        for feature_id, feature_def in features.items():
+            required = "PFLICHT" if feature_def.required_level.value == "REQUIRED" else (
+                "BEDINGT" if feature_def.required_level.value == "CONDITIONAL" else "OPTIONAL"
+            )
+            lines.append(
+                f"- {feature_def.name_de} ({feature_id}): {required} | {feature_def.legal_basis}"
+            )
+        return "\n".join(lines)
+
+    def _format_db_features(self, features: list[dict[str, Any]]) -> str:
+        """
+        Formatiert Regelwerk-Features für den LLM-Prompt (aus Datenbank).
+
+        Args:
+            features: Liste der Feature-Dicts aus der DB
+
+        Returns:
+            Formatierter String für den Prompt
+        """
+        lines = []
+        for feature in features:
+            feature_id = feature.get("feature_id", "")
+            name_de = feature.get("name_de", feature_id)
+            required_level = feature.get("required_level", "OPTIONAL")
+            legal_basis = feature.get("legal_basis", "")
+
+            required = "PFLICHT" if required_level == "REQUIRED" else (
+                "BEDINGT" if required_level == "CONDITIONAL" else "OPTIONAL"
+            )
+            lines.append(
+                f"- {name_de} ({feature_id}): {required} | {legal_basis}"
+            )
+        return "\n".join(lines)
+
     def _build_system_prompt(
         self,
         ruleset_id: str,
         precheck_result: PrecheckResult,
         rag_examples: list[dict[str, Any]] | None,
+        db_features: list[dict[str, Any]] | None = None,
+        db_ruleset_info: dict[str, Any] | None = None,
     ) -> str:
-        """Erstellt System-Prompt."""
+        """Erstellt System-Prompt mit Regelwerk-Features."""
+        # Features aus DB oder Fallback auf hardcodierte Rule Engine
+        if db_features:
+            features_json = self._format_db_features(db_features)
+            logger.info(f"Using database ruleset features for {ruleset_id}")
+        else:
+            rule_engine = get_rule_engine(ruleset_id)
+            features_json = self._format_ruleset_features(rule_engine.features)
+            logger.info(f"Using hardcoded ruleset features for {ruleset_id}")
+
         prompt_parts = [
             "Du bist ein Experte für steuerliche Rechnungsprüfung.",
             f"Deine Aufgabe ist die Prüfung von Rechnungen nach dem Regelwerk {ruleset_id}.",
+            "",
+            "REGELWERK-MERKMALE:",
+            "Die folgenden Merkmale müssen geprüft werden:",
+            features_json,
             "",
             "WICHTIG:",
             "- Antworte IMMER auf Deutsch",
             "- Antworte im JSON-Format",
             "- Sei präzise und verweise auf konkrete Rechtsgrundlagen",
+            "- Nutze die deutschen Merkmalsnamen aus dem Regelwerk",
             "- Die Rechnung wurde bereits vorgeprüft. Du führst die semantische Analyse durch.",
             "",
         ]
