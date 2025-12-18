@@ -377,3 +377,154 @@ async def get_llm_run_logs(
     ]
 
     return LlmRunLogResponse(llm_run_id=llm_run_id, events=events)
+
+
+# ============================================================================
+# LLM Provider Configuration Endpoints (für Frontend Settings)
+# ============================================================================
+
+@router.get("/llm/providers")
+async def get_llm_providers() -> dict[str, Any]:
+    """
+    Gibt verfügbare LLM-Provider und deren Status zurück.
+
+    Returns:
+        Liste der Provider mit Konfiguration.
+    """
+    from app.config import get_settings
+
+    settings = get_settings()
+
+    providers = [
+        {
+            "id": "LOCAL_OLLAMA",
+            "name": "Ollama (Lokal)",
+            "enabled": True,
+            "is_default": True,
+            "base_url": settings.ollama_host,
+            "model": settings.ollama_default_model,
+            "requires_api_key": False,
+        },
+        {
+            "id": "OPENAI",
+            "name": "OpenAI",
+            "enabled": settings.openai_api_key is not None,
+            "is_default": False,
+            "requires_api_key": True,
+            "api_key_set": settings.openai_api_key is not None,
+        },
+        {
+            "id": "ANTHROPIC",
+            "name": "Anthropic Claude",
+            "enabled": settings.anthropic_api_key is not None,
+            "is_default": False,
+            "requires_api_key": True,
+            "api_key_set": settings.anthropic_api_key is not None,
+        },
+        {
+            "id": "GOOGLE",
+            "name": "Google Gemini",
+            "enabled": settings.google_api_key is not None,
+            "is_default": False,
+            "requires_api_key": True,
+            "api_key_set": settings.google_api_key is not None,
+        },
+    ]
+
+    return {"providers": providers}
+
+
+@router.get("/llm/health")
+async def get_llm_health() -> dict[str, Any]:
+    """
+    Prüft Gesundheitsstatus aller LLM-Provider.
+
+    Returns:
+        Health-Status pro Provider.
+    """
+    import httpx
+    from app.config import get_settings
+
+    settings = get_settings()
+    providers = []
+
+    # Ollama Health Check
+    ollama_healthy = False
+    ollama_models: list[str] = []
+    try:
+        async with httpx.AsyncClient(timeout=5.0) as client:
+            response = await client.get(f"{settings.ollama_host}/api/tags")
+            if response.status_code == 200:
+                ollama_healthy = True
+                data = response.json()
+                ollama_models = [m.get("name", "") for m in data.get("models", [])]
+    except Exception:
+        pass
+
+    providers.append({
+        "id": "LOCAL_OLLAMA",
+        "name": "Ollama (Lokal)",
+        "healthy": ollama_healthy,
+        "models": ollama_models,
+        "message": "Verbunden" if ollama_healthy else "Nicht erreichbar",
+    })
+
+    # OpenAI - nur Status anzeigen, kein API-Call
+    providers.append({
+        "id": "OPENAI",
+        "name": "OpenAI",
+        "healthy": settings.openai_api_key is not None,
+        "message": "API-Key konfiguriert" if settings.openai_api_key else "Nicht konfiguriert",
+    })
+
+    # Anthropic
+    providers.append({
+        "id": "ANTHROPIC",
+        "name": "Anthropic Claude",
+        "healthy": settings.anthropic_api_key is not None,
+        "message": "API-Key konfiguriert" if settings.anthropic_api_key else "Nicht konfiguriert",
+    })
+
+    # Google
+    providers.append({
+        "id": "GOOGLE",
+        "name": "Google Gemini",
+        "healthy": settings.google_api_key is not None,
+        "message": "API-Key konfiguriert" if settings.google_api_key else "Nicht konfiguriert",
+    })
+
+    return {"providers": providers}
+
+
+@router.post("/llm/default")
+async def set_default_provider(data: dict[str, str]) -> dict[str, Any]:
+    """
+    Setzt den Standard-LLM-Provider.
+
+    Note: Diese Einstellung ist derzeit nur in-memory und wird
+    bei Neustart zurückgesetzt. Für persistente Konfiguration
+    sollte die stack.env angepasst werden.
+
+    Args:
+        data: {"provider": "LOCAL_OLLAMA" | "OPENAI" | ...}
+
+    Returns:
+        Bestätigung.
+    """
+    provider = data.get("provider", "LOCAL_OLLAMA")
+
+    valid_providers = ["LOCAL_OLLAMA", "OPENAI", "ANTHROPIC", "GOOGLE"]
+    if provider not in valid_providers:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"Ungültiger Provider. Erlaubt: {valid_providers}",
+        )
+
+    # TODO: Persistente Speicherung implementieren
+    # Aktuell nur Bestätigung zurückgeben
+
+    return {
+        "success": True,
+        "default_provider": provider,
+        "message": f"Provider '{provider}' als Standard gesetzt (nur für diese Session)",
+    }

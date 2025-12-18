@@ -83,7 +83,24 @@ export const api = {
     start_date?: string
     end_date?: string
   }) => {
-    const response = await apiClient.put(`/projects/${id}`, data)
+    // Transform Frontend-Daten in Backend-Schema
+    const backendData: Record<string, unknown> = {}
+
+    if (data.ruleset_id) {
+      backendData.ruleset_id_hint = data.ruleset_id
+    }
+
+    if (data.title || data.description || data.start_date || data.end_date) {
+      backendData.project = {
+        ...(data.title && { project_title: data.title }),
+        ...(data.description && { project_description: data.description }),
+        ...((data.start_date && data.end_date) && {
+          project_period: { start: data.start_date, end: data.end_date }
+        }),
+      }
+    }
+
+    const response = await apiClient.put(`/projects/${id}`, backendData)
     return response.data
   },
 
@@ -94,7 +111,27 @@ export const api = {
     start_date?: string
     end_date?: string
   }) => {
-    const response = await apiClient.post('/projects', data)
+    // Transform Frontend-Daten in Backend-Schema
+    const backendData = {
+      ruleset_id_hint: data.ruleset_id || null,
+      ui_language_hint: 'de',
+      beneficiary: {
+        name: data.title, // Projektname als Begünstigter-Name (Platzhalter)
+        street: 'Nicht angegeben',
+        zip: '00000',
+        city: 'Nicht angegeben',
+        country: 'DE',
+      },
+      project: {
+        project_title: data.title,
+        project_description: data.description || null,
+        project_period: data.start_date && data.end_date ? {
+          start: data.start_date,
+          end: data.end_date,
+        } : null,
+      },
+    }
+    const response = await apiClient.post('/projects', backendData)
     return response.data
   },
 
@@ -165,9 +202,27 @@ export const api = {
     result_id: string
     rating: 'CORRECT' | 'PARTIALLY_CORRECT' | 'INCORRECT'
     comment?: string
-    corrections?: Record<string, unknown>[]
+    corrections?: Array<{ feature_id: string; user_value: unknown; note?: string }>
+    accept_result?: boolean
   }) => {
-    const response = await apiClient.post('/feedback', data)
+    // Transform Frontend-Daten in Backend-Schema
+    // Rating-Mapping: Frontend -> Backend
+    const ratingMap: Record<string, string> = {
+      'CORRECT': 'CORRECT',
+      'PARTIALLY_CORRECT': 'PARTIAL',
+      'INCORRECT': 'WRONG',
+    }
+
+    const backendData = {
+      final_result_id: data.result_id,
+      rating: ratingMap[data.rating] || data.rating,
+      comment: data.comment || null,
+      overrides: data.corrections || [],
+      accept_result: data.accept_result || false,
+    }
+
+    // Backend-Endpoint ist /documents/{document_id}/feedback
+    const response = await apiClient.post(`/documents/${data.document_id}/feedback`, backendData)
     return response.data
   },
 
