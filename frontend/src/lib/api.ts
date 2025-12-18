@@ -68,12 +68,38 @@ export const api = {
   // Projects
   getProjects: async () => {
     const response = await apiClient.get('/projects')
-    return response.data.data
+    // Map backend format to frontend format
+    return (response.data.data || []).map((p: Record<string, unknown>) => ({
+      id: p.project_id,
+      title: p.project_title,
+      description: p.file_reference,
+      ruleset_id: p.ruleset_id_hint || 'DE_USTG',
+      document_count: p.document_count || 0,
+      created_at: p.created_at,
+      updated_at: p.created_at,
+      beneficiary_name: p.beneficiary_name,
+      is_active: p.is_active,
+    }))
   },
 
   getProject: async (id: string) => {
     const response = await apiClient.get(`/projects/${id}`)
-    return response.data
+    const p = response.data
+    // Map backend format to frontend format
+    return {
+      id: p.id || p.project_id,
+      title: p.project?.project_title || p.project_title,
+      description: p.project?.project_description,
+      ruleset_id: p.ruleset_id_hint || 'DE_USTG',
+      start_date: p.project?.project_period?.start,
+      end_date: p.project?.project_period?.end,
+      document_count: p.document_count || 0,
+      created_at: p.created_at,
+      updated_at: p.updated_at,
+      beneficiary: p.beneficiary,
+      project: p.project,
+      is_active: p.is_active,
+    }
   },
 
   updateProject: async (id: string, data: {
