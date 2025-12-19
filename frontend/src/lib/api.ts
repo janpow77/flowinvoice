@@ -85,22 +85,8 @@ export const api = {
 
   getProject: async (id: string) => {
     const response = await apiClient.get(`/projects/${id}`)
-    const p = response.data
-    // Map backend format to frontend format
-    return {
-      id: p.id || p.project_id,
-      title: p.project?.project_title || p.project_title,
-      description: p.project?.project_description,
-      ruleset_id: p.ruleset_id_hint || 'DE_USTG',
-      start_date: p.project?.project_period?.start,
-      end_date: p.project?.project_period?.end,
-      document_count: p.document_count || 0,
-      created_at: p.created_at,
-      updated_at: p.updated_at,
-      beneficiary: p.beneficiary,
-      project: p.project,
-      is_active: p.is_active,
-    }
+    // Return backend structure directly (ProjectDetail expects this format)
+    return response.data
   },
 
   updateProject: async (id: string, data: {
