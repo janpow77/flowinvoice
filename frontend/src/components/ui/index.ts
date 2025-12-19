@@ -16,6 +16,14 @@ export {
   DocumentProcessingOverlay,
 } from './ProgressLoader';
 
+// Theme-aware Logo Loader (bevorzugt)
+export {
+  LogoLoader,
+  FullPageLoader,
+  InlineLoader,
+  OverlayLoader,
+} from './LogoLoader';
+
 // Button
 export {
   Button,

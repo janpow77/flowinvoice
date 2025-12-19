@@ -8,7 +8,74 @@ export default {
   theme: {
     extend: {
       colors: {
-        // FlowAudit Farbschema - nutzt CSS Custom Properties
+        // =================================================================
+        // Semantische Theme-Farben (bevorzugt für neue Komponenten)
+        // =================================================================
+        theme: {
+          // Hintergründe
+          app: 'var(--color-bg-app)',
+          panel: 'var(--color-bg-panel)',
+          card: 'var(--color-bg-card)',
+          elevated: 'var(--color-bg-elevated)',
+          input: 'var(--color-bg-input)',
+          disabled: 'var(--color-bg-disabled)',
+          hover: 'var(--color-bg-hover)',
+          selected: 'var(--color-bg-selected)',
+        },
+        // Semantische Textfarben
+        'theme-text': {
+          primary: 'var(--color-text-primary)',
+          secondary: 'var(--color-text-secondary)',
+          muted: 'var(--color-text-muted)',
+          inverse: 'var(--color-text-inverse)',
+          disabled: 'var(--color-text-disabled)',
+          link: 'var(--color-text-link)',
+          'link-hover': 'var(--color-text-link-hover)',
+        },
+        // Semantische Rahmenfarben
+        'theme-border': {
+          default: 'var(--color-border-default)',
+          subtle: 'var(--color-border-subtle)',
+          strong: 'var(--color-border-strong)',
+          focus: 'var(--color-border-focus)',
+          error: 'var(--color-border-error)',
+        },
+        // Akzentfarben
+        accent: {
+          primary: 'var(--color-accent-primary)',
+          'primary-hover': 'var(--color-accent-primary-hover)',
+          'primary-active': 'var(--color-accent-primary-active)',
+          secondary: 'var(--color-accent-secondary)',
+          'secondary-hover': 'var(--color-accent-secondary-hover)',
+        },
+        // Statusfarben
+        status: {
+          success: 'var(--color-status-success)',
+          'success-bg': 'var(--color-status-success-bg)',
+          'success-border': 'var(--color-status-success-border)',
+          warning: 'var(--color-status-warning)',
+          'warning-bg': 'var(--color-status-warning-bg)',
+          'warning-border': 'var(--color-status-warning-border)',
+          danger: 'var(--color-status-danger)',
+          'danger-bg': 'var(--color-status-danger-bg)',
+          'danger-border': 'var(--color-status-danger-border)',
+          info: 'var(--color-status-info)',
+          'info-bg': 'var(--color-status-info-bg)',
+          'info-border': 'var(--color-status-info-border)',
+          disabled: 'var(--color-status-disabled)',
+          'disabled-bg': 'var(--color-status-disabled-bg)',
+        },
+        // UI-Elemente
+        ui: {
+          divider: 'var(--color-ui-divider)',
+          overlay: 'var(--color-ui-overlay)',
+          'scrollbar-track': 'var(--color-ui-scrollbar-track)',
+          'scrollbar-thumb': 'var(--color-ui-scrollbar-thumb)',
+        },
+
+        // =================================================================
+        // Palette-Farben (Legacy, für Abwärtskompatibilität)
+        // =================================================================
         primary: {
           50: 'var(--color-primary-50)',
           100: 'var(--color-primary-100)',
@@ -113,6 +180,12 @@ export default {
         'medium': '0 4px 16px -4px rgba(0, 0, 0, 0.15)',
         'hard': '0 8px 24px -6px rgba(0, 0, 0, 0.2)',
         'inner-soft': 'inset 0 2px 4px 0 rgba(0, 0, 0, 0.05)',
+        // Semantische Theme-Schatten
+        'theme-sm': 'var(--shadow-sm)',
+        'theme-md': 'var(--shadow-md)',
+        'theme-lg': 'var(--shadow-lg)',
+        'theme-xl': 'var(--shadow-xl)',
+        'theme-inner': 'var(--shadow-inner)',
       },
       animation: {
         'fade-in': 'fadeIn 0.2s ease-out',

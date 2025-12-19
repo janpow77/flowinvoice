@@ -32,17 +32,23 @@ export default function Layout({ children }: LayoutProps) {
   const { t } = useTranslation()
 
   return (
-    <div className="min-h-screen flex bg-gray-50 dark:bg-gray-900">
-      {/* Sidebar */}
-      <aside className="w-64 bg-white dark:bg-gray-800 border-r border-gray-200 dark:border-gray-700 flex flex-col">
-        {/* Logo */}
-        <Link to="/" className="h-16 flex items-center px-4 border-b border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors">
+    <div className="min-h-screen flex bg-theme-app">
+      {/* Sidebar - Panel-Ebene */}
+      <aside className="w-64 bg-theme-panel border-r border-theme-border-default flex flex-col">
+        {/* Logo - UNVERÄNDERT, ignoriert Theme */}
+        <Link
+          to="/"
+          className="h-16 flex items-center px-4 border-b border-theme-border-default hover:bg-theme-hover transition-colors"
+        >
+          {/* Logo ist CI-geschützt und bleibt immer unverändert */}
           <img
             src="/auditlogo.png"
             alt="FlowAudit Logo"
             className="h-10 w-10 object-contain"
           />
-          <span className="ml-3 text-xl font-bold text-gray-900 dark:text-white">FlowAudit</span>
+          <span className="ml-3 text-xl font-bold text-theme-text-primary">
+            FlowAudit
+          </span>
         </Link>
 
         {/* Navigation */}
@@ -58,13 +64,13 @@ export default function Layout({ children }: LayoutProps) {
                 className={clsx(
                   'flex items-center px-3 py-2 rounded-lg text-sm font-medium transition-colors',
                   isActive
-                    ? 'bg-primary-50 dark:bg-primary-900/30 text-primary-700 dark:text-primary-400'
-                    : 'text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 hover:text-gray-900 dark:hover:text-white'
+                    ? 'bg-theme-selected text-accent-primary'
+                    : 'text-theme-text-secondary hover:bg-theme-hover hover:text-theme-text-primary'
                 )}
               >
                 <item.icon className={clsx(
                   'h-5 w-5 mr-3',
-                  isActive ? 'text-primary-600 dark:text-primary-400' : 'text-gray-400 dark:text-gray-500'
+                  isActive ? 'text-accent-primary' : 'text-theme-text-muted'
                 )} />
                 {t(`nav.${item.key}`)}
               </Link>
@@ -73,18 +79,18 @@ export default function Layout({ children }: LayoutProps) {
         </nav>
 
         {/* Footer */}
-        <div className="px-4 py-4 border-t border-gray-200 dark:border-gray-700">
-          <div className="text-xs text-gray-500 dark:text-gray-400">
+        <div className="px-4 py-4 border-t border-theme-border-default">
+          <div className="text-xs text-theme-text-muted">
             FlowAudit v0.1.0
             <br />
             Seminarsystem
           </div>
-          <div className="mt-3 pt-3 border-t border-gray-100 dark:border-gray-700 text-xs text-gray-400 dark:text-gray-500">
-            <div className="font-medium text-gray-500 dark:text-gray-400">Kontakt</div>
-            <div className="dark:text-gray-400">Jan Riener</div>
+          <div className="mt-3 pt-3 border-t border-theme-border-subtle text-xs">
+            <div className="font-medium text-theme-text-muted">Kontakt</div>
+            <div className="text-theme-text-muted">Jan Riener</div>
             <a
               href="mailto:jan.riener@vwvg.de"
-              className="text-primary-600 dark:text-primary-400 hover:text-primary-700 dark:hover:text-primary-300 hover:underline"
+              className="text-theme-text-link hover:text-theme-text-link-hover hover:underline"
             >
               jan.riener@vwvg.de
             </a>
@@ -94,9 +100,9 @@ export default function Layout({ children }: LayoutProps) {
 
       {/* Main Content */}
       <main className="flex-1 flex flex-col">
-        {/* Header */}
-        <header className="h-16 bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 flex items-center justify-between px-6">
-          <h1 className="text-lg font-semibold text-gray-900 dark:text-white">
+        {/* Header - Panel-Ebene */}
+        <header className="h-16 bg-theme-panel border-b border-theme-border-default flex items-center justify-between px-6">
+          <h1 className="text-lg font-semibold text-theme-text-primary">
             {t(`nav.${navigation.find(n =>
               location.pathname === n.href ||
               (n.href !== '/' && location.pathname.startsWith(n.href))
@@ -108,8 +114,8 @@ export default function Layout({ children }: LayoutProps) {
           </div>
         </header>
 
-        {/* Page Content */}
-        <div className="flex-1 p-6 overflow-auto bg-gray-50 dark:bg-gray-900">
+        {/* Page Content - App-Hintergrund */}
+        <div className="flex-1 p-6 overflow-auto bg-theme-app">
           {children}
         </div>
       </main>

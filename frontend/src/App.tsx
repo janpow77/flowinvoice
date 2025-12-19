@@ -3,6 +3,7 @@ import { Routes, Route } from 'react-router-dom'
 import Layout from './components/Layout'
 import { LoadingScreen } from './components/ui/LogoSpinner'
 import { AuthProvider, ProtectedRoute } from './context/AuthContext'
+import { ThemeProvider } from './theme'
 
 // Lazy-loaded Pages für bessere Performance
 const Dashboard = lazy(() => import('./pages/Dashboard'))
@@ -18,9 +19,10 @@ const Login = lazy(() => import('./pages/Login'))
 
 function App() {
   return (
-    <AuthProvider>
-      <Suspense fallback={<LoadingScreen message="Seite wird geladen..." />}>
-        <Routes>
+    <ThemeProvider>
+      <AuthProvider>
+        <Suspense fallback={<LoadingScreen message="Seite wird geladen..." />}>
+          <Routes>
           {/* Öffentliche Route: Login */}
           <Route path="/login" element={<Login />} />
 
@@ -45,9 +47,10 @@ function App() {
               </ProtectedRoute>
             }
           />
-        </Routes>
-      </Suspense>
-    </AuthProvider>
+          </Routes>
+        </Suspense>
+      </AuthProvider>
+    </ThemeProvider>
   )
 }
 

@@ -4,11 +4,173 @@
 
 /* =============================================================================
    FlowAudit Design System
-   Version: 1.0
+   Version: 2.0 - Semantisches Theme-System
    ============================================================================= */
 
 /* =============================================================================
-   CSS Custom Properties (Design Tokens)
+   Semantische Theme-Tokens (werden durch ThemeProvider gesetzt)
+   ============================================================================= */
+
+:root {
+  /* -------------------------------------------------------------------------
+     Background - Semantische Hintergrundfarben (Light Default)
+     ------------------------------------------------------------------------- */
+  --color-bg-app: #F8F9FA;
+  --color-bg-panel: #FFFFFF;
+  --color-bg-card: #FFFFFF;
+  --color-bg-elevated: #FFFFFF;
+  --color-bg-input: #FFFFFF;
+  --color-bg-disabled: #F3F4F6;
+  --color-bg-hover: #F3F4F6;
+  --color-bg-selected: #EEF2FF;
+
+  /* -------------------------------------------------------------------------
+     Text - Semantische Textfarben
+     ------------------------------------------------------------------------- */
+  --color-text-primary: #111827;
+  --color-text-secondary: #374151;
+  --color-text-muted: #6B7280;
+  --color-text-inverse: #FFFFFF;
+  --color-text-disabled: #9CA3AF;
+  --color-text-link: #2563EB;
+  --color-text-link-hover: #1D4ED8;
+
+  /* -------------------------------------------------------------------------
+     Border - Semantische Rahmenfarben
+     ------------------------------------------------------------------------- */
+  --color-border-default: #E5E7EB;
+  --color-border-subtle: #F3F4F6;
+  --color-border-strong: #D1D5DB;
+  --color-border-focus: #3B82F6;
+  --color-border-error: #EF4444;
+
+  /* -------------------------------------------------------------------------
+     Accent - Akzentfarben
+     ------------------------------------------------------------------------- */
+  --color-accent-primary: #2563EB;
+  --color-accent-primary-hover: #1D4ED8;
+  --color-accent-primary-active: #1E40AF;
+  --color-accent-secondary: #6B7280;
+  --color-accent-secondary-hover: #4B5563;
+
+  /* -------------------------------------------------------------------------
+     Status - Semantische Statusfarben
+     ------------------------------------------------------------------------- */
+  --color-status-success: #059669;
+  --color-status-success-bg: #ECFDF5;
+  --color-status-success-border: #A7F3D0;
+
+  --color-status-warning: #D97706;
+  --color-status-warning-bg: #FFFBEB;
+  --color-status-warning-border: #FDE68A;
+
+  --color-status-danger: #DC2626;
+  --color-status-danger-bg: #FEF2F2;
+  --color-status-danger-border: #FECACA;
+
+  --color-status-info: #0891B2;
+  --color-status-info-bg: #ECFEFF;
+  --color-status-info-border: #A5F3FC;
+
+  --color-status-disabled: #9CA3AF;
+  --color-status-disabled-bg: #F9FAFB;
+
+  /* -------------------------------------------------------------------------
+     UI - Spezielle UI-Elemente
+     ------------------------------------------------------------------------- */
+  --color-ui-scrollbar-track: #F3F4F6;
+  --color-ui-scrollbar-thumb: #D1D5DB;
+  --color-ui-overlay: rgba(0, 0, 0, 0.5);
+  --color-ui-shadow: rgba(0, 0, 0, 0.1);
+  --color-ui-divider: #E5E7EB;
+  --color-ui-focus-ring: rgba(59, 130, 246, 0.5);
+
+  /* -------------------------------------------------------------------------
+     Shadows - Semantische Schatten
+     ------------------------------------------------------------------------- */
+  --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+  --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -2px rgba(0, 0, 0, 0.1);
+  --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -4px rgba(0, 0, 0, 0.1);
+  --shadow-xl: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.1);
+  --shadow-inner: inset 0 2px 4px 0 rgba(0, 0, 0, 0.05);
+}
+
+/* =============================================================================
+   Dark Mode Semantische Tokens
+   ============================================================================= */
+
+.dark {
+  /* Background */
+  --color-bg-app: #0F1419;
+  --color-bg-panel: #1A1F26;
+  --color-bg-card: #242B35;
+  --color-bg-elevated: #2D3541;
+  --color-bg-input: #1E242C;
+  --color-bg-disabled: #1A1F26;
+  --color-bg-hover: #2D3541;
+  --color-bg-selected: #1E3A5F;
+
+  /* Text */
+  --color-text-primary: #F3F4F6;
+  --color-text-secondary: #D1D5DB;
+  --color-text-muted: #9CA3AF;
+  --color-text-inverse: #111827;
+  --color-text-disabled: #6B7280;
+  --color-text-link: #60A5FA;
+  --color-text-link-hover: #93C5FD;
+
+  /* Border */
+  --color-border-default: #374151;
+  --color-border-subtle: #2D3541;
+  --color-border-strong: #4B5563;
+  --color-border-focus: #3B82F6;
+  --color-border-error: #F87171;
+
+  /* Accent */
+  --color-accent-primary: #3B82F6;
+  --color-accent-primary-hover: #60A5FA;
+  --color-accent-primary-active: #2563EB;
+  --color-accent-secondary: #6B7280;
+  --color-accent-secondary-hover: #9CA3AF;
+
+  /* Status */
+  --color-status-success: #34D399;
+  --color-status-success-bg: #064E3B;
+  --color-status-success-border: #065F46;
+
+  --color-status-warning: #FBBF24;
+  --color-status-warning-bg: #78350F;
+  --color-status-warning-border: #92400E;
+
+  --color-status-danger: #F87171;
+  --color-status-danger-bg: #7F1D1D;
+  --color-status-danger-border: #991B1B;
+
+  --color-status-info: #22D3EE;
+  --color-status-info-bg: #164E63;
+  --color-status-info-border: #155E75;
+
+  --color-status-disabled: #6B7280;
+  --color-status-disabled-bg: #1F2937;
+
+  /* UI */
+  --color-ui-scrollbar-track: #1A1F26;
+  --color-ui-scrollbar-thumb: #4B5563;
+  --color-ui-overlay: rgba(0, 0, 0, 0.7);
+  --color-ui-shadow: rgba(0, 0, 0, 0.4);
+  --color-ui-divider: #374151;
+  --color-ui-focus-ring: rgba(59, 130, 246, 0.6);
+
+  /* Shadows */
+  --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.3);
+  --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.4), 0 2px 4px -2px rgba(0, 0, 0, 0.3);
+  --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.5), 0 4px 6px -4px rgba(0, 0, 0, 0.4);
+  --shadow-xl: 0 20px 25px -5px rgba(0, 0, 0, 0.6), 0 8px 10px -6px rgba(0, 0, 0, 0.5);
+  --shadow-inner: inset 0 2px 4px 0 rgba(0, 0, 0, 0.3);
+}
+
+/* =============================================================================
+   CSS Custom Properties (Farb-Paletten für Tailwind)
    ============================================================================= */
 
 :root {
@@ -879,4 +1041,362 @@ pre code {
   background: rgba(0, 0, 0, 0.5);
   backdrop-filter: blur(10px);
   -webkit-backdrop-filter: blur(10px);
+}
+
+/* =============================================================================
+   LogoLoader Animations
+   ============================================================================= */
+
+/* Langsame Rotation für indeterminate state */
+@keyframes spin-slow {
+  from { transform: rotate(-90deg); }
+  to { transform: rotate(270deg); }
+}
+
+.animate-spin-slow {
+  animation: spin-slow 2s linear infinite;
+}
+
+/* Ticks-Variante Animation */
+@keyframes logo-loader-ticks {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+.logo-loader-ticks-spin {
+  animation: logo-loader-ticks 60s linear infinite;
+}
+
+/* =============================================================================
+   Semantische Theme-Klassen
+   ============================================================================= */
+
+/* Background-Klassen */
+.bg-theme-app { background-color: var(--color-bg-app); }
+.bg-theme-panel { background-color: var(--color-bg-panel); }
+.bg-theme-card { background-color: var(--color-bg-card); }
+.bg-theme-elevated { background-color: var(--color-bg-elevated); }
+.bg-theme-input { background-color: var(--color-bg-input); }
+.bg-theme-disabled { background-color: var(--color-bg-disabled); }
+.bg-theme-hover { background-color: var(--color-bg-hover); }
+.bg-theme-selected { background-color: var(--color-bg-selected); }
+
+/* Text-Klassen */
+.text-theme-primary { color: var(--color-text-primary); }
+.text-theme-secondary { color: var(--color-text-secondary); }
+.text-theme-muted { color: var(--color-text-muted); }
+.text-theme-inverse { color: var(--color-text-inverse); }
+.text-theme-disabled { color: var(--color-text-disabled); }
+.text-theme-link { color: var(--color-text-link); }
+.text-theme-link-hover { color: var(--color-text-link-hover); }
+
+/* Border-Klassen */
+.border-theme-default { border-color: var(--color-border-default); }
+.border-theme-subtle { border-color: var(--color-border-subtle); }
+.border-theme-strong { border-color: var(--color-border-strong); }
+.border-theme-focus { border-color: var(--color-border-focus); }
+.border-theme-error { border-color: var(--color-border-error); }
+
+/* Accent-Klassen */
+.bg-accent-primary { background-color: var(--color-accent-primary); }
+.bg-accent-primary-hover { background-color: var(--color-accent-primary-hover); }
+.text-accent-primary { color: var(--color-accent-primary); }
+
+/* Status-Klassen */
+.text-status-success { color: var(--color-status-success); }
+.bg-status-success-bg { background-color: var(--color-status-success-bg); }
+.border-status-success-border { border-color: var(--color-status-success-border); }
+
+.text-status-warning { color: var(--color-status-warning); }
+.bg-status-warning-bg { background-color: var(--color-status-warning-bg); }
+.border-status-warning-border { border-color: var(--color-status-warning-border); }
+
+.text-status-danger { color: var(--color-status-danger); }
+.bg-status-danger-bg { background-color: var(--color-status-danger-bg); }
+.border-status-danger-border { border-color: var(--color-status-danger-border); }
+
+.text-status-info { color: var(--color-status-info); }
+.bg-status-info-bg { background-color: var(--color-status-info-bg); }
+.border-status-info-border { border-color: var(--color-status-info-border); }
+
+.text-status-disabled { color: var(--color-status-disabled); }
+.bg-status-disabled-bg { background-color: var(--color-status-disabled-bg); }
+
+/* UI-Klassen */
+.bg-ui-overlay { background-color: var(--color-ui-overlay); }
+.border-ui-divider { border-color: var(--color-ui-divider); }
+
+/* Shadow-Klassen */
+.shadow-theme-sm { box-shadow: var(--shadow-sm); }
+.shadow-theme-md { box-shadow: var(--shadow-md); }
+.shadow-theme-lg { box-shadow: var(--shadow-lg); }
+.shadow-theme-xl { box-shadow: var(--shadow-xl); }
+.shadow-theme-inner { box-shadow: var(--shadow-inner); }
+
+/* =============================================================================
+   Dark Mode Component Overrides
+   ============================================================================= */
+
+/* Body mit semantischen Tokens */
+body {
+  background-color: var(--color-bg-app);
+  color: var(--color-text-primary);
+}
+
+/* Cards im Dark Mode */
+.dark .card {
+  background-color: var(--color-bg-card);
+  border-color: var(--color-border-default);
+}
+
+.dark .card-footer {
+  background-color: var(--color-bg-panel);
+  border-color: var(--color-border-default);
+}
+
+/* Inputs im Dark Mode */
+.dark .input,
+.dark .select,
+.dark .textarea {
+  background-color: var(--color-bg-input);
+  border-color: var(--color-border-default);
+  color: var(--color-text-primary);
+}
+
+.dark .input::placeholder,
+.dark .textarea::placeholder {
+  color: var(--color-text-muted);
+}
+
+.dark .input:disabled,
+.dark .select:disabled,
+.dark .textarea:disabled {
+  background-color: var(--color-bg-disabled);
+  color: var(--color-text-disabled);
+}
+
+/* Buttons im Dark Mode */
+.dark .btn-secondary {
+  background-color: var(--color-bg-elevated);
+  color: var(--color-text-primary);
+}
+
+.dark .btn-secondary:hover {
+  background-color: var(--color-bg-hover);
+}
+
+.dark .btn-outline {
+  border-color: var(--color-border-default);
+  color: var(--color-text-primary);
+}
+
+.dark .btn-outline:hover {
+  background-color: var(--color-bg-hover);
+  border-color: var(--color-border-strong);
+}
+
+.dark .btn-ghost {
+  color: var(--color-text-secondary);
+}
+
+.dark .btn-ghost:hover {
+  background-color: var(--color-bg-hover);
+  color: var(--color-text-primary);
+}
+
+/* Labels und Helper im Dark Mode */
+.dark .label {
+  color: var(--color-text-primary);
+}
+
+.dark .helper-text {
+  color: var(--color-text-muted);
+}
+
+/* Tables im Dark Mode */
+.dark .table thead {
+  background-color: var(--color-bg-panel);
+  color: var(--color-text-secondary);
+}
+
+.dark .table tbody tr {
+  background-color: var(--color-bg-card);
+  border-color: var(--color-border-subtle);
+}
+
+.dark .table tbody tr:hover {
+  background-color: var(--color-bg-hover);
+}
+
+/* Modals im Dark Mode */
+.dark .modal-backdrop {
+  background-color: var(--color-ui-overlay);
+}
+
+.dark .modal-content {
+  background-color: var(--color-bg-card);
+}
+
+.dark .modal-header {
+  border-color: var(--color-border-default);
+}
+
+.dark .modal-footer {
+  background-color: var(--color-bg-panel);
+  border-color: var(--color-border-default);
+}
+
+/* Alerts im Dark Mode */
+.dark .alert-info {
+  background-color: var(--color-status-info-bg);
+  border-color: var(--color-status-info-border);
+  color: var(--color-status-info);
+}
+
+.dark .alert-success {
+  background-color: var(--color-status-success-bg);
+  border-color: var(--color-status-success-border);
+  color: var(--color-status-success);
+}
+
+.dark .alert-warning {
+  background-color: var(--color-status-warning-bg);
+  border-color: var(--color-status-warning-border);
+  color: var(--color-status-warning);
+}
+
+.dark .alert-error {
+  background-color: var(--color-status-danger-bg);
+  border-color: var(--color-status-danger-border);
+  color: var(--color-status-danger);
+}
+
+/* Badges im Dark Mode */
+.dark .badge-primary {
+  background-color: rgba(59, 130, 246, 0.2);
+  color: #60A5FA;
+}
+
+.dark .badge-gray {
+  background-color: var(--color-bg-elevated);
+  color: var(--color-text-secondary);
+}
+
+.dark .badge-success {
+  background-color: var(--color-status-success-bg);
+  color: var(--color-status-success);
+}
+
+.dark .badge-warning {
+  background-color: var(--color-status-warning-bg);
+  color: var(--color-status-warning);
+}
+
+.dark .badge-error {
+  background-color: var(--color-status-danger-bg);
+  color: var(--color-status-danger);
+}
+
+.dark .badge-info {
+  background-color: var(--color-status-info-bg);
+  color: var(--color-status-info);
+}
+
+/* Navigation im Dark Mode */
+.dark .nav-link {
+  color: var(--color-text-secondary);
+}
+
+.dark .nav-link:hover {
+  background-color: var(--color-bg-hover);
+  color: var(--color-text-primary);
+}
+
+.dark .nav-link-active {
+  background-color: var(--color-bg-selected);
+  color: var(--color-accent-primary);
+}
+
+/* Tabs im Dark Mode */
+.dark .tabs {
+  border-color: var(--color-border-default);
+}
+
+.dark .tab {
+  color: var(--color-text-muted);
+}
+
+.dark .tab:hover {
+  color: var(--color-text-primary);
+  border-color: var(--color-border-strong);
+}
+
+.dark .tab-active {
+  color: var(--color-accent-primary);
+  border-color: var(--color-accent-primary);
+}
+
+/* Progress im Dark Mode */
+.dark .progress {
+  background-color: var(--color-bg-elevated);
+}
+
+/* Skeleton im Dark Mode */
+.dark .skeleton {
+  background-color: var(--color-bg-elevated);
+}
+
+/* Divider im Dark Mode */
+.dark .divider {
+  border-color: var(--color-ui-divider);
+}
+
+.dark .divider-vertical {
+  border-color: var(--color-ui-divider);
+}
+
+/* Tooltip im Dark Mode */
+.dark .tooltip {
+  background-color: var(--color-bg-elevated);
+  color: var(--color-text-primary);
+}
+
+/* Code im Dark Mode */
+.dark code {
+  background-color: var(--color-bg-elevated);
+  color: var(--color-text-primary);
+}
+
+/* Scrollbar im Dark Mode */
+.dark::-webkit-scrollbar-track {
+  background: var(--color-ui-scrollbar-track);
+}
+
+.dark::-webkit-scrollbar-thumb {
+  background: var(--color-ui-scrollbar-thumb);
+}
+
+.dark * {
+  scrollbar-color: var(--color-ui-scrollbar-thumb) var(--color-ui-scrollbar-track);
+}
+
+/* Traffic Light im Dark Mode */
+.dark .traffic-light-green {
+  background-color: var(--color-status-success-bg);
+  color: var(--color-status-success);
+}
+
+.dark .traffic-light-yellow {
+  background-color: var(--color-status-warning-bg);
+  color: var(--color-status-warning);
+}
+
+.dark .traffic-light-red {
+  background-color: var(--color-status-danger-bg);
+  color: var(--color-status-danger);
+}
+
+/* Glass im Dark Mode */
+.dark .glass {
+  background: rgba(36, 43, 53, 0.8);
 }

@@ -111,6 +111,10 @@ export const api = {
         location_name?: string
         city?: string
       }
+      project_period?: {
+        start: string
+        end: string
+      }
     }
   }) => {
     // Transform Frontend-Daten in Backend-Schema

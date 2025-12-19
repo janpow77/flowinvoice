@@ -1,67 +1,44 @@
 /**
  * SettingsGeneral - Allgemeine Einstellungen
  *
- * Sprache und Erscheinungsbild.
+ * Sprache und Erscheinungsbild (Theme).
  */
 
-import { useState, useEffect } from 'react'
+import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
-import { Globe, Moon, Sun, CheckCircle } from 'lucide-react'
+import { Globe, Moon, Sun, CheckCircle, Monitor } from 'lucide-react'
 import clsx from 'clsx'
 import { languages, changeLanguage, getCurrentLanguage, type LanguageCode } from '@/lib/i18n'
+import { useTheme } from '@/theme'
 
 export function SettingsGeneral() {
   const { t } = useTranslation()
+  const { mode, setMode, isDark } = useTheme()
   const [currentLang, setCurrentLang] = useState<LanguageCode>(getCurrentLanguage())
-  const [darkMode, setDarkMode] = useState<boolean>(() => {
-    const saved = localStorage.getItem('flowaudit_theme')
-    if (saved) return saved === 'dark'
-    return window.matchMedia('(prefers-color-scheme: dark)').matches
-  })
 
   const handleLanguageChange = (lng: LanguageCode) => {
     changeLanguage(lng)
     setCurrentLang(lng)
   }
 
-  const handleDarkModeToggle = () => {
-    const newMode = !darkMode
-    setDarkMode(newMode)
-    localStorage.setItem('flowaudit_theme', newMode ? 'dark' : 'light')
-
-    if (newMode) {
-      document.documentElement.classList.add('dark')
-    } else {
-      document.documentElement.classList.remove('dark')
-    }
-  }
-
-  useEffect(() => {
-    if (darkMode) {
-      document.documentElement.classList.add('dark')
-    } else {
-      document.documentElement.classList.remove('dark')
-    }
-  }, [])
-
   return (
     <div className="space-y-6">
       {/* Info Box */}
-      <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-4">
-        <p className="text-sm text-blue-700 dark:text-blue-300">
+      <div className="bg-status-info-bg border border-status-info-border rounded-lg p-4">
+        <p className="text-sm text-status-info">
           Diese Einstellungen gelten nur für die Benutzeroberfläche und werden lokal gespeichert.
         </p>
       </div>
 
       {/* Language Selection */}
-      <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-6">
+      <div className="bg-theme-card rounded-lg border border-theme-border-default p-6">
         <div className="flex items-center gap-2 mb-4">
-          <Globe className="h-5 w-5 text-primary-600" />
-          <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
+          <Globe className="h-5 w-5 text-accent-primary" />
+          <h3 className="text-lg font-semibold text-theme-text-primary">
             {t('settings.language')}
           </h3>
         </div>
-        <p className="text-sm text-gray-500 dark:text-gray-400 mb-4">
+        <p className="text-sm text-theme-text-muted mb-4">
           {t('settings.languageDescription')}
         </p>
 
@@ -73,8 +50,8 @@ export function SettingsGeneral() {
               className={clsx(
                 'flex items-center gap-3 px-4 py-3 rounded-lg border-2 transition-colors',
                 currentLang === lang.code
-                  ? 'border-primary-500 bg-primary-50 dark:bg-primary-900/20'
-                  : 'border-gray-200 dark:border-gray-600 hover:border-gray-300 dark:hover:border-gray-500'
+                  ? 'border-accent-primary bg-theme-selected'
+                  : 'border-theme-border-default hover:border-theme-border-strong'
               )}
             >
               <span className="text-2xl">{lang.flag}</span>
@@ -82,57 +59,115 @@ export function SettingsGeneral() {
                 className={clsx(
                   'font-medium',
                   currentLang === lang.code
-                    ? 'text-primary-700 dark:text-primary-300'
-                    : 'text-gray-700 dark:text-gray-300'
+                    ? 'text-accent-primary'
+                    : 'text-theme-text-secondary'
                 )}
               >
                 {lang.name}
               </span>
               {currentLang === lang.code && (
-                <CheckCircle className="h-5 w-5 text-primary-600" />
+                <CheckCircle className="h-5 w-5 text-accent-primary" />
               )}
             </button>
           ))}
         </div>
       </div>
 
-      {/* Dark Mode Toggle */}
-      <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-6">
+      {/* Theme Selection */}
+      <div className="bg-theme-card rounded-lg border border-theme-border-default p-6">
         <div className="flex items-center gap-2 mb-4">
-          {darkMode ? (
-            <Moon className="h-5 w-5 text-primary-600" />
+          {isDark ? (
+            <Moon className="h-5 w-5 text-accent-primary" />
           ) : (
-            <Sun className="h-5 w-5 text-primary-600" />
+            <Sun className="h-5 w-5 text-accent-primary" />
           )}
-          <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
+          <h3 className="text-lg font-semibold text-theme-text-primary">
             {t('settings.appearance')}
           </h3>
         </div>
-        <p className="text-sm text-gray-500 dark:text-gray-400 mb-4">
+        <p className="text-sm text-theme-text-muted mb-4">
           {t('settings.appearanceDescription')}
         </p>
 
-        <div className="flex items-center justify-between">
-          <div>
-            <p className="font-medium text-gray-900 dark:text-white">{t('settings.darkMode')}</p>
-            <p className="text-sm text-gray-500 dark:text-gray-400">
-              {t('settings.darkModeDescription')}
-            </p>
-          </div>
+        {/* Theme Mode Selection */}
+        <div className="grid grid-cols-3 gap-4">
+          {/* Light Mode */}
           <button
-            onClick={handleDarkModeToggle}
+            onClick={() => setMode('light')}
             className={clsx(
-              'relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2',
-              darkMode ? 'bg-primary-600' : 'bg-gray-200'
+              'flex flex-col items-center gap-2 p-4 rounded-lg border-2 transition-all',
+              mode === 'light'
+                ? 'border-accent-primary bg-theme-selected'
+                : 'border-theme-border-default hover:border-theme-border-strong'
             )}
           >
-            <span
-              className={clsx(
-                'pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out',
-                darkMode ? 'translate-x-5' : 'translate-x-0'
-              )}
-            />
+            <Sun className={clsx(
+              'h-8 w-8',
+              mode === 'light' ? 'text-accent-primary' : 'text-theme-text-muted'
+            )} />
+            <span className={clsx(
+              'font-medium text-sm',
+              mode === 'light' ? 'text-accent-primary' : 'text-theme-text-secondary'
+            )}>
+              Light
+            </span>
           </button>
+
+          {/* Dark Mode */}
+          <button
+            onClick={() => setMode('dark')}
+            className={clsx(
+              'flex flex-col items-center gap-2 p-4 rounded-lg border-2 transition-all',
+              mode === 'dark'
+                ? 'border-accent-primary bg-theme-selected'
+                : 'border-theme-border-default hover:border-theme-border-strong'
+            )}
+          >
+            <Moon className={clsx(
+              'h-8 w-8',
+              mode === 'dark' ? 'text-accent-primary' : 'text-theme-text-muted'
+            )} />
+            <span className={clsx(
+              'font-medium text-sm',
+              mode === 'dark' ? 'text-accent-primary' : 'text-theme-text-secondary'
+            )}>
+              Dark
+            </span>
+          </button>
+
+          {/* System Mode */}
+          <button
+            onClick={() => setMode('system')}
+            className={clsx(
+              'flex flex-col items-center gap-2 p-4 rounded-lg border-2 transition-all',
+              mode === 'system'
+                ? 'border-accent-primary bg-theme-selected'
+                : 'border-theme-border-default hover:border-theme-border-strong'
+            )}
+          >
+            <Monitor className={clsx(
+              'h-8 w-8',
+              mode === 'system' ? 'text-accent-primary' : 'text-theme-text-muted'
+            )} />
+            <span className={clsx(
+              'font-medium text-sm',
+              mode === 'system' ? 'text-accent-primary' : 'text-theme-text-secondary'
+            )}>
+              System
+            </span>
+          </button>
+        </div>
+
+        {/* Current Status */}
+        <div className="mt-4 pt-4 border-t border-theme-border-subtle">
+          <p className="text-sm text-theme-text-muted">
+            Aktuell aktiv: <span className="font-medium text-theme-text-primary">
+              {isDark ? 'Dark Mode' : 'Light Mode'}
+            </span>
+            {mode === 'system' && (
+              <span className="text-theme-text-muted"> (System-Präferenz)</span>
+            )}
+          </p>
         </div>
       </div>
     </div>
