@@ -42,6 +42,14 @@ interface GeneratorConfig {
   project_number: string
 }
 
+// Template-spezifische Vorschaudaten
+const templatePreviews: Record<string, { supplier: string; amount: string; type: string }> = {
+  'T1_HANDWERK': { supplier: 'Meister Müller', amount: '2.450,00', type: 'Handwerk' },
+  'T2_CONSULTING': { supplier: 'Beratung AG', amount: '8.500,00', type: 'Beratung' },
+  'T3_CORPORATE': { supplier: 'TechSolutions', amount: '15.200,00', type: 'IT-Service' },
+  'T4_FREELANCER': { supplier: 'M. Mustermann', amount: '1.800,00', type: 'Freelance' },
+  'T5_INTERNATIONAL': { supplier: 'Global Corp', amount: '25.000,00', type: 'International' },
+}
 
 export default function Generator() {
   const { t } = useTranslation()
@@ -156,39 +164,14 @@ export default function Generator() {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold text-gray-900 dark:text-white flex items-center gap-2">
-            <FileText className="h-7 w-7 text-primary-600" />
-            {t('generator.title', 'Rechnungs-Generator')}
-          </h1>
-          <p className="text-gray-600 dark:text-gray-400 mt-1">
-            {t('generator.description', 'Generieren Sie Test-Rechnungen für Seminare und Schulungen')}
-          </p>
-        </div>
-
-        <button
-          onClick={handleRun}
-          disabled={isRunning || selectedTemplates.length === 0}
-          className={clsx(
-            'flex items-center gap-2 px-6 py-3 rounded-lg font-medium transition-colors',
-            isRunning || selectedTemplates.length === 0
-              ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
-              : 'bg-primary-600 text-white hover:bg-primary-700'
-          )}
-        >
-          {isRunning ? (
-            <>
-              <Loader2 className="h-5 w-5 animate-spin" />
-              {t('generator.running', 'Generiere...')}
-            </>
-          ) : (
-            <>
-              <Play className="h-5 w-5" />
-              {t('generator.run', 'Generator starten')}
-            </>
-          )}
-        </button>
+      <div>
+        <h1 className="text-2xl font-bold text-gray-900 dark:text-white flex items-center gap-2">
+          <FileText className="h-7 w-7 text-primary-600" />
+          {t('generator.title', 'Rechnungs-Generator')}
+        </h1>
+        <p className="text-gray-600 dark:text-gray-400 mt-1">
+          {t('generator.description', 'Generieren Sie Test-Rechnungen für Seminare und Schulungen')}
+        </p>
       </div>
 
       {/* Job Status */}
@@ -266,98 +249,39 @@ export default function Generator() {
       )}
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Left Column - Templates */}
+        {/* Left Column - Inputs */}
         <div className="lg:col-span-2 space-y-6">
-          {/* Template Selection */}
+
+          {/* 1. Project Selection */}
           <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-6">
-            <h2 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">
-              {t('generator.templates', 'Rechnungs-Templates')}
+            <h2 className="text-lg font-semibold text-gray-900 dark:text-white mb-4 flex items-center gap-2">
+              <FolderOpen className="h-5 w-5" />
+              {t('generator.projectSelection', 'Projektauswahl')}
             </h2>
-
-            {templatesLoading ? (
-              <div className="flex items-center justify-center py-8">
-                <Loader2 className="h-8 w-8 text-primary-600 animate-spin" />
-              </div>
-            ) : (
-              <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
-                {(templates || []).map((template: Template) => (
-                  <div
-                    key={template.template_id}
-                    className={clsx(
-                      'relative border-2 rounded-lg overflow-hidden cursor-pointer transition-all group',
-                      selectedTemplates.includes(template.template_id)
-                        ? 'border-primary-500 ring-2 ring-primary-200 dark:ring-primary-800'
-                        : 'border-gray-200 dark:border-gray-700 hover:border-gray-400'
-                    )}
-                    onClick={() => toggleTemplate(template.template_id)}
-                  >
-                    {/* Vorschau-Bild */}
-                    <div className="relative aspect-[3/4] bg-gray-100 dark:bg-gray-800">
-                      <div className="absolute inset-0 flex items-center justify-center">
-                        {/* Stilisierte Rechnungsvorschau */}
-                        <div className="w-[80%] h-[85%] bg-white dark:bg-gray-700 shadow-sm rounded border border-gray-200 dark:border-gray-600 p-2 text-[6px] text-gray-400 dark:text-gray-500">
-                          <div className="border-b border-gray-200 dark:border-gray-600 pb-1 mb-1">
-                            <div className="h-1 w-12 bg-gray-300 dark:bg-gray-500 rounded mb-0.5"></div>
-                            <div className="h-0.5 w-8 bg-gray-200 dark:bg-gray-600 rounded"></div>
-                          </div>
-                          <div className="space-y-0.5">
-                            <div className="h-0.5 w-full bg-gray-200 dark:bg-gray-600 rounded"></div>
-                            <div className="h-0.5 w-3/4 bg-gray-200 dark:bg-gray-600 rounded"></div>
-                            <div className="h-0.5 w-5/6 bg-gray-200 dark:bg-gray-600 rounded"></div>
-                          </div>
-                          <div className="mt-2 pt-1 border-t border-gray-200 dark:border-gray-600">
-                            <div className="flex justify-between">
-                              <div className="h-0.5 w-6 bg-gray-200 dark:bg-gray-600 rounded"></div>
-                              <div className="h-0.5 w-4 bg-gray-300 dark:bg-gray-500 rounded"></div>
-                            </div>
-                          </div>
-                        </div>
-                      </div>
-
-                      {/* Vorschau-Button Overlay */}
-                      <div className="absolute inset-0 bg-black/0 group-hover:bg-black/30 transition-colors flex items-center justify-center">
-                        <button
-                          onClick={(e) => {
-                            e.stopPropagation()
-                            setPreviewTemplate(template.template_id)
-                          }}
-                          className="opacity-0 group-hover:opacity-100 transition-opacity bg-white/90 dark:bg-gray-800/90 rounded-full p-2 shadow-lg hover:bg-white dark:hover:bg-gray-700"
-                          title={t('generator.preview', 'Vorschau')}
-                        >
-                          <Eye className="h-5 w-5 text-gray-700 dark:text-gray-300" />
-                        </button>
-                      </div>
-
-                      {/* Ausgewählt-Marker */}
-                      {selectedTemplates.includes(template.template_id) && (
-                        <div className="absolute top-2 right-2 bg-primary-600 rounded-full p-1">
-                          <CheckCircle className="h-4 w-4 text-white" />
-                        </div>
-                      )}
-                    </div>
-
-                    {/* Template-Name klein unter dem Bild */}
-                    <div className="p-2 text-center bg-gray-50 dark:bg-gray-900">
-                      <p className="text-xs text-gray-500 dark:text-gray-400 truncate">
-                        {template.name}
-                      </p>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            )}
+            <select
+              value={config.project_id}
+              onChange={(e) => setConfig({ ...config, project_id: e.target.value })}
+              className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+            >
+              <option value="">{t('generator.noProject', 'Kein Projekt ausgewählt')}</option>
+              {(projects || []).map((project: { id: string; title: string }) => (
+                <option key={project.id} value={project.id}>
+                  {project.title}
+                </option>
+              ))}
+            </select>
           </div>
 
-          {/* Beneficiary Data */}
+          {/* 2. Beneficiary Data + Project Context */}
           <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-6">
             <h2 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">
-              {t('generator.beneficiary', 'Begünstigter (optional)')}
+              {t('generator.beneficiaryAndContext', 'Begünstigter & Projektkontext')}
             </h2>
 
             {/* Source Selection */}
             <div className="mb-4">
               <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                {t('generator.beneficiarySource', 'Datenquelle')}
+                {t('generator.beneficiarySource', 'Datenquelle Begünstigter')}
               </label>
               <div className="flex gap-4">
                 <label className="flex items-center gap-2 cursor-pointer">
@@ -400,7 +324,7 @@ export default function Generator() {
 
             {/* Manual Input Fields */}
             {config.beneficiary_source === 'manual' && (
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-6">
                 <div className="sm:col-span-2">
                   <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                     {t('generator.beneficiaryName', 'Name / Firma')}
@@ -466,7 +390,7 @@ export default function Generator() {
 
             {/* Project Data Preview */}
             {config.beneficiary_source === 'project' && selectedProject?.beneficiary && (
-              <div className="bg-gray-50 dark:bg-gray-900 rounded-lg p-4">
+              <div className="bg-gray-50 dark:bg-gray-900 rounded-lg p-4 mb-6">
                 <h4 className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                   {t('generator.beneficiaryPreview', 'Begünstigtendaten aus Projekt')}
                 </h4>
@@ -480,49 +404,143 @@ export default function Generator() {
                 </div>
               </div>
             )}
-          </div>
 
-          {/* Project Context */}
-          <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-6">
-            <h2 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">
-              {t('generator.projectContext', 'Projektkontext (optional)')}
-            </h2>
-            <p className="text-sm text-gray-500 dark:text-gray-400 mb-4">
-              {t('generator.projectContextHint', 'Diese Angaben erscheinen in der Leistungsbeschreibung der Rechnungen.')}
-            </p>
-
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1 flex items-center gap-2">
-                  <Hash className="h-4 w-4" />
-                  {t('generator.projectNumber', 'Projektnummer')}
-                </label>
-                <input
-                  type="text"
-                  value={config.project_number}
-                  onChange={(e) => setConfig({ ...config, project_number: e.target.value })}
-                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
-                  placeholder="PRJ-2025-001"
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1 flex items-center gap-2">
-                  <MapPin className="h-4 w-4" />
-                  {t('generator.executionLocation', 'Durchführungsort')}
-                </label>
-                <input
-                  type="text"
-                  value={config.execution_location}
-                  onChange={(e) => setConfig({ ...config, execution_location: e.target.value })}
-                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
-                  placeholder="Berlin"
-                />
+            {/* Project Context */}
+            <div className="border-t border-gray-200 dark:border-gray-700 pt-4">
+              <h3 className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-3">
+                {t('generator.projectContext', 'Projektkontext (optional)')}
+              </h3>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1 flex items-center gap-2">
+                    <Hash className="h-4 w-4" />
+                    {t('generator.projectNumber', 'Projektnummer')}
+                  </label>
+                  <input
+                    type="text"
+                    value={config.project_number}
+                    onChange={(e) => setConfig({ ...config, project_number: e.target.value })}
+                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                    placeholder="PRJ-2025-001"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1 flex items-center gap-2">
+                    <MapPin className="h-4 w-4" />
+                    {t('generator.executionLocation', 'Durchführungsort')}
+                  </label>
+                  <input
+                    type="text"
+                    value={config.execution_location}
+                    onChange={(e) => setConfig({ ...config, execution_location: e.target.value })}
+                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                    placeholder="Berlin"
+                  />
+                </div>
               </div>
             </div>
           </div>
+
+          {/* 3. Template Selection */}
+          <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-6">
+            <h2 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">
+              {t('generator.templates', 'Rechnungs-Templates')}
+            </h2>
+
+            {templatesLoading ? (
+              <div className="flex items-center justify-center py-8">
+                <Loader2 className="h-8 w-8 text-primary-600 animate-spin" />
+              </div>
+            ) : (
+              <div className="grid grid-cols-3 sm:grid-cols-4 lg:grid-cols-5 gap-3">
+                {(templates || []).map((template: Template) => {
+                  const preview = templatePreviews[template.template_id] || { supplier: 'Firma', amount: '1.000,00', type: 'Standard' }
+                  return (
+                    <div
+                      key={template.template_id}
+                      className={clsx(
+                        'relative border-2 rounded-lg overflow-hidden cursor-pointer transition-all group',
+                        selectedTemplates.includes(template.template_id)
+                          ? 'border-primary-500 ring-2 ring-primary-200 dark:ring-primary-800'
+                          : 'border-gray-200 dark:border-gray-700 hover:border-gray-400'
+                      )}
+                      onClick={() => toggleTemplate(template.template_id)}
+                    >
+                      {/* Realistische Rechnungsvorschau - 50% kleiner */}
+                      <div className="relative aspect-[3/4] bg-gray-50 dark:bg-gray-900 p-1">
+                        <div className="w-full h-full bg-white dark:bg-gray-800 shadow-sm rounded border border-gray-200 dark:border-gray-600 p-1.5 text-[5px] leading-tight">
+                          {/* Header */}
+                          <div className="text-center mb-1">
+                            <div className="font-bold text-[7px] text-gray-800 dark:text-gray-200">RECHNUNG</div>
+                            <div className="text-gray-500 dark:text-gray-400">Nr. 2025-001</div>
+                          </div>
+
+                          {/* Rechnungssteller */}
+                          <div className="border-t border-gray-200 dark:border-gray-600 pt-0.5 mb-1">
+                            <div className="font-semibold text-gray-700 dark:text-gray-300">{preview.supplier}</div>
+                            <div className="text-gray-400">Musterstr. 1</div>
+                          </div>
+
+                          {/* Empfänger */}
+                          <div className="bg-gray-50 dark:bg-gray-700 rounded p-0.5 mb-1">
+                            <div className="text-gray-500">An: Kunde GmbH</div>
+                          </div>
+
+                          {/* Leistung */}
+                          <div className="mb-1">
+                            <div className="text-gray-500">{preview.type}</div>
+                          </div>
+
+                          {/* Beträge */}
+                          <div className="border-t border-gray-300 dark:border-gray-500 pt-0.5 mt-auto">
+                            <div className="flex justify-between">
+                              <span className="text-gray-500">Netto:</span>
+                              <span className="text-gray-700 dark:text-gray-300">{preview.amount}</span>
+                            </div>
+                            <div className="flex justify-between font-bold text-[6px]">
+                              <span>Brutto:</span>
+                              <span className="text-primary-600">{preview.amount} EUR</span>
+                            </div>
+                          </div>
+                        </div>
+
+                        {/* Vorschau-Button Overlay */}
+                        <div className="absolute inset-0 bg-black/0 group-hover:bg-black/30 transition-colors flex items-center justify-center">
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation()
+                              setPreviewTemplate(template.template_id)
+                            }}
+                            className="opacity-0 group-hover:opacity-100 transition-opacity bg-white/90 dark:bg-gray-800/90 rounded-full p-1.5 shadow-lg hover:bg-white dark:hover:bg-gray-700"
+                            title={t('generator.preview', 'Vorschau')}
+                          >
+                            <Eye className="h-3 w-3 text-gray-700 dark:text-gray-300" />
+                          </button>
+                        </div>
+
+                        {/* Ausgewählt-Marker */}
+                        {selectedTemplates.includes(template.template_id) && (
+                          <div className="absolute top-1 right-1 bg-primary-600 rounded-full p-0.5">
+                            <CheckCircle className="h-3 w-3 text-white" />
+                          </div>
+                        )}
+                      </div>
+
+                      {/* Template-Name klein unter dem Bild */}
+                      <div className="py-1 px-1 text-center bg-gray-50 dark:bg-gray-900">
+                        <p className="text-[9px] text-gray-500 dark:text-gray-400 truncate">
+                          {template.name}
+                        </p>
+                      </div>
+                    </div>
+                  )
+                })}
+              </div>
+            )}
+          </div>
         </div>
 
-        {/* Right Column - Configuration */}
+        {/* Right Column - Settings */}
         <div className="space-y-6">
           {/* Basic Settings */}
           <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-6">
@@ -532,26 +550,6 @@ export default function Generator() {
             </h2>
 
             <div className="space-y-4">
-              {/* Project Selection */}
-              <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1 flex items-center gap-2">
-                  <FolderOpen className="h-4 w-4" />
-                  {t('generator.project', 'Projekt (optional)')}
-                </label>
-                <select
-                  value={config.project_id}
-                  onChange={(e) => setConfig({ ...config, project_id: e.target.value })}
-                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
-                >
-                  <option value="">{t('generator.noProject', 'Kein Projekt')}</option>
-                  {(projects || []).map((project: { id: string; title: string }) => (
-                    <option key={project.id} value={project.id}>
-                      {project.title}
-                    </option>
-                  ))}
-                </select>
-              </div>
-
               {/* Count */}
               <div>
                 <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
@@ -577,8 +575,9 @@ export default function Generator() {
                   onChange={(e) => setConfig({ ...config, ruleset_id: e.target.value })}
                   className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
                 >
-                  <option value="DE_USTG">DE_USTG (Deutsches Umsatzsteuergesetz)</option>
+                  <option value="DE_USTG">DE_USTG (Deutsches UStG)</option>
                   <option value="EU_VAT">EU_VAT (EU-Mehrwertsteuer)</option>
+                  <option value="CH_MWSTG">CH_MWSTG (Schweizer MwSt)</option>
                 </select>
               </div>
             </div>
@@ -657,7 +656,7 @@ export default function Generator() {
             )}
           </div>
 
-          {/* Selected Templates Summary */}
+          {/* Summary */}
           <div className="bg-gray-50 dark:bg-gray-900 rounded-xl p-4 border border-gray-200 dark:border-gray-700">
             <h3 className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
               {t('generator.summary', 'Zusammenfassung')}
@@ -666,18 +665,43 @@ export default function Generator() {
               <li>• {config.count} {t('generator.invoices', 'Rechnungen')}</li>
               <li>• {selectedTemplates.length} {t('generator.templatesSelected', 'Templates ausgewählt')}</li>
               <li>• {config.error_rate_total}% {t('generator.withErrors', 'mit Fehlern')}</li>
+              <li>• Regelwerk: {config.ruleset_id}</li>
               {config.beneficiary_name && (
                 <li>• {t('generator.to', 'An')}: {config.beneficiary_name}</li>
               )}
             </ul>
           </div>
+
+          {/* Start Button */}
+          <button
+            onClick={handleRun}
+            disabled={isRunning || selectedTemplates.length === 0}
+            className={clsx(
+              'w-full flex items-center justify-center gap-2 px-6 py-4 rounded-lg font-medium transition-colors text-lg',
+              isRunning || selectedTemplates.length === 0
+                ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
+                : 'bg-primary-600 text-white hover:bg-primary-700'
+            )}
+          >
+            {isRunning ? (
+              <>
+                <Loader2 className="h-6 w-6 animate-spin" />
+                {t('generator.running', 'Generiere...')}
+              </>
+            ) : (
+              <>
+                <Play className="h-6 w-6" />
+                {t('generator.run', 'Generator starten')}
+              </>
+            )}
+          </button>
         </div>
       </div>
 
-      {/* Preview Modal - zeigt Muster-PDF */}
+      {/* Preview Modal - zeigt Muster-PDF (50% kleiner) */}
       {previewTemplate && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white dark:bg-gray-800 rounded-xl shadow-xl max-w-4xl w-full max-h-[90vh] overflow-hidden">
+          <div className="bg-white dark:bg-gray-800 rounded-xl shadow-xl max-w-2xl w-full max-h-[70vh] overflow-hidden">
             <div className="flex items-center justify-between p-4 border-b border-gray-200 dark:border-gray-700">
               <div>
                 <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
@@ -694,28 +718,28 @@ export default function Generator() {
                 ✕
               </button>
             </div>
-            <div className="p-4 overflow-auto" style={{ maxHeight: 'calc(90vh - 80px)' }}>
-              {/* PDF-Vorschau über iframe oder embed */}
-              <div className="bg-gray-100 dark:bg-gray-900 rounded-lg p-4">
+            <div className="p-4 overflow-auto" style={{ maxHeight: 'calc(70vh - 80px)' }}>
+              {/* PDF-Vorschau über iframe - 50% kleiner */}
+              <div className="bg-gray-100 dark:bg-gray-900 rounded-lg p-2">
                 <iframe
                   src={`/api/generator/templates/${previewTemplate}/sample.pdf`}
                   className="w-full bg-white rounded shadow"
-                  style={{ height: '70vh' }}
+                  style={{ height: '45vh' }}
                   title="Muster-PDF"
                 />
               </div>
-              <div className="mt-4 flex justify-end gap-3">
+              <div className="mt-3 flex justify-end gap-3">
                 <a
                   href={`/api/generator/templates/${previewTemplate}/sample.pdf`}
                   download={`Muster_${previewTemplate}.pdf`}
-                  className="flex items-center gap-2 px-4 py-2 bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-600"
+                  className="flex items-center gap-2 px-3 py-1.5 bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-600 text-sm"
                 >
                   <Download className="h-4 w-4" />
                   {t('generator.downloadSample', 'Muster herunterladen')}
                 </a>
                 <button
                   onClick={() => setPreviewTemplate(null)}
-                  className="px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700"
+                  className="px-3 py-1.5 bg-primary-600 text-white rounded-lg hover:bg-primary-700 text-sm"
                 >
                   {t('common.close', 'Schließen')}
                 </button>
