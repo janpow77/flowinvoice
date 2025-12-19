@@ -31,7 +31,8 @@ from app.api import (
     user_auth,
 )
 from app.config import get_settings
-from app.database import close_db, init_db
+from app.database import close_db, get_session_context, init_db
+from app.seeds import seed_rulesets
 
 # Logging konfigurieren
 logging.basicConfig(
@@ -55,6 +56,15 @@ async def lifespan(app: FastAPI):
     # Datenbank initialisieren
     await init_db()
     logger.info("Database initialized")
+
+    # Seed-Daten einfuegen (nur wenn noch nicht vorhanden)
+    try:
+        async with get_session_context() as session:
+            count = await seed_rulesets(session)
+            if count > 0:
+                logger.info(f"Seeded {count} rulesets")
+    except Exception as e:
+        logger.warning(f"Could not seed rulesets: {e}")
 
     # Storage-Verzeichnisse erstellen
     for path in [
