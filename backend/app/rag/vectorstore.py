@@ -13,6 +13,7 @@ import chromadb
 from chromadb.config import Settings as ChromaSettings
 
 from app.config import get_settings
+from app.services.chunking import ChunkingConfig, TextChunker
 
 from .embeddings import get_embedding_model
 
@@ -42,6 +43,7 @@ class VectorStore:
 
     COLLECTIONS = {
         "invoices": "Validierte Rechnungsbeispiele",
+        "invoice_chunks": "Text-Chunks für granulare Suche",
         "errors": "Fehlerbeispiele mit Korrekturen",
         "patterns": "Semantische Muster",
     }
@@ -101,6 +103,7 @@ class VectorStore:
         assessment: str,
         errors: list[dict[str, Any]] | None = None,
         ruleset_id: str = "DE_USTG",
+        chunking_config: ChunkingConfig | dict | None = None,
     ):
         """
         Fügt validiertes Rechnungsbeispiel hinzu.
@@ -112,6 +115,7 @@ class VectorStore:
             assessment: Bewertung (ok, review_needed, rejected)
             errors: Gefundene Fehler
             ruleset_id: Ruleset
+            chunking_config: Optional Chunking-Konfiguration
         """
         collection = self._get_collection("invoices")
 
@@ -138,6 +142,96 @@ class VectorStore:
 
         logger.info(f"Added invoice example: {document_id}")
 
+        # Chunking hinzufügen wenn konfiguriert
+        if chunking_config and raw_text:
+            self._add_invoice_chunks(
+                document_id=document_id,
+                raw_text=raw_text,
+                extracted_data=extracted_data,
+                ruleset_id=ruleset_id,
+                assessment=assessment,
+                chunking_config=chunking_config,
+            )
+
+    def _add_invoice_chunks(
+        self,
+        document_id: str,
+        raw_text: str,
+        extracted_data: dict[str, Any],
+        ruleset_id: str,
+        assessment: str,
+        chunking_config: ChunkingConfig | dict,
+    ):
+        """
+        Fügt Text-Chunks für granulare Suche hinzu.
+
+        Args:
+            document_id: Dokument-ID
+            raw_text: Roh-Text
+            extracted_data: Extrahierte Felder
+            ruleset_id: Ruleset
+            assessment: Bewertung
+            chunking_config: Chunking-Konfiguration
+        """
+        # Config normalisieren
+        if isinstance(chunking_config, dict):
+            config = ChunkingConfig.from_dict(chunking_config)
+        else:
+            config = chunking_config
+
+        # Chunker erstellen und Text aufteilen
+        chunker = TextChunker(config)
+        chunks = chunker.chunk_text(raw_text)
+
+        if not chunks:
+            logger.debug(f"No chunks generated for document {document_id}")
+            return
+
+        collection = self._get_collection("invoice_chunks")
+
+        # Chunk-IDs und Daten vorbereiten
+        chunk_ids = []
+        embeddings = []
+        documents = []
+        metadatas = []
+
+        for chunk in chunks:
+            chunk_id = f"{document_id}_chunk_{chunk.index}"
+            chunk_ids.append(chunk_id)
+
+            # Embedding für Chunk
+            embedding = self._embedding_model.embed_text(chunk.text)
+            embeddings.append(embedding)
+            documents.append(chunk.text)
+
+            # Chunk-Metadaten
+            metadatas.append({
+                "parent_document_id": document_id,
+                "chunk_index": chunk.index,
+                "total_chunks": chunk.total_chunks,
+                "token_count": chunk.token_count,
+                "start_char": chunk.start_char,
+                "end_char": chunk.end_char,
+                "ruleset_id": ruleset_id,
+                "assessment": assessment,
+                # Strukturierte Daten für Kontext
+                "supplier": str(extracted_data.get("supplier_name_address", ""))[:100],
+                "amount": str(extracted_data.get("gross_amount", "")),
+            })
+
+        # Batch-Insert
+        collection.upsert(
+            ids=chunk_ids,
+            embeddings=embeddings,
+            documents=documents,
+            metadatas=metadatas,
+        )
+
+        logger.info(
+            f"Added {len(chunks)} chunks for document {document_id} "
+            f"(strategy: {config.strategy.value})"
+        )
+
     def find_similar_invoices(
         self,
         raw_text: str,
@@ -161,6 +255,41 @@ class VectorStore:
 
         embed_text = self._prepare_invoice_embed_text(raw_text, extracted_data)
         embedding = self._embedding_model.embed_text(embed_text)
+
+        # Where-Filter
+        where_filter = None
+        if ruleset_id:
+            where_filter = {"ruleset_id": ruleset_id}
+
+        results = collection.query(
+            query_embeddings=[embedding],
+            n_results=n_results,
+            where=where_filter,
+            include=["documents", "metadatas", "distances"],
+        )
+
+        return self._parse_results(results)
+
+    def find_similar_chunks(
+        self,
+        query_text: str,
+        n_results: int = 10,
+        ruleset_id: str | None = None,
+    ) -> list[SearchResult]:
+        """
+        Findet ähnliche Text-Chunks.
+
+        Args:
+            query_text: Suchtext
+            n_results: Anzahl Ergebnisse
+            ruleset_id: Filter nach Ruleset
+
+        Returns:
+            Liste von SearchResult mit Chunk-Metadaten
+        """
+        collection = self._get_collection("invoice_chunks")
+
+        embedding = self._embedding_model.embed_text(query_text)
 
         # Where-Filter
         where_filter = None

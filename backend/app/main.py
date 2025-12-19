@@ -16,6 +16,7 @@ from fastapi.responses import JSONResponse
 
 from app import __description__, __version__
 from app.api import (
+    document_types,
     documents,
     export,
     feedback,
@@ -138,6 +139,7 @@ async def global_exception_handler(request: Request, exc: Exception) -> JSONResp
 app.include_router(user_auth.router, prefix="/api", tags=["Authentication"])
 app.include_router(health.router, prefix="/api", tags=["Health"])
 app.include_router(settings.router, prefix="/api", tags=["Settings"])
+app.include_router(document_types.router, prefix="/api", tags=["Document Types"])
 app.include_router(rulesets.router, prefix="/api", tags=["Rulesets"])
 app.include_router(ruleset_samples.router, prefix="/api", tags=["Ruleset Samples"])
 app.include_router(projects.router, prefix="/api", tags=["Projects"])

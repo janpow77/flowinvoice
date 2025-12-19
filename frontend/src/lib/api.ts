@@ -500,6 +500,92 @@ export const api = {
     return response.data
   },
 
+  // Document Types
+  getDocumentTypes: async () => {
+    const response = await apiClient.get('/settings/document-types')
+    // Map backend format to frontend format
+    return (response.data.data || []).map((dt: Record<string, unknown>) => ({
+      id: dt.id,
+      name: dt.name,
+      slug: dt.slug,
+      description: dt.description || '',
+      isSystem: dt.is_system,
+      chunkingDefaults: {
+        chunkSizeTokens: dt.chunk_size_tokens,
+        chunkOverlapTokens: dt.chunk_overlap_tokens,
+        maxChunks: dt.max_chunks,
+        chunkStrategy: dt.chunk_strategy,
+      },
+      createdAt: dt.created_at,
+      updatedAt: dt.updated_at,
+    }))
+  },
+
+  createDocumentType: async (data: {
+    name: string
+    slug: string
+    description?: string
+    chunk_size_tokens?: number
+    chunk_overlap_tokens?: number
+    max_chunks?: number
+    chunk_strategy?: string
+  }) => {
+    const response = await apiClient.post('/settings/document-types', data, {
+      headers: { 'X-Role': 'admin' },
+    })
+    const dt = response.data
+    return {
+      id: dt.id,
+      name: dt.name,
+      slug: dt.slug,
+      description: dt.description || '',
+      isSystem: dt.is_system,
+      chunkingDefaults: {
+        chunkSizeTokens: dt.chunk_size_tokens,
+        chunkOverlapTokens: dt.chunk_overlap_tokens,
+        maxChunks: dt.max_chunks,
+        chunkStrategy: dt.chunk_strategy,
+      },
+      createdAt: dt.created_at,
+      updatedAt: dt.updated_at,
+    }
+  },
+
+  updateDocumentType: async (id: string, data: {
+    name?: string
+    description?: string
+    chunk_size_tokens?: number
+    chunk_overlap_tokens?: number
+    max_chunks?: number
+    chunk_strategy?: string
+  }) => {
+    const response = await apiClient.put(`/settings/document-types/${id}`, data, {
+      headers: { 'X-Role': 'admin' },
+    })
+    const dt = response.data
+    return {
+      id: dt.id,
+      name: dt.name,
+      slug: dt.slug,
+      description: dt.description || '',
+      isSystem: dt.is_system,
+      chunkingDefaults: {
+        chunkSizeTokens: dt.chunk_size_tokens,
+        chunkOverlapTokens: dt.chunk_overlap_tokens,
+        maxChunks: dt.max_chunks,
+        chunkStrategy: dt.chunk_strategy,
+      },
+      createdAt: dt.created_at,
+      updatedAt: dt.updated_at,
+    }
+  },
+
+  deleteDocumentType: async (id: string) => {
+    await apiClient.delete(`/settings/document-types/${id}`, {
+      headers: { 'X-Role': 'admin' },
+    })
+  },
+
   // Generator
   getGeneratorTemplates: async () => {
     const response = await apiClient.get('/generator/templates')

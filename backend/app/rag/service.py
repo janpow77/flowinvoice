@@ -256,6 +256,7 @@ Muster ({pattern_type}):
         final_assessment: str,
         corrections: list[dict[str, Any]] | None = None,
         ruleset_id: str = "DE_USTG",
+        chunking_config: dict | None = None,
     ):
         """
         Lernt aus validierter Rechnung.
@@ -266,8 +267,9 @@ Muster ({pattern_type}):
             final_assessment: Finale Bewertung
             corrections: Korrekturen durch Benutzer
             ruleset_id: Ruleset
+            chunking_config: Optional Chunking-Konfiguration vom Dokumenttyp
         """
-        # Rechnung als Beispiel speichern
+        # Rechnung als Beispiel speichern (mit optionalem Chunking)
         self._vectorstore.add_invoice_example(
             document_id=document_id,
             raw_text=parse_result.raw_text,
@@ -277,6 +279,7 @@ Muster ({pattern_type}):
             assessment=final_assessment,
             errors=corrections,
             ruleset_id=ruleset_id,
+            chunking_config=chunking_config,
         )
 
         # Korrekturen als Fehlerbeispiele speichern

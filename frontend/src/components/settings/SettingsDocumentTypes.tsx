@@ -2,10 +2,12 @@
  * SettingsDocumentTypes - Dokumenttypen & Chunking (Admin)
  *
  * Verwaltung von Dokumenttypen und deren Chunking-Defaults.
+ * Daten werden vom Backend geladen und gespeichert.
  */
 
-import { useState, useEffect } from 'react'
+import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import clsx from 'clsx'
 import {
   FileText,
@@ -18,11 +20,12 @@ import {
   Info,
   ChevronRight,
   Lock,
+  Loader2,
+  AlertTriangle,
 } from 'lucide-react'
+import api from '@/lib/api'
 import {
   DocumentTypeConfig,
-  ChunkingConfig,
-  DEFAULT_DOCUMENT_TYPES,
   generateSlug,
 } from '@/lib/settings-types'
 
@@ -30,38 +33,74 @@ interface Props {
   isAdmin: boolean
 }
 
-const STORAGE_KEY = 'flowaudit_document_types'
-
 export function SettingsDocumentTypes({ isAdmin }: Props) {
   useTranslation() // Hook for future i18n
-  const [documentTypes, setDocumentTypes] = useState<DocumentTypeConfig[]>([])
+  const queryClient = useQueryClient()
   const [selectedTypeId, setSelectedTypeId] = useState<string | null>(null)
   const [isEditing, setIsEditing] = useState(false)
   const [isCreating, setIsCreating] = useState(false)
   const [editForm, setEditForm] = useState<Partial<DocumentTypeConfig> | null>(null)
   const [deleteConfirm, setDeleteConfirm] = useState<string | null>(null)
 
-  // Load from localStorage
-  useEffect(() => {
-    const stored = localStorage.getItem(STORAGE_KEY)
-    if (stored) {
-      try {
-        setDocumentTypes(JSON.parse(stored))
-      } catch {
-        setDocumentTypes(DEFAULT_DOCUMENT_TYPES)
+  // Load document types from backend
+  const { data: documentTypes = [], isLoading, error } = useQuery({
+    queryKey: ['documentTypes'],
+    queryFn: api.getDocumentTypes,
+  })
+
+  // Create mutation
+  const createMutation = useMutation({
+    mutationFn: (data: {
+      name: string
+      slug: string
+      description?: string
+      chunk_size_tokens?: number
+      chunk_overlap_tokens?: number
+      max_chunks?: number
+      chunk_strategy?: string
+    }) => api.createDocumentType(data),
+    onSuccess: (newType) => {
+      queryClient.invalidateQueries({ queryKey: ['documentTypes'] })
+      setSelectedTypeId(newType.id)
+      setIsEditing(false)
+      setIsCreating(false)
+      setEditForm(null)
+    },
+  })
+
+  // Update mutation
+  const updateMutation = useMutation({
+    mutationFn: ({ id, data }: {
+      id: string
+      data: {
+        name?: string
+        description?: string
+        chunk_size_tokens?: number
+        chunk_overlap_tokens?: number
+        max_chunks?: number
+        chunk_strategy?: string
       }
-    } else {
-      setDocumentTypes(DEFAULT_DOCUMENT_TYPES)
-    }
-  }, [])
+    }) => api.updateDocumentType(id, data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['documentTypes'] })
+      setIsEditing(false)
+      setEditForm(null)
+    },
+  })
 
-  // Save to localStorage
-  const saveDocumentTypes = (types: DocumentTypeConfig[]) => {
-    setDocumentTypes(types)
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(types))
-  }
+  // Delete mutation
+  const deleteMutation = useMutation({
+    mutationFn: (id: string) => api.deleteDocumentType(id),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['documentTypes'] })
+      setDeleteConfirm(null)
+      if (selectedTypeId === deleteConfirm) {
+        setSelectedTypeId(null)
+      }
+    },
+  })
 
-  const selectedType = documentTypes.find(dt => dt.id === selectedTypeId)
+  const selectedType = documentTypes.find((dt: DocumentTypeConfig) => dt.id === selectedTypeId)
 
   const handleCreate = () => {
     setIsCreating(true)
@@ -89,36 +128,36 @@ export function SettingsDocumentTypes({ isAdmin }: Props) {
     if (!editForm || !editForm.name) return
 
     if (isCreating) {
-      const newType: DocumentTypeConfig = {
-        id: generateSlug(editForm.name),
-        name: editForm.name,
-        slug: generateSlug(editForm.name),
-        description: editForm.description || '',
-        isSystem: false,
-        chunkingDefaults: editForm.chunkingDefaults as ChunkingConfig,
-        createdAt: new Date().toISOString(),
-      }
+      const slug = generateSlug(editForm.name)
 
       // Check for duplicates
-      if (documentTypes.some(dt => dt.id === newType.id)) {
+      if (documentTypes.some((dt: DocumentTypeConfig) => dt.slug === slug)) {
         alert('Ein Dokumenttyp mit diesem Namen existiert bereits.')
         return
       }
 
-      saveDocumentTypes([...documentTypes, newType])
-      setSelectedTypeId(newType.id)
+      createMutation.mutate({
+        name: editForm.name,
+        slug: slug,
+        description: editForm.description || '',
+        chunk_size_tokens: editForm.chunkingDefaults?.chunkSizeTokens,
+        chunk_overlap_tokens: editForm.chunkingDefaults?.chunkOverlapTokens,
+        max_chunks: editForm.chunkingDefaults?.maxChunks,
+        chunk_strategy: editForm.chunkingDefaults?.chunkStrategy,
+      })
     } else if (selectedTypeId) {
-      const updated = documentTypes.map(dt =>
-        dt.id === selectedTypeId
-          ? { ...dt, ...editForm, updatedAt: new Date().toISOString() }
-          : dt
-      )
-      saveDocumentTypes(updated)
+      updateMutation.mutate({
+        id: selectedTypeId,
+        data: {
+          name: editForm.name,
+          description: editForm.description || '',
+          chunk_size_tokens: editForm.chunkingDefaults?.chunkSizeTokens,
+          chunk_overlap_tokens: editForm.chunkingDefaults?.chunkOverlapTokens,
+          max_chunks: editForm.chunkingDefaults?.maxChunks,
+          chunk_strategy: editForm.chunkingDefaults?.chunkStrategy,
+        },
+      })
     }
-
-    setIsEditing(false)
-    setIsCreating(false)
-    setEditForm(null)
   }
 
   const handleCancel = () => {
@@ -128,15 +167,41 @@ export function SettingsDocumentTypes({ isAdmin }: Props) {
   }
 
   const handleDelete = (id: string) => {
-    const type = documentTypes.find(dt => dt.id === id)
+    const type = documentTypes.find((dt: DocumentTypeConfig) => dt.id === id)
     if (type?.isSystem) return
+    deleteMutation.mutate(id)
+  }
 
-    const updated = documentTypes.filter(dt => dt.id !== id)
-    saveDocumentTypes(updated)
-    setDeleteConfirm(null)
-    if (selectedTypeId === id) {
-      setSelectedTypeId(null)
-    }
+  const isSaving = createMutation.isPending || updateMutation.isPending
+  const isDeleting = deleteMutation.isPending
+
+  // Loading state
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center py-12">
+        <Loader2 className="h-8 w-8 animate-spin text-primary-600" />
+        <span className="ml-2 text-gray-600 dark:text-gray-400">Lade Dokumenttypen...</span>
+      </div>
+    )
+  }
+
+  // Error state
+  if (error) {
+    return (
+      <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg p-4">
+        <div className="flex items-start gap-3">
+          <AlertTriangle className="h-5 w-5 text-red-600 mt-0.5" />
+          <div>
+            <p className="font-medium text-red-800 dark:text-red-300">
+              Fehler beim Laden der Dokumenttypen
+            </p>
+            <p className="text-sm text-red-600 dark:text-red-400 mt-1">
+              {error instanceof Error ? error.message : 'Unbekannter Fehler'}
+            </p>
+          </div>
+        </div>
+      </div>
+    )
   }
 
   return (
@@ -173,7 +238,7 @@ export function SettingsDocumentTypes({ isAdmin }: Props) {
               )}
             </div>
             <div className="divide-y divide-gray-200 dark:divide-gray-700">
-              {documentTypes.map((type) => (
+              {documentTypes.map((type: DocumentTypeConfig) => (
                 <button
                   key={type.id}
                   onClick={() => {
@@ -224,15 +289,21 @@ export function SettingsDocumentTypes({ isAdmin }: Props) {
                 <div className="flex items-center gap-2">
                   <button
                     onClick={handleCancel}
-                    className="px-3 py-1.5 text-gray-600 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg"
+                    disabled={isSaving}
+                    className="px-3 py-1.5 text-gray-600 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg disabled:opacity-50"
                   >
                     <X className="h-4 w-4" />
                   </button>
                   <button
                     onClick={handleSave}
-                    className="px-3 py-1.5 bg-primary-600 text-white rounded-lg hover:bg-primary-700 flex items-center gap-1"
+                    disabled={isSaving}
+                    className="px-3 py-1.5 bg-primary-600 text-white rounded-lg hover:bg-primary-700 flex items-center gap-1 disabled:opacity-50"
                   >
-                    <Save className="h-4 w-4" />
+                    {isSaving ? (
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                    ) : (
+                      <Save className="h-4 w-4" />
+                    )}
                     Speichern
                   </button>
                 </div>
@@ -458,8 +529,10 @@ export function SettingsDocumentTypes({ isAdmin }: Props) {
                       <div className="mt-3 flex gap-2">
                         <button
                           onClick={() => handleDelete(selectedType.id)}
-                          className="px-3 py-1.5 bg-red-600 text-white rounded-lg hover:bg-red-700 text-sm"
+                          disabled={isDeleting}
+                          className="px-3 py-1.5 bg-red-600 text-white rounded-lg hover:bg-red-700 text-sm flex items-center gap-1 disabled:opacity-50"
                         >
+                          {isDeleting && <Loader2 className="h-4 w-4 animate-spin" />}
                           Ja, löschen
                         </button>
                         <button

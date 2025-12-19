@@ -15,6 +15,7 @@ from app.models.result import AnalysisResult, FinalResult
 from app.models.ruleset import Ruleset
 from app.models.ruleset_sample import RulesetSample
 from app.models.settings import ApiKey, Setting
+from app.models.document_type import DocumentTypeSettings
 from app.models.training import ModelRegistry, TrainingDataset, TrainingExample, TrainingRun
 from app.models.user import User
 
@@ -44,6 +45,7 @@ __all__ = [
     # Settings
     "Setting",
     "ApiKey",
+    "DocumentTypeSettings",
     # Export
     "ExportJob",
     "GeneratorJob",
