@@ -279,6 +279,7 @@ async def search_rag(data: RagSearchRequest) -> RagSearchResponse:
             feature_id="",
             context_text=data.query,
             n_results=data.n_results,
+            ruleset_id=data.ruleset_id,
         )
     elif data.collection_type == "patterns":
         results = vectorstore.find_matching_patterns(

@@ -105,6 +105,7 @@ class RAGService:
                 feature_id=error.feature_id,
                 context_text=parse_result.raw_text[:500],
                 n_results=2,
+                ruleset_id=precheck_result.ruleset_id,
             )
 
             for result in error_results:

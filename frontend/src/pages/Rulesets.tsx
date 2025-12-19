@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useCallback } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { useTranslation } from 'react-i18next'
 import {
@@ -17,6 +17,12 @@ import {
   Code2,
   Copy,
   Check,
+  Upload,
+  File,
+  CheckCircle,
+  XCircle,
+  Clock,
+  RefreshCw,
 } from 'lucide-react'
 import clsx from 'clsx'
 import { api } from '@/lib/api'
@@ -80,6 +86,37 @@ interface RulesetListItem {
 }
 
 type ViewMode = 'list' | 'detail' | 'edit' | 'create'
+type SampleStatus = 'UPLOADED' | 'PROCESSING' | 'PENDING_REVIEW' | 'APPROVED' | 'REJECTED'
+
+interface RulesetSample {
+  id: string
+  ruleset_id: string
+  ruleset_version: string
+  filename: string
+  description: string | null
+  status: SampleStatus
+  extracted_data: Record<string, unknown> | null
+  ground_truth: Record<string, unknown> | null
+  rejection_reason: string | null
+  created_at: string
+  updated_at: string
+}
+
+const SAMPLE_STATUS_COLORS: Record<SampleStatus, string> = {
+  UPLOADED: 'bg-gray-100 text-gray-700 border-gray-200',
+  PROCESSING: 'bg-blue-100 text-blue-700 border-blue-200',
+  PENDING_REVIEW: 'bg-yellow-100 text-yellow-700 border-yellow-200',
+  APPROVED: 'bg-green-100 text-green-700 border-green-200',
+  REJECTED: 'bg-red-100 text-red-700 border-red-200',
+}
+
+const SAMPLE_STATUS_ICONS: Record<SampleStatus, React.ComponentType<{ className?: string }>> = {
+  UPLOADED: Clock,
+  PROCESSING: RefreshCw,
+  PENDING_REVIEW: AlertCircle,
+  APPROVED: CheckCircle,
+  REJECTED: XCircle,
+}
 
 const REQUIRED_LEVEL_COLORS = {
   REQUIRED: 'bg-red-100 text-red-700 border-red-200',
@@ -107,6 +144,13 @@ export default function Rulesets() {
   const [showLlmSchema, setShowLlmSchema] = useState(false)
   const [copiedField, setCopiedField] = useState<string | null>(null)
 
+  // Sample management state
+  const [showSamples, setShowSamples] = useState(false)
+  const [selectedSample, setSelectedSample] = useState<RulesetSample | null>(null)
+  const [groundTruthEdit, setGroundTruthEdit] = useState<Record<string, unknown> | null>(null)
+  const [isDragging, setIsDragging] = useState(false)
+  const [uploadError, setUploadError] = useState<string | null>(null)
+
   // Fetch rulesets list
   const { data: rulesets, isLoading, error } = useQuery({
     queryKey: ['rulesets'],
@@ -125,6 +169,65 @@ export default function Rulesets() {
     queryKey: ['ruleset-llm-schema', selectedRuleset?.ruleset_id, selectedRuleset?.version],
     queryFn: () => api.getRulesetLlmSchema(selectedRuleset!.ruleset_id, selectedRuleset?.version),
     enabled: !!selectedRuleset?.ruleset_id && showLlmSchema,
+  })
+
+  // Fetch samples for ruleset
+  const { data: samples, isLoading: isLoadingSamples, refetch: refetchSamples } = useQuery({
+    queryKey: ['ruleset-samples', selectedRuleset?.ruleset_id],
+    queryFn: () => api.getRulesetSamples(selectedRuleset!.ruleset_id),
+    enabled: !!selectedRuleset?.ruleset_id && showSamples,
+  })
+
+  // Upload sample mutation
+  const uploadSampleMutation = useMutation({
+    mutationFn: ({ rulesetId, file, description }: { rulesetId: string; file: File; description?: string }) =>
+      api.uploadRulesetSample(rulesetId, file, description),
+    onSuccess: () => {
+      refetchSamples()
+      setUploadError(null)
+    },
+    onError: (error: Error) => {
+      setUploadError(error.message)
+    },
+  })
+
+  // Update sample ground truth mutation
+  const updateSampleMutation = useMutation({
+    mutationFn: ({ sampleId, data }: { sampleId: string; data: { ground_truth?: Record<string, unknown>; description?: string } }) =>
+      api.updateRulesetSample(selectedRuleset!.ruleset_id, sampleId, data),
+    onSuccess: (updatedSample) => {
+      setSelectedSample(updatedSample)
+      refetchSamples()
+    },
+  })
+
+  // Approve sample mutation
+  const approveSampleMutation = useMutation({
+    mutationFn: ({ sampleId, groundTruth }: { sampleId: string; groundTruth?: Record<string, unknown> }) =>
+      api.approveRulesetSample(selectedRuleset!.ruleset_id, sampleId, groundTruth),
+    onSuccess: () => {
+      setSelectedSample(null)
+      refetchSamples()
+    },
+  })
+
+  // Reject sample mutation
+  const rejectSampleMutation = useMutation({
+    mutationFn: ({ sampleId, reason }: { sampleId: string; reason: string }) =>
+      api.rejectRulesetSample(selectedRuleset!.ruleset_id, sampleId, reason),
+    onSuccess: () => {
+      setSelectedSample(null)
+      refetchSamples()
+    },
+  })
+
+  // Delete sample mutation
+  const deleteSampleMutation = useMutation({
+    mutationFn: (sampleId: string) => api.deleteRulesetSample(selectedRuleset!.ruleset_id, sampleId),
+    onSuccess: () => {
+      setSelectedSample(null)
+      refetchSamples()
+    },
   })
 
   // Create ruleset mutation
@@ -238,6 +341,80 @@ export default function Rulesets() {
     await navigator.clipboard.writeText(text)
     setCopiedField(field)
     setTimeout(() => setCopiedField(null), 2000)
+  }
+
+  // Drag and drop handlers for sample upload
+  const handleDragOver = useCallback((e: React.DragEvent) => {
+    e.preventDefault()
+    setIsDragging(true)
+  }, [])
+
+  const handleDragLeave = useCallback((e: React.DragEvent) => {
+    e.preventDefault()
+    setIsDragging(false)
+  }, [])
+
+  const handleDrop = useCallback((e: React.DragEvent) => {
+    e.preventDefault()
+    setIsDragging(false)
+
+    const files = Array.from(e.dataTransfer.files)
+    const pdfFiles = files.filter(f => f.type === 'application/pdf')
+
+    if (pdfFiles.length > 0 && selectedRuleset) {
+      pdfFiles.forEach(file => {
+        uploadSampleMutation.mutate({ rulesetId: selectedRuleset.ruleset_id, file })
+      })
+    } else if (files.length > 0) {
+      setUploadError(t('samples.onlyPdfAllowed'))
+    }
+  }, [selectedRuleset, uploadSampleMutation, t])
+
+  const handleFileSelect = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files
+    if (files && selectedRuleset) {
+      Array.from(files).forEach(file => {
+        if (file.type === 'application/pdf') {
+          uploadSampleMutation.mutate({ rulesetId: selectedRuleset.ruleset_id, file })
+        } else {
+          setUploadError(t('samples.onlyPdfAllowed'))
+        }
+      })
+    }
+    e.target.value = ''
+  }, [selectedRuleset, uploadSampleMutation, t])
+
+  const handleOpenSampleReview = (sample: RulesetSample) => {
+    setSelectedSample(sample)
+    setGroundTruthEdit(sample.ground_truth || sample.extracted_data || {})
+  }
+
+  const handleSaveGroundTruth = () => {
+    if (selectedSample && groundTruthEdit) {
+      updateSampleMutation.mutate({
+        sampleId: selectedSample.id,
+        data: { ground_truth: groundTruthEdit },
+      })
+    }
+  }
+
+  const handleApproveSample = () => {
+    if (selectedSample) {
+      approveSampleMutation.mutate({
+        sampleId: selectedSample.id,
+        groundTruth: groundTruthEdit || undefined,
+      })
+    }
+  }
+
+  const handleRejectSample = () => {
+    const reason = prompt(t('samples.enterRejectionReason'))
+    if (selectedSample && reason) {
+      rejectSampleMutation.mutate({
+        sampleId: selectedSample.id,
+        reason,
+      })
+    }
   }
 
   // Loading state
@@ -379,6 +556,13 @@ export default function Rulesets() {
             </div>
           </div>
           <div className="flex items-center gap-2">
+            <button
+              onClick={() => setShowSamples(true)}
+              className="flex items-center px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors"
+            >
+              <FileText className="h-5 w-5 mr-2" />
+              {t('samples.title')}
+            </button>
             <button
               onClick={() => setShowLlmSchema(true)}
               className="flex items-center px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors"
@@ -634,6 +818,317 @@ export default function Rulesets() {
                 >
                   {t('common.close')}
                 </button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Samples Modal */}
+        {showSamples && (
+          <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+            <div className="bg-white rounded-xl shadow-xl max-w-4xl w-full max-h-[90vh] overflow-hidden flex flex-col">
+              {/* Modal Header */}
+              <div className="flex items-center justify-between px-6 py-4 border-b border-gray-200">
+                <div className="flex items-center gap-3">
+                  <FileText className="h-6 w-6 text-primary-600" />
+                  <div>
+                    <h3 className="text-lg font-semibold text-gray-900">
+                      {t('samples.title')}
+                    </h3>
+                    <p className="text-sm text-gray-500">
+                      {ruleset.ruleset_id} v{ruleset.version}
+                    </p>
+                  </div>
+                </div>
+                <button
+                  onClick={() => setShowSamples(false)}
+                  className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
+                >
+                  <X className="h-5 w-5 text-gray-500" />
+                </button>
+              </div>
+
+              {/* Modal Content */}
+              <div className="flex-1 overflow-auto p-6 space-y-6">
+                {/* Upload Area */}
+                <div
+                  onDragOver={handleDragOver}
+                  onDragLeave={handleDragLeave}
+                  onDrop={handleDrop}
+                  className={clsx(
+                    'border-2 border-dashed rounded-lg p-8 text-center transition-colors',
+                    isDragging
+                      ? 'border-primary-500 bg-primary-50'
+                      : 'border-gray-300 hover:border-gray-400'
+                  )}
+                >
+                  <Upload className={clsx(
+                    'h-12 w-12 mx-auto mb-4',
+                    isDragging ? 'text-primary-500' : 'text-gray-400'
+                  )} />
+                  <p className="text-gray-600 mb-2">
+                    {t('samples.dragDropHint')}
+                  </p>
+                  <label className="inline-flex items-center px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 cursor-pointer transition-colors">
+                    <input
+                      type="file"
+                      accept=".pdf"
+                      multiple
+                      className="hidden"
+                      onChange={handleFileSelect}
+                    />
+                    {t('samples.selectFile')}
+                  </label>
+                  <p className="text-xs text-gray-500 mt-2">
+                    {t('samples.onlyPdfAllowed')}
+                  </p>
+                </div>
+
+                {/* Upload Error */}
+                {uploadError && (
+                  <div className="bg-red-50 border border-red-200 rounded-lg p-4 flex items-center text-sm text-red-600">
+                    <AlertCircle className="h-4 w-4 mr-2 flex-shrink-0" />
+                    {uploadError}
+                    <button
+                      onClick={() => setUploadError(null)}
+                      className="ml-auto p-1 hover:bg-red-100 rounded"
+                    >
+                      <X className="h-4 w-4" />
+                    </button>
+                  </div>
+                )}
+
+                {/* Uploading indicator */}
+                {uploadSampleMutation.isPending && (
+                  <div className="flex items-center gap-2 text-sm text-gray-600">
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                    {t('samples.uploading')}
+                  </div>
+                )}
+
+                {/* Samples List */}
+                <div>
+                  <h4 className="font-semibold text-gray-900 mb-3">
+                    {t('samples.existingSamples')} ({samples?.length || 0})
+                  </h4>
+
+                  {isLoadingSamples ? (
+                    <div className="flex items-center justify-center py-8">
+                      <Loader2 className="h-6 w-6 text-primary-600 animate-spin" />
+                    </div>
+                  ) : samples && samples.length > 0 ? (
+                    <div className="space-y-2">
+                      {samples.map((sample: RulesetSample) => {
+                        const StatusIcon = SAMPLE_STATUS_ICONS[sample.status]
+                        return (
+                          <div
+                            key={sample.id}
+                            className="flex items-center justify-between p-4 border border-gray-200 rounded-lg hover:bg-gray-50"
+                          >
+                            <div className="flex items-center gap-3">
+                              <File className="h-8 w-8 text-red-500" />
+                              <div>
+                                <p className="font-medium text-gray-900">{sample.filename}</p>
+                                <p className="text-xs text-gray-500">
+                                  {new Date(sample.created_at).toLocaleDateString()}
+                                  {sample.description && ` • ${sample.description}`}
+                                </p>
+                              </div>
+                            </div>
+                            <div className="flex items-center gap-2">
+                              <span
+                                className={clsx(
+                                  'flex items-center gap-1 px-2 py-0.5 text-xs font-medium rounded border',
+                                  SAMPLE_STATUS_COLORS[sample.status]
+                                )}
+                              >
+                                <StatusIcon className="h-3 w-3" />
+                                {t(`samples.status.${sample.status.toLowerCase()}`)}
+                              </span>
+                              {(sample.status === 'PENDING_REVIEW' || sample.status === 'APPROVED') && (
+                                <button
+                                  onClick={() => handleOpenSampleReview(sample)}
+                                  className="p-1.5 text-primary-600 hover:bg-primary-50 rounded transition-colors"
+                                  title={t('samples.review')}
+                                >
+                                  <Eye className="h-4 w-4" />
+                                </button>
+                              )}
+                              <button
+                                onClick={() => {
+                                  if (confirm(t('samples.confirmDelete'))) {
+                                    deleteSampleMutation.mutate(sample.id)
+                                  }
+                                }}
+                                className="p-1.5 text-red-600 hover:bg-red-50 rounded transition-colors"
+                                title={t('common.delete')}
+                              >
+                                <Trash2 className="h-4 w-4" />
+                              </button>
+                            </div>
+                          </div>
+                        )
+                      })}
+                    </div>
+                  ) : (
+                    <div className="text-center py-8 text-gray-500">
+                      <FileText className="h-12 w-12 mx-auto mb-2 text-gray-300" />
+                      <p>{t('samples.noSamples')}</p>
+                      <p className="text-xs mt-1">{t('samples.uploadHint')}</p>
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              {/* Modal Footer */}
+              <div className="flex items-center justify-end px-6 py-4 border-t border-gray-200 bg-gray-50">
+                <button
+                  onClick={() => setShowSamples(false)}
+                  className="px-4 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition-colors"
+                >
+                  {t('common.close')}
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Sample Review Modal */}
+        {selectedSample && (
+          <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+            <div className="bg-white rounded-xl shadow-xl max-w-3xl w-full max-h-[90vh] overflow-hidden flex flex-col">
+              {/* Modal Header */}
+              <div className="flex items-center justify-between px-6 py-4 border-b border-gray-200">
+                <div>
+                  <h3 className="text-lg font-semibold text-gray-900">
+                    {t('samples.reviewSample')}
+                  </h3>
+                  <p className="text-sm text-gray-500">{selectedSample.filename}</p>
+                </div>
+                <button
+                  onClick={() => setSelectedSample(null)}
+                  className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
+                >
+                  <X className="h-5 w-5 text-gray-500" />
+                </button>
+              </div>
+
+              {/* Modal Content */}
+              <div className="flex-1 overflow-auto p-6 space-y-4">
+                {/* Status */}
+                <div className="flex items-center gap-2">
+                  <span className="text-sm text-gray-600">{t('samples.currentStatus')}:</span>
+                  <span
+                    className={clsx(
+                      'flex items-center gap-1 px-2 py-0.5 text-xs font-medium rounded border',
+                      SAMPLE_STATUS_COLORS[selectedSample.status]
+                    )}
+                  >
+                    {t(`samples.status.${selectedSample.status.toLowerCase()}`)}
+                  </span>
+                </div>
+
+                {/* Rejection Reason */}
+                {selectedSample.rejection_reason && (
+                  <div className="bg-red-50 border border-red-200 rounded-lg p-3">
+                    <p className="text-sm text-red-700">
+                      <strong>{t('samples.rejectionReason')}:</strong> {selectedSample.rejection_reason}
+                    </p>
+                  </div>
+                )}
+
+                {/* Ground Truth Editor */}
+                <div>
+                  <div className="flex items-center justify-between mb-2">
+                    <h4 className="font-semibold text-gray-900">{t('samples.groundTruth')}</h4>
+                    {selectedSample.status === 'PENDING_REVIEW' && (
+                      <button
+                        onClick={handleSaveGroundTruth}
+                        disabled={updateSampleMutation.isPending}
+                        className="flex items-center gap-1 px-3 py-1.5 text-sm bg-primary-600 text-white rounded-lg hover:bg-primary-700 disabled:opacity-50 transition-colors"
+                      >
+                        {updateSampleMutation.isPending ? (
+                          <Loader2 className="h-4 w-4 animate-spin" />
+                        ) : (
+                          <Save className="h-4 w-4" />
+                        )}
+                        {t('common.save')}
+                      </button>
+                    )}
+                  </div>
+
+                  <div className="bg-gray-50 border border-gray-200 rounded-lg p-4">
+                    {groundTruthEdit && Object.keys(groundTruthEdit).length > 0 ? (
+                      <div className="space-y-3">
+                        {Object.entries(groundTruthEdit).map(([key, value]) => (
+                          <div key={key} className="flex gap-2">
+                            <label className="w-1/3 text-sm font-medium text-gray-600 pt-2">
+                              {key}
+                            </label>
+                            <input
+                              type="text"
+                              value={String(value ?? '')}
+                              onChange={(e) =>
+                                setGroundTruthEdit({
+                                  ...groundTruthEdit,
+                                  [key]: e.target.value,
+                                })
+                              }
+                              disabled={selectedSample.status !== 'PENDING_REVIEW'}
+                              className="flex-1 px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 disabled:bg-gray-100 disabled:text-gray-500"
+                            />
+                          </div>
+                        ))}
+                      </div>
+                    ) : (
+                      <p className="text-sm text-gray-500 text-center py-4">
+                        {t('samples.noExtractedData')}
+                      </p>
+                    )}
+                  </div>
+                </div>
+              </div>
+
+              {/* Modal Footer */}
+              <div className="flex items-center justify-between px-6 py-4 border-t border-gray-200 bg-gray-50">
+                <div>
+                  {selectedSample.status === 'PENDING_REVIEW' && (
+                    <button
+                      onClick={handleRejectSample}
+                      disabled={rejectSampleMutation.isPending}
+                      className="flex items-center gap-1 px-4 py-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                    >
+                      {rejectSampleMutation.isPending ? (
+                        <Loader2 className="h-4 w-4 animate-spin" />
+                      ) : (
+                        <XCircle className="h-4 w-4" />
+                      )}
+                      {t('samples.reject')}
+                    </button>
+                  )}
+                </div>
+                <div className="flex items-center gap-2">
+                  <button
+                    onClick={() => setSelectedSample(null)}
+                    className="px-4 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition-colors"
+                  >
+                    {t('common.close')}
+                  </button>
+                  {selectedSample.status === 'PENDING_REVIEW' && (
+                    <button
+                      onClick={handleApproveSample}
+                      disabled={approveSampleMutation.isPending}
+                      className="flex items-center gap-1 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:opacity-50 transition-colors"
+                    >
+                      {approveSampleMutation.isPending ? (
+                        <Loader2 className="h-4 w-4 animate-spin" />
+                      ) : (
+                        <CheckCircle className="h-4 w-4" />
+                      )}
+                      {t('samples.approve')}
+                    </button>
+                  )}
+                </div>
               </div>
             </div>
           </div>

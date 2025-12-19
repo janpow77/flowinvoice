@@ -13,6 +13,7 @@ from app.models.llm import LlmRun, LlmRunLog, PreparePayload
 from app.models.project import Project
 from app.models.result import AnalysisResult, FinalResult
 from app.models.ruleset import Ruleset
+from app.models.ruleset_sample import RulesetSample
 from app.models.settings import ApiKey, Setting
 from app.models.training import ModelRegistry, TrainingDataset, TrainingExample, TrainingRun
 from app.models.user import User
@@ -20,6 +21,7 @@ from app.models.user import User
 __all__ = [
     # Core
     "Ruleset",
+    "RulesetSample",
     "Project",
     "Document",
     # Parsing

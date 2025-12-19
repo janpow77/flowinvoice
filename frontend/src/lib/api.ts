@@ -330,6 +330,67 @@ export const api = {
     return response.data
   },
 
+  // Ruleset Samples
+  getRulesetSamples: async (rulesetId: string) => {
+    const response = await apiClient.get(`/rulesets/${rulesetId}/samples`)
+    return response.data
+  },
+
+  getRulesetSample: async (rulesetId: string, sampleId: string) => {
+    const response = await apiClient.get(`/rulesets/${rulesetId}/samples/${sampleId}`)
+    return response.data
+  },
+
+  uploadRulesetSample: async (rulesetId: string, file: File, description?: string, version?: string) => {
+    const formData = new FormData()
+    formData.append('file', file)
+    if (description) formData.append('description', description)
+    if (version) formData.append('ruleset_version', version)
+
+    const response = await apiClient.post(`/rulesets/${rulesetId}/samples`, formData, {
+      headers: {
+        'Content-Type': 'multipart/form-data',
+        'X-Role': 'admin',
+      },
+    })
+    return response.data
+  },
+
+  updateRulesetSample: async (rulesetId: string, sampleId: string, data: {
+    description?: string
+    ground_truth?: Record<string, unknown>
+  }) => {
+    const response = await apiClient.put(`/rulesets/${rulesetId}/samples/${sampleId}`, data, {
+      headers: { 'X-Role': 'admin' },
+    })
+    return response.data
+  },
+
+  approveRulesetSample: async (rulesetId: string, sampleId: string, groundTruth?: Record<string, unknown>) => {
+    const response = await apiClient.post(
+      `/rulesets/${rulesetId}/samples/${sampleId}/approve`,
+      groundTruth ? { ground_truth: groundTruth } : {},
+      { headers: { 'X-Role': 'admin' } }
+    )
+    return response.data
+  },
+
+  rejectRulesetSample: async (rulesetId: string, sampleId: string, reason?: string) => {
+    const response = await apiClient.post(
+      `/rulesets/${rulesetId}/samples/${sampleId}/reject`,
+      reason ? { reason } : {},
+      { headers: { 'X-Role': 'admin' } }
+    )
+    return response.data
+  },
+
+  deleteRulesetSample: async (rulesetId: string, sampleId: string) => {
+    const response = await apiClient.delete(`/rulesets/${rulesetId}/samples/${sampleId}`, {
+      headers: { 'X-Role': 'admin' },
+    })
+    return response.data
+  },
+
   // Project Statistics
   getProjectStats: async (projectId: string) => {
     const response = await apiClient.get(`/projects/${projectId}/stats`)

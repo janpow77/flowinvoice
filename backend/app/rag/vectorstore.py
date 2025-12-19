@@ -260,6 +260,7 @@ Begründung: {reasoning}
         feature_id: str,
         context_text: str,
         n_results: int = 3,
+        ruleset_id: str | None = None,
     ) -> list[SearchResult]:
         """
         Findet ähnliche Fehlerbeispiele.
@@ -269,6 +270,7 @@ Begründung: {reasoning}
             feature_id: Feature-ID
             context_text: Kontext-Text
             n_results: Anzahl Ergebnisse
+            ruleset_id: Optional Ruleset-ID für Filterung
 
         Returns:
             Liste von SearchResult
@@ -282,8 +284,10 @@ Kontext: {context_text[:1000]}
 """
         embedding = self._embedding_model.embed_text(embed_text)
 
-        # Filter nach Feature
-        where_filter = {"feature_id": feature_id}
+        # Filter nach Feature und optional nach Ruleset
+        where_filter: dict[str, str] = {"feature_id": feature_id}
+        if ruleset_id:
+            where_filter = {"$and": [{"feature_id": feature_id}, {"ruleset_id": ruleset_id}]}
 
         results = collection.query(
             query_embeddings=[embedding],

@@ -291,3 +291,13 @@ class DataClassification(str, Enum):
     EXTRACTED_TEXT = "EXTRACTED_TEXT"  # Extrahierter Text
     ANALYSIS_RESULT = "ANALYSIS_RESULT"  # Analyseergebnisse (Audit-Trail)
     TRAINING_DATA = "TRAINING_DATA"  # Trainings-/Beispieldaten (RAG)
+
+
+class SampleStatus(str, Enum):
+    """Status eines Regelwerk-Musterdokuments."""
+
+    UPLOADED = "UPLOADED"  # Hochgeladen, noch nicht verarbeitet
+    PROCESSING = "PROCESSING"  # Wird geparst
+    PENDING_REVIEW = "PENDING_REVIEW"  # Extraktion fertig, wartet auf Review
+    APPROVED = "APPROVED"  # Ground Truth bestätigt, RAG-Beispiele erstellt
+    REJECTED = "REJECTED"  # Sample abgelehnt (schlechte Qualität)

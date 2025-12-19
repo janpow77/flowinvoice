@@ -25,6 +25,7 @@ from app.api import (
     projects,
     rag,
     rulesets,
+    ruleset_samples,
     settings,
     stats,
     system,
@@ -138,6 +139,7 @@ app.include_router(user_auth.router, prefix="/api", tags=["Authentication"])
 app.include_router(health.router, prefix="/api", tags=["Health"])
 app.include_router(settings.router, prefix="/api", tags=["Settings"])
 app.include_router(rulesets.router, prefix="/api", tags=["Rulesets"])
+app.include_router(ruleset_samples.router, prefix="/api", tags=["Ruleset Samples"])
 app.include_router(projects.router, prefix="/api", tags=["Projects"])
 app.include_router(documents.router, prefix="/api", tags=["Documents"])
 app.include_router(llm.router, prefix="/api", tags=["LLM"])
