@@ -157,6 +157,7 @@ services:
       - CELERY_CONCURRENCY=${CELERY_CONCURRENCY:-4}
     volumes:
       - ../data:/data
+      - ../backend/app:/app/app:ro
     depends_on:
       - db
       - redis

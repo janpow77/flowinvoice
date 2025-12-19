@@ -59,7 +59,7 @@ class Settings(BaseSettings):
 
     # Ollama (Local LLM)
     ollama_host: str = "http://localhost:11434"
-    ollama_default_model: str = "llama3.1:8b-instruct-q4"
+    ollama_default_model: str = "llama3.1:8b"
     ollama_timeout_sec: int = 120
 
     # External LLM Providers (optional)

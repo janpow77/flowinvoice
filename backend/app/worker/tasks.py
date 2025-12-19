@@ -271,7 +271,11 @@ async def _analyze_document_async(
                 semantic_check=analysis_result.semantic_check,
                 economic_check=analysis_result.economic_check,
                 beneficiary_match=analysis_result.beneficiary_match,
-                warnings=list(analysis_result.warnings),
+                # Convert warning dicts to strings for ARRAY(String) column
+                warnings=[
+                    w.get("message", str(w)) if isinstance(w, dict) else str(w)
+                    for w in analysis_result.warnings
+                ],
                 overall_assessment=analysis_result.overall_assessment,
                 confidence=analysis_result.confidence,
                 input_tokens=analysis_result.llm_response.input_tokens,

@@ -30,7 +30,7 @@ class OllamaProvider(BaseLLMProvider):
     """
 
     provider = Provider.LOCAL_OLLAMA
-    default_model = "llama3.2"
+    default_model = "llama3.1:8b"
 
     def __init__(self, base_url: str | None = None, timeout: int = 120):
         """
@@ -43,10 +43,17 @@ class OllamaProvider(BaseLLMProvider):
         settings = get_settings()
         self.base_url = base_url or settings.ollama_host
         self.timeout = timeout
-        self._client = httpx.AsyncClient(
-            base_url=self.base_url,
-            timeout=httpx.Timeout(timeout),
-        )
+        # Client wird lazy erstellt, um Event-Loop-Probleme in Celery zu vermeiden
+        self._client: httpx.AsyncClient | None = None
+
+    def _get_client(self) -> httpx.AsyncClient:
+        """Erstellt oder gibt den HTTP-Client zurück (lazy initialization)."""
+        if self._client is None or self._client.is_closed:
+            self._client = httpx.AsyncClient(
+                base_url=self.base_url,
+                timeout=httpx.Timeout(self.timeout),
+            )
+        return self._client
 
     async def complete(self, request: LLMRequest) -> LLMResponse:
         """
@@ -82,7 +89,8 @@ class OllamaProvider(BaseLLMProvider):
             if request.json_mode:
                 payload["format"] = "json"
 
-            response = await self._client.post("/api/chat", json=payload)
+            client = self._get_client()
+            response = await client.post("/api/chat", json=payload)
             response.raise_for_status()
 
             data = response.json()

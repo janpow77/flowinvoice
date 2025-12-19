@@ -32,7 +32,7 @@ from app.schemas.document import (
     PrecheckRunResponse,
 )
 from app.services.audit import get_audit_service
-from app.worker.tasks import process_document_task
+from app.worker.tasks import analyze_document_task, process_document_task
 
 router = APIRouter()
 audit = get_audit_service()
@@ -688,16 +688,8 @@ async def analyze_document(
             detail=f"Document {document_id} not found",
         )
 
-    # Prüfe ob Dokument geparst wurde
-    parse_run_result = await session.execute(
-        select(ParseRun)
-        .where(ParseRun.document_id == document_id)
-        .order_by(ParseRun.created_at.desc())
-        .limit(1)
-    )
-    parse_run = parse_run_result.scalar_one_or_none()
-
-    if not parse_run or not parse_run.raw_text:
+    # Prüfe ob Dokument geparst wurde (raw_text wird in Document gespeichert)
+    if not document.raw_text:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="Document must be parsed first before analysis",
@@ -727,7 +719,7 @@ async def analyze_document(
         },
         ui_language=document.ui_language,
         features=features_list,
-        extracted_text=parse_run.raw_text,
+        extracted_text=document.raw_text,
     )
     session.add(payload)
     await session.flush()
@@ -740,7 +732,8 @@ async def analyze_document(
         except ValueError:
             pass  # Fallback auf LOCAL_OLLAMA
 
-    model_name = model or "llama3.1:8b-instruct-q4"
+    settings = get_settings()
+    model_name = model or settings.ollama_default_model
 
     # LLM-Run erstellen
     llm_run = LlmRun(
@@ -755,7 +748,7 @@ async def analyze_document(
     await session.commit()
 
     # Celery Task für LLM-Analyse starten
-    task = process_document_task.delay(document_id)
+    task = analyze_document_task.delay(document_id, llm_provider.value, model_name)
 
     return {
         "document_id": document_id,
