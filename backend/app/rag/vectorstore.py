@@ -54,15 +54,16 @@ class VectorStore:
             persist_directory: Pfad für persistente Speicherung
         """
         settings = get_settings()
-        self.chroma_url = settings.chroma_url
+        self.chroma_host = settings.chroma_host
+        self.chroma_port = settings.chroma_port
         self.persist_directory = persist_directory
 
         # ChromaDB Client
-        if self.chroma_url:
-            # HTTP-Client für externe ChromaDB
+        if self.chroma_host:
+            # HTTP-Client für externe/Docker ChromaDB
             self._client = chromadb.HttpClient(
-                host=self.chroma_url.split("://")[1].split(":")[0],
-                port=int(self.chroma_url.split(":")[-1]),
+                host=self.chroma_host,
+                port=self.chroma_port,
             )
         else:
             # Lokaler Client

@@ -434,7 +434,7 @@ async def approve_sample(
         # Sample als Invoice-Beispiel hinzufügen
         example_id = f"sample_{sample.id}"
         vectorstore.add_invoice_example(
-            invoice_id=example_id,
+            document_id=example_id,
             raw_text=sample.raw_text or "",
             extracted_data=sample.ground_truth or {},
             assessment="ACCEPTED",

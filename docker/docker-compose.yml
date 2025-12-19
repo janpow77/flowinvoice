@@ -7,7 +7,7 @@ services:
   # PostgreSQL Database (mit pgvector für RAG-Embeddings)
   db:
     image: pgvector/pgvector:pg16
-    container_name: flowaudit-db
+    container_name: flowinvoice_db
     environment:
       POSTGRES_USER: flowaudit
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-flowaudit_secret}
@@ -27,7 +27,7 @@ services:
   # Redis for Task Queue and Caching
   redis:
     image: redis:7-alpine
-    container_name: flowaudit-redis
+    container_name: flowinvoice_redis
     command: redis-server --appendonly yes
     volumes:
       - redis_data:/data
@@ -43,7 +43,7 @@ services:
   # ChromaDB for RAG Vector Store
   chromadb:
     image: chromadb/chroma:latest
-    container_name: flowaudit-chromadb
+    container_name: flowinvoice_chromadb
     environment:
       CHROMA_SERVER_AUTH_CREDENTIALS_PROVIDER: chromadb.auth.token.TokenAuthCredentialsProvider
       CHROMA_SERVER_AUTH_TOKEN_TRANSPORT_HEADER: X-Chroma-Token
@@ -66,7 +66,7 @@ services:
     build:
       context: ./ollama
       dockerfile: Dockerfile
-    container_name: flowaudit-ollama
+    container_name: flowinvoice_ollama
     volumes:
       - ollama_data:/root/.ollama
     ports:
@@ -105,7 +105,7 @@ services:
     build:
       context: ../backend
       dockerfile: Dockerfile
-    container_name: flowaudit-backend
+    container_name: flowinvoice_backend
     environment:
       - DATABASE_URL=postgresql+asyncpg://flowaudit:${POSTGRES_PASSWORD:-flowaudit_secret}@db:5432/flowaudit
       - REDIS_URL=redis://redis:6379/0
@@ -144,7 +144,7 @@ services:
     build:
       context: ../backend
       dockerfile: Dockerfile
-    container_name: flowaudit-worker
+    container_name: flowinvoice_worker
     command: celery -A app.worker.celery_app worker --loglevel=info --concurrency=${CELERY_CONCURRENCY:-4} -Q documents,llm,generator,export
     environment:
       - DATABASE_URL=postgresql+asyncpg://flowaudit:${POSTGRES_PASSWORD:-flowaudit_secret}@db:5432/flowaudit
@@ -174,7 +174,7 @@ services:
     build:
       context: ../frontend
       dockerfile: Dockerfile
-    container_name: flowaudit-frontend
+    container_name: flowinvoice_frontend
     ports:
       - "${FRONTEND_PORT:-3000}:80"
     depends_on:
