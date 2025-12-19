@@ -109,6 +109,23 @@ export const api = {
     ruleset_id?: string
     start_date?: string
     end_date?: string
+    beneficiary?: {
+      name?: string
+      street?: string
+      zip?: string
+      city?: string
+      vat_id?: string
+      tax_number?: string
+    }
+    project?: {
+      project_title?: string
+      file_reference?: string
+      project_description?: string
+      implementation?: {
+        location_name?: string
+        city?: string
+      }
+    }
   }) => {
     // Transform Frontend-Daten in Backend-Schema
     const backendData: Record<string, unknown> = {}
@@ -117,7 +134,16 @@ export const api = {
       backendData.ruleset_id_hint = data.ruleset_id
     }
 
-    if (data.title || data.description || data.start_date || data.end_date) {
+    // Direct beneficiary update
+    if (data.beneficiary) {
+      backendData.beneficiary = data.beneficiary
+    }
+
+    // Direct project update
+    if (data.project) {
+      backendData.project = data.project
+    } else if (data.title || data.description || data.start_date || data.end_date) {
+      // Legacy: transform old format
       backendData.project = {
         ...(data.title && { project_title: data.title }),
         ...(data.description && { project_description: data.description }),

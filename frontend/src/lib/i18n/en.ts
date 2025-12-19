@@ -82,10 +82,18 @@ export const en = {
   // Project Detail
   projectDetail: {
     beneficiaryName: 'Beneficiary',
+    street: 'Street',
+    zip: 'ZIP',
+    city: 'City',
     taxNumber: 'Tax Number',
+    vatId: 'VAT ID',
+    fileReference: 'File Reference',
     applicationNumber: 'Application Number',
     address: 'Address',
     executionLocation: 'Execution Location',
+    executionCity: 'Execution City',
+    projectDescription: 'Project Description',
+    projectPeriod: 'Project Period',
     showFeatures: 'Show Features',
     documentList: 'Document List',
     supplier: 'Supplier',

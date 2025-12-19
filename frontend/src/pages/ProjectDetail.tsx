@@ -16,6 +16,8 @@ import {
   CheckCircle,
   Clock,
   X,
+  Pencil,
+  Save,
 } from 'lucide-react'
 import { api } from '@/lib/api'
 import { TaxSystemSelector } from '@/components/tax-selector'
@@ -24,34 +26,42 @@ import { useTranslation } from 'react-i18next'
 
 interface ProjectData {
   id: string
-  title: string
-  description?: string
-  ruleset_id?: RulesetId
-  start_date?: string
-  end_date?: string
+  ruleset_id_hint?: RulesetId
+  ui_language_hint?: string
+  is_active: boolean
   created_at: string
-  document_count?: number
-  // Extended fields from beneficiary/project JSONB
-  beneficiary?: {
-    name?: string
-    street?: string
-    zip?: string
-    city?: string
+  updated_at?: string
+  beneficiary: {
+    name: string
+    legal_form?: string
+    street: string
+    zip: string
+    city: string
     country?: string
     vat_id?: string
     tax_number?: string
+    input_tax_deductible?: boolean
+    aliases?: string[]
   }
-  project?: {
-    project_title?: string
-    project_description?: string
+  project: {
+    project_title: string
     file_reference?: string
-    application_number?: string
+    project_description?: string
     implementation?: {
       location_name?: string
       street?: string
       zip?: string
       city?: string
     }
+    total_budget?: number
+    funding_type?: string
+    funding_rate_percent?: number
+    project_period?: {
+      start?: string
+      end?: string
+    }
+    approval_date?: string
+    approving_authority?: string
   }
 }
 
@@ -86,6 +96,24 @@ interface AnalysisSettings {
   maxRuns: number
 }
 
+interface EditFormData {
+  beneficiary: {
+    name: string
+    street: string
+    zip: string
+    city: string
+    vat_id: string
+    tax_number: string
+  }
+  project: {
+    project_title: string
+    file_reference: string
+    project_description: string
+    implementation_location: string
+    implementation_city: string
+  }
+}
+
 export default function ProjectDetail() {
   const { id } = useParams<{ id: string }>()
   const { t, i18n } = useTranslation()
@@ -95,12 +123,14 @@ export default function ProjectDetail() {
   const [showTaxSelector, setShowTaxSelector] = useState(false)
   const [showFeatures, setShowFeatures] = useState(false)
   const [showSettings, setShowSettings] = useState(false)
+  const [isEditing, setIsEditing] = useState(false)
   const [uploadQueue, setUploadQueue] = useState<UploadedFile[]>([])
   const [settings, setSettings] = useState<AnalysisSettings>({
     useOcr: true,
     confidenceThreshold: 0.7,
     maxRuns: 1,
   })
+  const [editForm, setEditForm] = useState<EditFormData | null>(null)
 
   const { data: project, isLoading, error } = useQuery<ProjectData>({
     queryKey: ['project', id],
@@ -155,6 +185,71 @@ export default function ProjectDetail() {
       refetchDocuments()
     },
   })
+
+  const updateProjectMutation = useMutation({
+    mutationFn: async (data: EditFormData) => {
+      return api.updateProject(id!, {
+        beneficiary: {
+          name: data.beneficiary.name,
+          street: data.beneficiary.street,
+          zip: data.beneficiary.zip,
+          city: data.beneficiary.city,
+          vat_id: data.beneficiary.vat_id || undefined,
+          tax_number: data.beneficiary.tax_number || undefined,
+        },
+        project: {
+          project_title: data.project.project_title,
+          file_reference: data.project.file_reference || undefined,
+          project_description: data.project.project_description || undefined,
+          implementation: data.project.implementation_location || data.project.implementation_city
+            ? {
+                location_name: data.project.implementation_location || undefined,
+                city: data.project.implementation_city || undefined,
+              }
+            : undefined,
+        },
+      })
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['project', id] })
+      setIsEditing(false)
+      setEditForm(null)
+    },
+  })
+
+  const startEditing = () => {
+    if (project) {
+      setEditForm({
+        beneficiary: {
+          name: project.beneficiary.name || '',
+          street: project.beneficiary.street || '',
+          zip: project.beneficiary.zip || '',
+          city: project.beneficiary.city || '',
+          vat_id: project.beneficiary.vat_id || '',
+          tax_number: project.beneficiary.tax_number || '',
+        },
+        project: {
+          project_title: project.project.project_title || '',
+          file_reference: project.project.file_reference || '',
+          project_description: project.project.project_description || '',
+          implementation_location: project.project.implementation?.location_name || '',
+          implementation_city: project.project.implementation?.city || '',
+        },
+      })
+      setIsEditing(true)
+    }
+  }
+
+  const saveEditing = () => {
+    if (editForm) {
+      updateProjectMutation.mutate(editForm)
+    }
+  }
+
+  const cancelEditing = () => {
+    setIsEditing(false)
+    setEditForm(null)
+  }
 
   const onDrop = useCallback(
     (acceptedFiles: File[]) => {
@@ -216,10 +311,10 @@ export default function ProjectDetail() {
     )
   }
 
-  const currentRuleset = project.ruleset_id ? getRuleset(project.ruleset_id) : null
+  const currentRuleset = project.ruleset_id_hint ? getRuleset(project.ruleset_id_hint) : null
 
   // Show tax selector if no ruleset is set
-  if (!project.ruleset_id || showTaxSelector) {
+  if (!project.ruleset_id_hint || showTaxSelector) {
     return (
       <div className="space-y-6">
         <div className="flex items-center gap-4">
@@ -227,15 +322,15 @@ export default function ProjectDetail() {
             <ArrowLeft className="h-5 w-5 text-gray-500" />
           </Link>
           <div>
-            <h1 className="text-2xl font-bold text-gray-900">{project.title}</h1>
+            <h1 className="text-2xl font-bold text-gray-900">{project.project.project_title}</h1>
           </div>
         </div>
         <div className="bg-white rounded-lg border border-gray-200 p-6">
           <TaxSystemSelector
-            currentRuleset={project.ruleset_id}
+            currentRuleset={project.ruleset_id_hint}
             onSelect={rulesetId => updateRulesetMutation.mutate(rulesetId)}
           />
-          {showTaxSelector && project.ruleset_id && (
+          {showTaxSelector && project.ruleset_id_hint && (
             <div className="mt-4 pt-4 border-t border-gray-200">
               <button onClick={() => setShowTaxSelector(false)} className="text-gray-500 hover:text-gray-700">
                 {t('common.cancel')}
@@ -254,51 +349,268 @@ export default function ProjectDetail() {
     <div className="space-y-6">
       {/* Header with Project Data */}
       <div className="bg-white rounded-lg border border-gray-200 p-6">
-        <div className="flex items-center gap-4 mb-4">
-          <Link to="/projects" className="p-2 hover:bg-gray-100 rounded-lg transition-colors">
-            <ArrowLeft className="h-5 w-5 text-gray-500" />
-          </Link>
-          <h1 className="text-2xl font-bold text-gray-900">{project.title}</h1>
+        <div className="flex items-center justify-between mb-4">
+          <div className="flex items-center gap-4">
+            <Link to="/projects" className="p-2 hover:bg-gray-100 rounded-lg transition-colors">
+              <ArrowLeft className="h-5 w-5 text-gray-500" />
+            </Link>
+            {isEditing && editForm ? (
+              <input
+                type="text"
+                value={editForm.project.project_title}
+                onChange={e => setEditForm({
+                  ...editForm,
+                  project: { ...editForm.project, project_title: e.target.value }
+                })}
+                className="text-2xl font-bold text-gray-900 border-b-2 border-primary-500 focus:outline-none bg-transparent"
+              />
+            ) : (
+              <h1 className="text-2xl font-bold text-gray-900">{project.project.project_title}</h1>
+            )}
+          </div>
+          {/* Edit/Save Buttons */}
+          <div className="flex items-center gap-2">
+            {isEditing ? (
+              <>
+                <button
+                  onClick={cancelEditing}
+                  className="px-3 py-1.5 text-gray-600 hover:bg-gray-100 rounded-lg transition-colors"
+                >
+                  {t('common.cancel')}
+                </button>
+                <button
+                  onClick={saveEditing}
+                  disabled={updateProjectMutation.isPending}
+                  className="flex items-center gap-2 px-3 py-1.5 bg-primary-600 text-white rounded-lg hover:bg-primary-700 disabled:opacity-50"
+                >
+                  {updateProjectMutation.isPending ? (
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                  ) : (
+                    <Save className="h-4 w-4" />
+                  )}
+                  {t('common.save')}
+                </button>
+              </>
+            ) : (
+              <button
+                onClick={startEditing}
+                className="flex items-center gap-2 px-3 py-1.5 text-gray-600 hover:bg-gray-100 rounded-lg transition-colors"
+              >
+                <Pencil className="h-4 w-4" />
+                {t('common.edit')}
+              </button>
+            )}
+          </div>
         </div>
 
-        {/* Project Details Grid */}
-        <div className="grid grid-cols-2 md:grid-cols-3 gap-4 text-sm">
-          {project.beneficiary?.name && (
+        {/* Project Details Grid - Edit Mode */}
+        {isEditing && editForm ? (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 text-sm">
+            {/* Beneficiary Name */}
+            <div>
+              <label className="block text-gray-500 mb-1">{t('projectDetail.beneficiaryName')}</label>
+              <input
+                type="text"
+                value={editForm.beneficiary.name}
+                onChange={e => setEditForm({
+                  ...editForm,
+                  beneficiary: { ...editForm.beneficiary, name: e.target.value }
+                })}
+                className="w-full px-2 py-1 border border-gray-300 rounded focus:ring-1 focus:ring-primary-500 focus:border-primary-500"
+              />
+            </div>
+
+            {/* Street */}
+            <div>
+              <label className="block text-gray-500 mb-1">{t('projectDetail.street')}</label>
+              <input
+                type="text"
+                value={editForm.beneficiary.street}
+                onChange={e => setEditForm({
+                  ...editForm,
+                  beneficiary: { ...editForm.beneficiary, street: e.target.value }
+                })}
+                className="w-full px-2 py-1 border border-gray-300 rounded focus:ring-1 focus:ring-primary-500 focus:border-primary-500"
+              />
+            </div>
+
+            {/* ZIP + City */}
+            <div className="flex gap-2">
+              <div className="w-1/3">
+                <label className="block text-gray-500 mb-1">{t('projectDetail.zip')}</label>
+                <input
+                  type="text"
+                  value={editForm.beneficiary.zip}
+                  onChange={e => setEditForm({
+                    ...editForm,
+                    beneficiary: { ...editForm.beneficiary, zip: e.target.value }
+                  })}
+                  className="w-full px-2 py-1 border border-gray-300 rounded focus:ring-1 focus:ring-primary-500 focus:border-primary-500"
+                />
+              </div>
+              <div className="w-2/3">
+                <label className="block text-gray-500 mb-1">{t('projectDetail.city')}</label>
+                <input
+                  type="text"
+                  value={editForm.beneficiary.city}
+                  onChange={e => setEditForm({
+                    ...editForm,
+                    beneficiary: { ...editForm.beneficiary, city: e.target.value }
+                  })}
+                  className="w-full px-2 py-1 border border-gray-300 rounded focus:ring-1 focus:ring-primary-500 focus:border-primary-500"
+                />
+              </div>
+            </div>
+
+            {/* VAT ID */}
+            <div>
+              <label className="block text-gray-500 mb-1">{t('projectDetail.vatId')}</label>
+              <input
+                type="text"
+                value={editForm.beneficiary.vat_id}
+                onChange={e => setEditForm({
+                  ...editForm,
+                  beneficiary: { ...editForm.beneficiary, vat_id: e.target.value }
+                })}
+                placeholder="DE123456789"
+                className="w-full px-2 py-1 border border-gray-300 rounded focus:ring-1 focus:ring-primary-500 focus:border-primary-500"
+              />
+            </div>
+
+            {/* Tax Number */}
+            <div>
+              <label className="block text-gray-500 mb-1">{t('projectDetail.taxNumber')}</label>
+              <input
+                type="text"
+                value={editForm.beneficiary.tax_number}
+                onChange={e => setEditForm({
+                  ...editForm,
+                  beneficiary: { ...editForm.beneficiary, tax_number: e.target.value }
+                })}
+                placeholder="123/456/78901"
+                className="w-full px-2 py-1 border border-gray-300 rounded focus:ring-1 focus:ring-primary-500 focus:border-primary-500"
+              />
+            </div>
+
+            {/* File Reference */}
+            <div>
+              <label className="block text-gray-500 mb-1">{t('projectDetail.fileReference')}</label>
+              <input
+                type="text"
+                value={editForm.project.file_reference}
+                onChange={e => setEditForm({
+                  ...editForm,
+                  project: { ...editForm.project, file_reference: e.target.value }
+                })}
+                className="w-full px-2 py-1 border border-gray-300 rounded focus:ring-1 focus:ring-primary-500 focus:border-primary-500"
+              />
+            </div>
+
+            {/* Execution Location */}
+            <div>
+              <label className="block text-gray-500 mb-1">{t('projectDetail.executionLocation')}</label>
+              <input
+                type="text"
+                value={editForm.project.implementation_location}
+                onChange={e => setEditForm({
+                  ...editForm,
+                  project: { ...editForm.project, implementation_location: e.target.value }
+                })}
+                className="w-full px-2 py-1 border border-gray-300 rounded focus:ring-1 focus:ring-primary-500 focus:border-primary-500"
+              />
+            </div>
+
+            {/* Execution City */}
+            <div>
+              <label className="block text-gray-500 mb-1">{t('projectDetail.executionCity')}</label>
+              <input
+                type="text"
+                value={editForm.project.implementation_city}
+                onChange={e => setEditForm({
+                  ...editForm,
+                  project: { ...editForm.project, implementation_city: e.target.value }
+                })}
+                className="w-full px-2 py-1 border border-gray-300 rounded focus:ring-1 focus:ring-primary-500 focus:border-primary-500"
+              />
+            </div>
+
+            {/* Project Description */}
+            <div className="md:col-span-2 lg:col-span-3">
+              <label className="block text-gray-500 mb-1">{t('projectDetail.projectDescription')}</label>
+              <textarea
+                value={editForm.project.project_description}
+                onChange={e => setEditForm({
+                  ...editForm,
+                  project: { ...editForm.project, project_description: e.target.value }
+                })}
+                rows={3}
+                className="w-full px-2 py-1 border border-gray-300 rounded focus:ring-1 focus:ring-primary-500 focus:border-primary-500"
+              />
+            </div>
+          </div>
+        ) : (
+          /* Project Details Grid - View Mode */
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-x-6 gap-y-3 text-sm">
+            {/* Beneficiary Name */}
             <div>
               <span className="text-gray-500">{t('projectDetail.beneficiaryName')}:</span>
               <span className="ml-2 font-medium">{project.beneficiary.name}</span>
             </div>
-          )}
-          {project.beneficiary?.tax_number && (
-            <div>
-              <span className="text-gray-500">{t('projectDetail.taxNumber')}:</span>
-              <span className="ml-2 font-medium">{project.beneficiary.tax_number}</span>
-            </div>
-          )}
-          {project.project?.application_number && (
-            <div>
-              <span className="text-gray-500">{t('projectDetail.applicationNumber')}:</span>
-              <span className="ml-2 font-medium">{project.project.application_number}</span>
-            </div>
-          )}
-          {project.beneficiary?.street && (
-            <div className="col-span-2">
+
+            {/* Address */}
+            <div className="md:col-span-2">
               <span className="text-gray-500">{t('projectDetail.address')}:</span>
               <span className="ml-2 font-medium">
                 {project.beneficiary.street}, {project.beneficiary.zip} {project.beneficiary.city}
               </span>
             </div>
-          )}
-          {project.project?.implementation?.location_name && (
-            <div className="col-span-2">
+
+            {/* VAT ID */}
+            <div>
+              <span className="text-gray-500">{t('projectDetail.vatId')}:</span>
+              <span className="ml-2 font-medium">{project.beneficiary.vat_id || '-'}</span>
+            </div>
+
+            {/* Tax Number */}
+            <div>
+              <span className="text-gray-500">{t('projectDetail.taxNumber')}:</span>
+              <span className="ml-2 font-medium">{project.beneficiary.tax_number || '-'}</span>
+            </div>
+
+            {/* File Reference (Aktenzeichen) */}
+            <div>
+              <span className="text-gray-500">{t('projectDetail.fileReference')}:</span>
+              <span className="ml-2 font-medium">{project.project.file_reference || '-'}</span>
+            </div>
+
+            {/* Execution Location (Durchführungsort) */}
+            <div className="md:col-span-2">
               <span className="text-gray-500">{t('projectDetail.executionLocation')}:</span>
               <span className="ml-2 font-medium">
-                {project.project.implementation.location_name}
-                {project.project.implementation.city && `, ${project.project.implementation.city}`}
+                {project.project.implementation
+                  ? `${project.project.implementation.location_name || ''}${project.project.implementation.city ? `, ${project.project.implementation.city}` : ''}`
+                  : '-'}
               </span>
             </div>
-          )}
-        </div>
+
+            {/* Project Description */}
+            <div className="md:col-span-3">
+              <span className="text-gray-500">{t('projectDetail.projectDescription')}:</span>
+              <p className="mt-1 text-gray-700">{project.project.project_description || '-'}</p>
+            </div>
+
+            {/* Project Period */}
+            {project.project.project_period && (
+              <div>
+                <span className="text-gray-500">{t('projectDetail.projectPeriod')}:</span>
+                <span className="ml-2 font-medium">
+                  {project.project.project_period.start && new Date(project.project.project_period.start).toLocaleDateString('de-DE')}
+                  {project.project.project_period.end && ` - ${new Date(project.project.project_period.end).toLocaleDateString('de-DE')}`}
+                </span>
+              </div>
+            )}
+          </div>
+        )}
 
         {/* Ruleset Badge */}
         <div className="mt-4 pt-4 border-t border-gray-100 flex items-center justify-between">

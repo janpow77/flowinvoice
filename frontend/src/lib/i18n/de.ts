@@ -82,10 +82,18 @@ export const de = {
   // Project Detail
   projectDetail: {
     beneficiaryName: 'Begünstigter',
+    street: 'Straße',
+    zip: 'PLZ',
+    city: 'Ort',
     taxNumber: 'Steuernummer',
+    vatId: 'USt-IdNr.',
+    fileReference: 'Aktenzeichen',
     applicationNumber: 'Antragsnummer',
     address: 'Adresse',
     executionLocation: 'Durchführungsort',
+    executionCity: 'Durchführungsort (Ort)',
+    projectDescription: 'Projektbeschreibung',
+    projectPeriod: 'Projektzeitraum',
     showFeatures: 'Merkmale anzeigen',
     documentList: 'Belegliste',
     supplier: 'Rechnungssteller',
