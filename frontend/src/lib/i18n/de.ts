@@ -257,6 +257,20 @@ export const de = {
     required: 'Pflicht',
     conditional: 'Bedingt',
     optional: 'Optional',
+    // Document types
+    appliesTo: 'Gilt für',
+    documentTypes: {
+      standard_invoice: 'Standardrechnung',
+      small_amount_invoice: 'Kleinbetragsrechnung',
+      receipt: 'Quittung',
+      credit_note: 'Gutschrift',
+      delivery_note: 'Lieferschein',
+      proforma_invoice: 'Proforma-Rechnung',
+      expense_report: 'Spesenabrechnung',
+      contract: 'Vertrag',
+      offer: 'Angebot',
+      order_confirmation: 'Auftragsbestätigung',
+    },
   },
 
   // Tax Selector

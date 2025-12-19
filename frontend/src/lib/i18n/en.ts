@@ -257,6 +257,20 @@ export const en = {
     required: 'Required',
     conditional: 'Conditional',
     optional: 'Optional',
+    // Document types
+    appliesTo: 'Applies to',
+    documentTypes: {
+      standard_invoice: 'Standard Invoice',
+      small_amount_invoice: 'Small Amount Invoice',
+      receipt: 'Receipt',
+      credit_note: 'Credit Note',
+      delivery_note: 'Delivery Note',
+      proforma_invoice: 'Proforma Invoice',
+      expense_report: 'Expense Report',
+      contract: 'Contract',
+      offer: 'Offer',
+      order_confirmation: 'Order Confirmation',
+    },
   },
 
   // Tax Selector

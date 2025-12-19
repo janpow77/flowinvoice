@@ -18,6 +18,22 @@ import {
 import clsx from 'clsx'
 import { api } from '@/lib/api'
 
+// Alle unterstützten Dokumenttypen
+const DOCUMENT_TYPES = [
+  'standard_invoice',
+  'small_amount_invoice',
+  'receipt',
+  'credit_note',
+  'delivery_note',
+  'proforma_invoice',
+  'expense_report',
+  'contract',
+  'offer',
+  'order_confirmation',
+] as const
+
+type DocumentType = typeof DOCUMENT_TYPES[number]
+
 interface Feature {
   feature_id: string
   name_de: string
@@ -27,10 +43,7 @@ interface Feature {
   category: string
   explanation_de: string
   explanation_en: string
-  applies_to?: {
-    standard_invoice: boolean
-    small_amount_invoice: boolean
-  }
+  applies_to?: Partial<Record<DocumentType, boolean>>
 }
 
 interface LegalReference {
@@ -174,6 +187,12 @@ export default function Rulesets() {
   }
 
   const handleAddFeature = () => {
+    // Initialisiere applies_to mit allen Dokumenttypen (Standard aktiv)
+    const defaultAppliesTo = DOCUMENT_TYPES.reduce((acc, docType) => {
+      acc[docType] = docType === 'standard_invoice'
+      return acc
+    }, {} as Record<DocumentType, boolean>)
+
     const newFeature: Feature = {
       feature_id: `feature_${Date.now()}`,
       name_de: 'Neues Merkmal',
@@ -183,10 +202,7 @@ export default function Rulesets() {
       category: 'TEXT',
       explanation_de: '',
       explanation_en: '',
-      applies_to: {
-        standard_invoice: true,
-        small_amount_invoice: false,
-      },
+      applies_to: defaultAppliesTo,
     }
     setEditForm({
       ...editForm,
@@ -422,24 +438,25 @@ export default function Rulesets() {
                       <p className="text-gray-600">
                         {lang === 'de' ? feature.explanation_de : feature.explanation_en}
                       </p>
-                      <div className="flex items-center gap-4 text-xs text-gray-500">
+                      <div className="flex items-center gap-2 flex-wrap text-xs text-gray-500">
                         <span>ID: {feature.feature_id}</span>
                         <span>Kategorie: {feature.category}</span>
-                        {feature.applies_to && (
-                          <>
-                            {feature.applies_to.standard_invoice && (
-                              <span className="px-2 py-0.5 bg-blue-100 text-blue-700 rounded">
-                                Standard
-                              </span>
-                            )}
-                            {feature.applies_to.small_amount_invoice && (
-                              <span className="px-2 py-0.5 bg-green-100 text-green-700 rounded">
-                                Kleinbetrag
-                              </span>
-                            )}
-                          </>
-                        )}
                       </div>
+                      {feature.applies_to && Object.entries(feature.applies_to).some(([, v]) => v) && (
+                        <div className="flex items-center gap-1 flex-wrap mt-2">
+                          <span className="text-xs text-gray-500 mr-1">{t('rulesets.appliesTo')}:</span>
+                          {Object.entries(feature.applies_to).map(([docType, enabled]) =>
+                            enabled && (
+                              <span
+                                key={docType}
+                                className="px-2 py-0.5 text-xs bg-blue-100 text-blue-700 rounded"
+                              >
+                                {t(`rulesets.documentTypes.${docType}`)}
+                              </span>
+                            )
+                          )}
+                        </div>
+                      )}
                     </div>
                   </div>
                 )}
@@ -694,35 +711,28 @@ export default function Rulesets() {
                       rows={2}
                     />
                   </div>
-                  <div className="md:col-span-2 flex items-center gap-4">
-                    <label className="flex items-center gap-2 text-sm">
-                      <input
-                        type="checkbox"
-                        checked={feature.applies_to?.standard_invoice ?? true}
-                        onChange={(e) => handleUpdateFeature(index, {
-                          applies_to: {
-                            standard_invoice: e.target.checked,
-                            small_amount_invoice: feature.applies_to?.small_amount_invoice ?? false
-                          }
-                        })}
-                        className="rounded border-gray-300 text-primary-600 focus:ring-primary-500"
-                      />
-                      Standardrechnung
+                  <div className="md:col-span-2">
+                    <label className="block text-xs font-medium text-gray-500 mb-2">
+                      {t('rulesets.appliesTo')}
                     </label>
-                    <label className="flex items-center gap-2 text-sm">
-                      <input
-                        type="checkbox"
-                        checked={feature.applies_to?.small_amount_invoice ?? false}
-                        onChange={(e) => handleUpdateFeature(index, {
-                          applies_to: {
-                            standard_invoice: feature.applies_to?.standard_invoice ?? true,
-                            small_amount_invoice: e.target.checked
-                          }
-                        })}
-                        className="rounded border-gray-300 text-primary-600 focus:ring-primary-500"
-                      />
-                      Kleinbetragsrechnung
-                    </label>
+                    <div className="flex flex-wrap gap-3">
+                      {DOCUMENT_TYPES.map((docType) => (
+                        <label key={docType} className="flex items-center gap-1.5 text-sm">
+                          <input
+                            type="checkbox"
+                            checked={feature.applies_to?.[docType] ?? (docType === 'standard_invoice')}
+                            onChange={(e) => handleUpdateFeature(index, {
+                              applies_to: {
+                                ...feature.applies_to,
+                                [docType]: e.target.checked
+                              }
+                            })}
+                            className="rounded border-gray-300 text-primary-600 focus:ring-primary-500"
+                          />
+                          <span className="text-gray-700">{t(`rulesets.documentTypes.${docType}`)}</span>
+                        </label>
+                      ))}
+                    </div>
                   </div>
                 </div>
               </div>
