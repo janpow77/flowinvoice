@@ -333,7 +333,7 @@ export const api = {
   // Ruleset Samples
   getRulesetSamples: async (rulesetId: string) => {
     const response = await apiClient.get(`/rulesets/${rulesetId}/samples`)
-    return response.data
+    return response.data.data  // Return array from {data: [...], total, stats}
   },
 
   getRulesetSample: async (rulesetId: string, sampleId: string) => {
