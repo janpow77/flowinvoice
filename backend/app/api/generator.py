@@ -7,11 +7,13 @@ Erfordert API-Key-Authentifizierung für sensible Endpoints.
 """
 
 import json
+import io
+import zipfile
 from pathlib import Path
 from typing import Any
 
 from fastapi import APIRouter, Depends, HTTPException, status
-from fastapi.responses import HTMLResponse
+from fastapi.responses import FileResponse, HTMLResponse, StreamingResponse
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -376,3 +378,161 @@ async def get_generator_solutions(
         "count": len(entries),
         "entries": entries,
     }
+
+
+@router.get("/generator/templates/{template_id}/sample.pdf")
+async def get_template_sample_pdf(template_id: str):
+    """
+    Generiert eine Muster-PDF für ein Template.
+
+    Args:
+        template_id: Template-ID (z.B. T1_HANDWERK)
+
+    Returns:
+        PDF-Datei als Stream.
+    """
+    from app.worker.tasks import _format_invoice_pdf, _generate_invoice_data
+    import tempfile
+
+    # Prüfe ob Template existiert
+    available_templates = ["T1_HANDWERK", "T2_CONSULTING", "T3_CORPORATE", "T4_FREELANCER", "T5_INTERNATIONAL"]
+    if template_id not in available_templates:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Template {template_id} not found",
+        )
+
+    # Generiere Muster-Rechnungsdaten (ohne Fehler)
+    sample_data = _generate_invoice_data(
+        template=template_id,
+        index=1,
+        has_error=False,
+        severity=0,
+        ruleset_id="DE_USTG",
+        beneficiary_data=None,
+        project_context={"project_number": "MUSTER-2025", "execution_location": "Berlin"},
+        date_format_profiles=["DD.MM.YYYY"],
+        per_feature_error_rates={},
+        alias_noise_probability=0,
+    )
+
+    # Erstelle temporäre PDF
+    with tempfile.NamedTemporaryFile(suffix=".pdf", delete=False) as tmp:
+        tmp_path = Path(tmp.name)
+        _format_invoice_pdf(sample_data, tmp_path)
+
+    return FileResponse(
+        path=tmp_path,
+        filename=f"Muster_{template_id}.pdf",
+        media_type="application/pdf",
+    )
+
+
+@router.get("/generator/jobs/{generator_job_id}/download")
+async def download_all_invoices(
+    generator_job_id: str,
+    session: AsyncSession = Depends(get_async_session),
+):
+    """
+    Download aller generierten Rechnungen als ZIP.
+
+    Args:
+        generator_job_id: Job-ID
+
+    Returns:
+        ZIP-Datei mit allen generierten PDFs.
+    """
+    result = await session.execute(
+        select(GeneratorJob).where(GeneratorJob.id == generator_job_id)
+    )
+    job = result.scalar_one_or_none()
+
+    if not job:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"GeneratorJob {generator_job_id} not found",
+        )
+
+    if not job.generated_files:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="No files generated",
+        )
+
+    # ZIP im Memory erstellen
+    zip_buffer = io.BytesIO()
+    with zipfile.ZipFile(zip_buffer, "w", zipfile.ZIP_DEFLATED) as zip_file:
+        for file_path in job.generated_files:
+            path = Path(file_path)
+            if path.exists():
+                zip_file.write(path, path.name)
+
+        # Fehler-Übersichtsdatei hinzufügen (wenn vorhanden)
+        if job.generated_files:
+            output_dir = Path(job.generated_files[0]).parent
+            error_overview = output_dir / "fehler_uebersicht.txt"
+            if error_overview.exists():
+                zip_file.write(error_overview, error_overview.name)
+
+    zip_buffer.seek(0)
+
+    return StreamingResponse(
+        zip_buffer,
+        media_type="application/zip",
+        headers={
+            "Content-Disposition": f"attachment; filename=invoices_{generator_job_id[:8]}.zip"
+        },
+    )
+
+
+@router.get("/generator/jobs/{generator_job_id}/files/{filename}")
+async def download_single_invoice(
+    generator_job_id: str,
+    filename: str,
+    session: AsyncSession = Depends(get_async_session),
+):
+    """
+    Download einer einzelnen Rechnung.
+
+    Args:
+        generator_job_id: Job-ID
+        filename: Dateiname der Rechnung
+
+    Returns:
+        PDF-Datei.
+    """
+    result = await session.execute(
+        select(GeneratorJob).where(GeneratorJob.id == generator_job_id)
+    )
+    job = result.scalar_one_or_none()
+
+    if not job:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"GeneratorJob {generator_job_id} not found",
+        )
+
+    if not job.generated_files:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="No files generated",
+        )
+
+    # Datei suchen
+    file_path = None
+    for fp in job.generated_files:
+        if Path(fp).name == filename:
+            file_path = Path(fp)
+            break
+
+    if not file_path or not file_path.exists():
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"File {filename} not found",
+        )
+
+    return FileResponse(
+        path=file_path,
+        filename=filename,
+        media_type="application/pdf",
+    )

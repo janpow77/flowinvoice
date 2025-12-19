@@ -9,7 +9,10 @@ import {
   AlertCircle,
   Settings,
   Eye,
-  FolderOpen
+  FolderOpen,
+  Download,
+  MapPin,
+  Hash
 } from 'lucide-react'
 import clsx from 'clsx'
 import { api } from '@/lib/api'
@@ -28,12 +31,15 @@ interface GeneratorConfig {
   error_rate_total: number
   severity: number
   alias_noise_probability: number
+  beneficiary_source: 'manual' | 'project'
   beneficiary_name: string
   street: string
   zip: string
   city: string
   country: string
   vat_id: string
+  execution_location: string
+  project_number: string
 }
 
 
@@ -52,12 +58,15 @@ export default function Generator() {
     error_rate_total: 5.0,
     severity: 2,
     alias_noise_probability: 10.0,
+    beneficiary_source: 'manual',
     beneficiary_name: '',
     street: '',
     zip: '',
     city: '',
     country: 'DE',
     vat_id: '',
+    execution_location: '',
+    project_number: '',
   })
 
   // Fetch templates
@@ -80,6 +89,35 @@ export default function Generator() {
     refetchInterval: currentJobId ? 2000 : false,
   })
 
+  // Get selected project data
+  const selectedProject = projects?.find((p: { id: string }) => p.id === config.project_id)
+
+  // Determine beneficiary data based on source
+  const getBeneficiaryData = () => {
+    if (config.beneficiary_source === 'project' && selectedProject?.beneficiary) {
+      const b = selectedProject.beneficiary
+      return {
+        beneficiary_name: b.beneficiary_name || '',
+        street: b.street || '',
+        zip: b.zip || '',
+        city: b.city || '',
+        country: b.country || 'DE',
+        vat_id: b.vat_id || undefined,
+      }
+    }
+    if (config.beneficiary_source === 'manual' && config.beneficiary_name) {
+      return {
+        beneficiary_name: config.beneficiary_name,
+        street: config.street,
+        zip: config.zip,
+        city: config.city,
+        country: config.country,
+        vat_id: config.vat_id || undefined,
+      }
+    }
+    return undefined
+  }
+
   // Run generator mutation
   const runGeneratorMutation = useMutation({
     mutationFn: () => api.runGenerator({
@@ -90,13 +128,10 @@ export default function Generator() {
       error_rate_total: config.error_rate_total,
       severity: config.severity,
       alias_noise_probability: config.alias_noise_probability,
-      beneficiary_data: config.beneficiary_name ? {
-        beneficiary_name: config.beneficiary_name,
-        street: config.street,
-        zip: config.zip,
-        city: config.city,
-        country: config.country,
-        vat_id: config.vat_id || undefined,
+      beneficiary_data: getBeneficiaryData(),
+      project_context: config.project_number || config.execution_location ? {
+        project_number: config.project_number || undefined,
+        execution_location: config.execution_location || undefined,
       } : undefined,
     }),
     onSuccess: (data) => {
@@ -164,27 +199,69 @@ export default function Generator() {
           jobStatus.status === 'ERROR' ? 'bg-red-50 border-red-200 dark:bg-red-900/20 dark:border-red-800' :
           'bg-blue-50 border-blue-200 dark:bg-blue-900/20 dark:border-blue-800'
         )}>
-          <div className="flex items-center gap-3">
-            {jobStatus.status === 'COMPLETED' ? (
-              <CheckCircle className="h-6 w-6 text-green-600" />
-            ) : jobStatus.status === 'ERROR' ? (
-              <AlertCircle className="h-6 w-6 text-red-600" />
-            ) : (
-              <Loader2 className="h-6 w-6 text-blue-600 animate-spin" />
-            )}
-            <div>
-              <p className="font-medium">
-                {jobStatus.status === 'COMPLETED' ? t('generator.completed', 'Generierung abgeschlossen') :
-                 jobStatus.status === 'ERROR' ? t('generator.error', 'Fehler bei der Generierung') :
-                 t('generator.inProgress', 'Generierung läuft...')}
-              </p>
-              {jobStatus.generated_files && (
-                <p className="text-sm text-gray-600 dark:text-gray-400">
-                  {jobStatus.generated_files.length} {t('generator.filesGenerated', 'Dateien generiert')}
-                </p>
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              {jobStatus.status === 'COMPLETED' ? (
+                <CheckCircle className="h-6 w-6 text-green-600" />
+              ) : jobStatus.status === 'ERROR' ? (
+                <AlertCircle className="h-6 w-6 text-red-600" />
+              ) : (
+                <Loader2 className="h-6 w-6 text-blue-600 animate-spin" />
               )}
+              <div>
+                <p className="font-medium">
+                  {jobStatus.status === 'COMPLETED' ? t('generator.completed', 'Generierung abgeschlossen') :
+                   jobStatus.status === 'ERROR' ? t('generator.error', 'Fehler bei der Generierung') :
+                   t('generator.inProgress', 'Generierung läuft...')}
+                </p>
+                {jobStatus.generated_files && (
+                  <p className="text-sm text-gray-600 dark:text-gray-400">
+                    {jobStatus.generated_files.length} {t('generator.filesGenerated', 'Dateien generiert')}
+                  </p>
+                )}
+              </div>
             </div>
+            {jobStatus.status === 'COMPLETED' && jobStatus.generated_files && jobStatus.generated_files.length > 0 && (
+              <a
+                href={`/api/generator/jobs/${currentJobId}/download`}
+                download
+                className="flex items-center gap-2 px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors"
+              >
+                <Download className="h-4 w-4" />
+                {t('generator.downloadAll', 'Alle herunterladen')}
+              </a>
+            )}
           </div>
+
+          {/* File list */}
+          {jobStatus.status === 'COMPLETED' && jobStatus.generated_files && jobStatus.generated_files.length > 0 && (
+            <div className="mt-4 pt-4 border-t border-green-200 dark:border-green-800">
+              <h4 className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                {t('generator.generatedFiles', 'Generierte Dateien')}
+              </h4>
+              <div className="max-h-48 overflow-y-auto space-y-1">
+                {jobStatus.generated_files.map((file: string, index: number) => {
+                  const filename = file.split('/').pop() || file
+                  return (
+                    <div key={index} className="flex items-center justify-between py-1 px-2 rounded hover:bg-green-100 dark:hover:bg-green-800/30">
+                      <span className="text-sm text-gray-600 dark:text-gray-400 flex items-center gap-2">
+                        <FileText className="h-4 w-4" />
+                        {filename}
+                      </span>
+                      <a
+                        href={`/api/generator/jobs/${currentJobId}/files/${encodeURIComponent(filename)}`}
+                        download={filename}
+                        className="text-primary-600 hover:text-primary-700"
+                        title={t('generator.download', 'Herunterladen')}
+                      >
+                        <Download className="h-4 w-4" />
+                      </a>
+                    </div>
+                  )
+                })}
+              </div>
+            </div>
+          )}
         </div>
       )}
 
@@ -202,42 +279,68 @@ export default function Generator() {
                 <Loader2 className="h-8 w-8 text-primary-600 animate-spin" />
               </div>
             ) : (
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
                 {(templates || []).map((template: Template) => (
                   <div
                     key={template.template_id}
                     className={clsx(
-                      'relative border-2 rounded-lg p-4 cursor-pointer transition-all',
+                      'relative border-2 rounded-lg overflow-hidden cursor-pointer transition-all group',
                       selectedTemplates.includes(template.template_id)
-                        ? 'border-primary-500 bg-primary-50 dark:bg-primary-900/20'
-                        : 'border-gray-200 dark:border-gray-700 hover:border-gray-300'
+                        ? 'border-primary-500 ring-2 ring-primary-200 dark:ring-primary-800'
+                        : 'border-gray-200 dark:border-gray-700 hover:border-gray-400'
                     )}
                     onClick={() => toggleTemplate(template.template_id)}
                   >
-                    <div className="flex items-start justify-between">
-                      <div>
-                        <h3 className="font-medium text-gray-900 dark:text-white">
-                          {template.name}
-                        </h3>
-                        <p className="text-sm text-gray-500 dark:text-gray-400">
-                          {template.template_id}
-                        </p>
+                    {/* Vorschau-Bild */}
+                    <div className="relative aspect-[3/4] bg-gray-100 dark:bg-gray-800">
+                      <div className="absolute inset-0 flex items-center justify-center">
+                        {/* Stilisierte Rechnungsvorschau */}
+                        <div className="w-[80%] h-[85%] bg-white dark:bg-gray-700 shadow-sm rounded border border-gray-200 dark:border-gray-600 p-2 text-[6px] text-gray-400 dark:text-gray-500">
+                          <div className="border-b border-gray-200 dark:border-gray-600 pb-1 mb-1">
+                            <div className="h-1 w-12 bg-gray-300 dark:bg-gray-500 rounded mb-0.5"></div>
+                            <div className="h-0.5 w-8 bg-gray-200 dark:bg-gray-600 rounded"></div>
+                          </div>
+                          <div className="space-y-0.5">
+                            <div className="h-0.5 w-full bg-gray-200 dark:bg-gray-600 rounded"></div>
+                            <div className="h-0.5 w-3/4 bg-gray-200 dark:bg-gray-600 rounded"></div>
+                            <div className="h-0.5 w-5/6 bg-gray-200 dark:bg-gray-600 rounded"></div>
+                          </div>
+                          <div className="mt-2 pt-1 border-t border-gray-200 dark:border-gray-600">
+                            <div className="flex justify-between">
+                              <div className="h-0.5 w-6 bg-gray-200 dark:bg-gray-600 rounded"></div>
+                              <div className="h-0.5 w-4 bg-gray-300 dark:bg-gray-500 rounded"></div>
+                            </div>
+                          </div>
+                        </div>
                       </div>
-                      <div className="flex items-center gap-2">
+
+                      {/* Vorschau-Button Overlay */}
+                      <div className="absolute inset-0 bg-black/0 group-hover:bg-black/30 transition-colors flex items-center justify-center">
                         <button
                           onClick={(e) => {
                             e.stopPropagation()
                             setPreviewTemplate(template.template_id)
                           }}
-                          className="p-1.5 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
+                          className="opacity-0 group-hover:opacity-100 transition-opacity bg-white/90 dark:bg-gray-800/90 rounded-full p-2 shadow-lg hover:bg-white dark:hover:bg-gray-700"
                           title={t('generator.preview', 'Vorschau')}
                         >
-                          <Eye className="h-4 w-4" />
+                          <Eye className="h-5 w-5 text-gray-700 dark:text-gray-300" />
                         </button>
-                        {selectedTemplates.includes(template.template_id) && (
-                          <CheckCircle className="h-5 w-5 text-primary-600" />
-                        )}
                       </div>
+
+                      {/* Ausgewählt-Marker */}
+                      {selectedTemplates.includes(template.template_id) && (
+                        <div className="absolute top-2 right-2 bg-primary-600 rounded-full p-1">
+                          <CheckCircle className="h-4 w-4 text-white" />
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Template-Name klein unter dem Bild */}
+                    <div className="p-2 text-center bg-gray-50 dark:bg-gray-900">
+                      <p className="text-xs text-gray-500 dark:text-gray-400 truncate">
+                        {template.name}
+                      </p>
                     </div>
                   </div>
                 ))}
@@ -250,69 +353,169 @@ export default function Generator() {
             <h2 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">
               {t('generator.beneficiary', 'Begünstigter (optional)')}
             </h2>
+
+            {/* Source Selection */}
+            <div className="mb-4">
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                {t('generator.beneficiarySource', 'Datenquelle')}
+              </label>
+              <div className="flex gap-4">
+                <label className="flex items-center gap-2 cursor-pointer">
+                  <input
+                    type="radio"
+                    name="beneficiary_source"
+                    value="manual"
+                    checked={config.beneficiary_source === 'manual'}
+                    onChange={() => setConfig({ ...config, beneficiary_source: 'manual' })}
+                    className="text-primary-600"
+                  />
+                  <span className="text-sm text-gray-700 dark:text-gray-300">
+                    {t('generator.manualInput', 'Manuelle Eingabe')}
+                  </span>
+                </label>
+                <label className={clsx(
+                  'flex items-center gap-2',
+                  config.project_id ? 'cursor-pointer' : 'cursor-not-allowed opacity-50'
+                )}>
+                  <input
+                    type="radio"
+                    name="beneficiary_source"
+                    value="project"
+                    checked={config.beneficiary_source === 'project'}
+                    onChange={() => setConfig({ ...config, beneficiary_source: 'project' })}
+                    disabled={!config.project_id}
+                    className="text-primary-600"
+                  />
+                  <span className="text-sm text-gray-700 dark:text-gray-300">
+                    {t('generator.fromProject', 'Aus Projekt übernehmen')}
+                  </span>
+                </label>
+              </div>
+              {config.beneficiary_source === 'project' && !selectedProject?.beneficiary && config.project_id && (
+                <p className="text-sm text-amber-600 mt-2">
+                  {t('generator.noBeneficiaryInProject', 'Das gewählte Projekt enthält keine Begünstigtendaten.')}
+                </p>
+              )}
+            </div>
+
+            {/* Manual Input Fields */}
+            {config.beneficiary_source === 'manual' && (
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div className="sm:col-span-2">
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                    {t('generator.beneficiaryName', 'Name / Firma')}
+                  </label>
+                  <input
+                    type="text"
+                    value={config.beneficiary_name}
+                    onChange={(e) => setConfig({ ...config, beneficiary_name: e.target.value })}
+                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                    placeholder="Muster GmbH"
+                  />
+                </div>
+                <div className="sm:col-span-2">
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                    {t('generator.street', 'Straße')}
+                  </label>
+                  <input
+                    type="text"
+                    value={config.street}
+                    onChange={(e) => setConfig({ ...config, street: e.target.value })}
+                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                    placeholder="Musterstraße 1"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                    {t('generator.zip', 'PLZ')}
+                  </label>
+                  <input
+                    type="text"
+                    value={config.zip}
+                    onChange={(e) => setConfig({ ...config, zip: e.target.value })}
+                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                    placeholder="12345"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                    {t('generator.city', 'Stadt')}
+                  </label>
+                  <input
+                    type="text"
+                    value={config.city}
+                    onChange={(e) => setConfig({ ...config, city: e.target.value })}
+                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                    placeholder="Musterstadt"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                    {t('generator.vatId', 'USt-IdNr. (optional)')}
+                  </label>
+                  <input
+                    type="text"
+                    value={config.vat_id}
+                    onChange={(e) => setConfig({ ...config, vat_id: e.target.value })}
+                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                    placeholder="DE123456789"
+                  />
+                </div>
+              </div>
+            )}
+
+            {/* Project Data Preview */}
+            {config.beneficiary_source === 'project' && selectedProject?.beneficiary && (
+              <div className="bg-gray-50 dark:bg-gray-900 rounded-lg p-4">
+                <h4 className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                  {t('generator.beneficiaryPreview', 'Begünstigtendaten aus Projekt')}
+                </h4>
+                <div className="text-sm text-gray-600 dark:text-gray-400 space-y-1">
+                  <p><strong>{selectedProject.beneficiary.beneficiary_name}</strong></p>
+                  <p>{selectedProject.beneficiary.street}</p>
+                  <p>{selectedProject.beneficiary.zip} {selectedProject.beneficiary.city}</p>
+                  {selectedProject.beneficiary.vat_id && (
+                    <p>USt-IdNr.: {selectedProject.beneficiary.vat_id}</p>
+                  )}
+                </div>
+              </div>
+            )}
+          </div>
+
+          {/* Project Context */}
+          <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-6">
+            <h2 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">
+              {t('generator.projectContext', 'Projektkontext (optional)')}
+            </h2>
             <p className="text-sm text-gray-500 dark:text-gray-400 mb-4">
-              {t('generator.beneficiaryHint', 'Wenn ausgefüllt, werden alle Rechnungen an diesen Empfänger adressiert.')}
+              {t('generator.projectContextHint', 'Diese Angaben erscheinen in der Leistungsbeschreibung der Rechnungen.')}
             </p>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <div className="sm:col-span-2">
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                  {t('generator.beneficiaryName', 'Name / Firma')}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1 flex items-center gap-2">
+                  <Hash className="h-4 w-4" />
+                  {t('generator.projectNumber', 'Projektnummer')}
                 </label>
                 <input
                   type="text"
-                  value={config.beneficiary_name}
-                  onChange={(e) => setConfig({ ...config, beneficiary_name: e.target.value })}
+                  value={config.project_number}
+                  onChange={(e) => setConfig({ ...config, project_number: e.target.value })}
                   className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
-                  placeholder="Muster GmbH"
-                />
-              </div>
-              <div className="sm:col-span-2">
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                  {t('generator.street', 'Straße')}
-                </label>
-                <input
-                  type="text"
-                  value={config.street}
-                  onChange={(e) => setConfig({ ...config, street: e.target.value })}
-                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
-                  placeholder="Musterstraße 1"
+                  placeholder="PRJ-2025-001"
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                  {t('generator.zip', 'PLZ')}
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1 flex items-center gap-2">
+                  <MapPin className="h-4 w-4" />
+                  {t('generator.executionLocation', 'Durchführungsort')}
                 </label>
                 <input
                   type="text"
-                  value={config.zip}
-                  onChange={(e) => setConfig({ ...config, zip: e.target.value })}
+                  value={config.execution_location}
+                  onChange={(e) => setConfig({ ...config, execution_location: e.target.value })}
                   className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
-                  placeholder="12345"
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                  {t('generator.city', 'Stadt')}
-                </label>
-                <input
-                  type="text"
-                  value={config.city}
-                  onChange={(e) => setConfig({ ...config, city: e.target.value })}
-                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
-                  placeholder="Musterstadt"
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                  {t('generator.vatId', 'USt-IdNr. (optional)')}
-                </label>
-                <input
-                  type="text"
-                  value={config.vat_id}
-                  onChange={(e) => setConfig({ ...config, vat_id: e.target.value })}
-                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
-                  placeholder="DE123456789"
+                  placeholder="Berlin"
                 />
               </div>
             </div>
@@ -471,27 +674,52 @@ export default function Generator() {
         </div>
       </div>
 
-      {/* Preview Modal */}
+      {/* Preview Modal - zeigt Muster-PDF */}
       {previewTemplate && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white dark:bg-gray-800 rounded-xl shadow-xl max-w-2xl w-full max-h-[80vh] overflow-hidden">
+          <div className="bg-white dark:bg-gray-800 rounded-xl shadow-xl max-w-4xl w-full max-h-[90vh] overflow-hidden">
             <div className="flex items-center justify-between p-4 border-b border-gray-200 dark:border-gray-700">
-              <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
-                {t('generator.templatePreview', 'Template-Vorschau')}: {previewTemplate}
-              </h3>
+              <div>
+                <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
+                  {t('generator.samplePreview', 'Muster-Rechnung')}
+                </h3>
+                <p className="text-sm text-gray-500 dark:text-gray-400">
+                  Template: {previewTemplate}
+                </p>
+              </div>
               <button
                 onClick={() => setPreviewTemplate(null)}
-                className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
+                className="p-2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700"
               >
                 ✕
               </button>
             </div>
-            <div className="p-4 overflow-auto max-h-[60vh]">
-              <iframe
-                src={`/api/generator/templates/${previewTemplate}/preview`}
-                className="w-full h-96 border border-gray-200 dark:border-gray-700 rounded"
-                title="Template Preview"
-              />
+            <div className="p-4 overflow-auto" style={{ maxHeight: 'calc(90vh - 80px)' }}>
+              {/* PDF-Vorschau über iframe oder embed */}
+              <div className="bg-gray-100 dark:bg-gray-900 rounded-lg p-4">
+                <iframe
+                  src={`/api/generator/templates/${previewTemplate}/sample.pdf`}
+                  className="w-full bg-white rounded shadow"
+                  style={{ height: '70vh' }}
+                  title="Muster-PDF"
+                />
+              </div>
+              <div className="mt-4 flex justify-end gap-3">
+                <a
+                  href={`/api/generator/templates/${previewTemplate}/sample.pdf`}
+                  download={`Muster_${previewTemplate}.pdf`}
+                  className="flex items-center gap-2 px-4 py-2 bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-600"
+                >
+                  <Download className="h-4 w-4" />
+                  {t('generator.downloadSample', 'Muster herunterladen')}
+                </a>
+                <button
+                  onClick={() => setPreviewTemplate(null)}
+                  className="px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700"
+                >
+                  {t('common.close', 'Schließen')}
+                </button>
+              </div>
             </div>
           </div>
         </div>

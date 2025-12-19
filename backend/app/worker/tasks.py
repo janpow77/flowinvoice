@@ -12,14 +12,21 @@ import logging
 import random
 import shutil
 from datetime import UTC, datetime, timedelta
-from io import StringIO
+from io import BytesIO, StringIO
 from pathlib import Path
 from typing import Any
 
+from reportlab.lib import colors
+from reportlab.lib.pagesizes import A4
+from reportlab.lib.styles import ParagraphStyle, getSampleStyleSheet
+from reportlab.lib.units import cm
+from reportlab.platypus import Paragraph, SimpleDocTemplate, Spacer, Table, TableStyle
+
 from sqlalchemy import select
 
+from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
+
 from app.config import get_settings
-from app.database import async_session_maker
 from app.llm import InvoiceAnalysisRequest, get_llm_adapter
 from app.models.document import Document
 from app.models.enums import DocumentStatus, Provider
@@ -43,6 +50,29 @@ def run_async(coro):
         return loop.run_until_complete(coro)
     finally:
         loop.close()
+
+
+def get_celery_session_maker() -> async_sessionmaker[AsyncSession]:
+    """
+    Erstellt eine neue Engine und SessionMaker für Celery Tasks.
+
+    Dies ist notwendig, da Celery in separaten Prozessen/Event-Loops läuft
+    und die globale Engine nicht kompatibel ist.
+    """
+    engine = create_async_engine(
+        settings.database_url,
+        echo=settings.debug,
+        pool_size=5,
+        max_overflow=10,
+        pool_pre_ping=True,
+    )
+    return async_sessionmaker(
+        engine,
+        class_=AsyncSession,
+        expire_on_commit=False,
+        autocommit=False,
+        autoflush=False,
+    )
 
 
 @celery_app.task(bind=True, max_retries=3)
@@ -69,7 +99,8 @@ def process_document_task(self, document_id: str) -> dict[str, Any]:
 
 async def _process_document_async(document_id: str) -> dict[str, Any]:
     """Async-Implementation der Dokumentenverarbeitung."""
-    async with async_session_maker() as session:
+    celery_session_maker = get_celery_session_maker()
+    async with celery_session_maker() as session:
         # Dokument laden
         document = await session.get(Document, document_id)
         if not document:
@@ -180,7 +211,8 @@ async def _analyze_document_async(
     model: str | None,
 ) -> dict[str, Any]:
     """Async-Implementation der LLM-Analyse."""
-    async with async_session_maker() as session:
+    celery_session_maker = get_celery_session_maker()
+    async with celery_session_maker() as session:
         # Dokument laden
         document = await session.get(Document, document_id)
         if not document:
@@ -300,7 +332,8 @@ def generate_invoices_task(
 
 async def _generate_invoices_async(generator_job_id: str) -> dict[str, Any]:
     """Async-Implementation der Rechnungsgenerierung."""
-    async with async_session_maker() as session:
+    celery_session_maker = get_celery_session_maker()
+    async with celery_session_maker() as session:
         # Job laden
         job = await session.get(GeneratorJob, generator_job_id)
         if not job:
@@ -353,13 +386,12 @@ async def _generate_invoices_async(generator_job_id: str) -> dict[str, Any]:
                     alias_noise_probability=alias_noise_probability,
                 )
 
-                # Dateiname
-                filename = f"invoice_{i+1:04d}_{template}.txt"
+                # Zufälliger Dateiname
+                filename = _generate_random_filename(invoice_data, i + 1)
                 filepath = output_dir / filename
 
-                # Rechnungstext erstellen und speichern
-                invoice_text = _format_invoice_text(invoice_data)
-                filepath.write_text(invoice_text, encoding="utf-8")
+                # Rechnung als PDF erstellen und speichern
+                _format_invoice_pdf(invoice_data, filepath)
 
                 generated_files.append(str(filepath))
 
@@ -380,6 +412,11 @@ async def _generate_invoices_async(generator_job_id: str) -> dict[str, Any]:
                 json.dumps(solutions, indent=2, ensure_ascii=False),
                 encoding="utf-8",
             )
+
+            # Fehler-Übersichtsdatei erstellen (für Trainer)
+            error_overview_file = output_dir / "fehler_uebersicht.txt"
+            error_overview_content = _create_error_overview(solutions, job.ruleset_id or "DE_USTG")
+            error_overview_file.write_text(error_overview_content, encoding="utf-8")
 
             # Job aktualisieren
             job.status = "COMPLETED"
@@ -606,6 +643,7 @@ def _build_description(
     Args:
         base_description: Basis-Beschreibung aus Template
         project_context: Projektkontext oder None
+            Unterstützte Felder: project_name, project_number, execution_location
 
     Returns:
         Leistungsbeschreibung
@@ -613,11 +651,28 @@ def _build_description(
     if not project_context:
         return base_description
 
+    parts = [base_description]
+    context_parts = []
+
+    # Projektnummer
+    project_number = project_context.get("project_number", "")
+    if project_number:
+        context_parts.append(f"Projekt-Nr. {project_number}")
+
+    # Projektname
     project_name = project_context.get("project_name", "")
     if project_name:
-        return f"{base_description} (Projekt: {project_name})"
+        context_parts.append(f"Projekt: {project_name}")
 
-    return base_description
+    # Durchführungsort
+    execution_location = project_context.get("execution_location", "")
+    if execution_location:
+        context_parts.append(f"Ort: {execution_location}")
+
+    if context_parts:
+        parts.append(f"({', '.join(context_parts)})")
+
+    return " ".join(parts)
 
 
 def _generate_vat_id(beneficiary_data: dict[str, Any] | None) -> str:
@@ -809,52 +864,343 @@ def _add_typo(text: str) -> str:
     return "".join(chars)
 
 
-def _format_invoice_text(data: dict[str, Any]) -> str:
-    """Formatiert Rechnungsdaten als Text."""
-    return f"""
-================================================================================
-                                    RECHNUNG
-================================================================================
+def _generate_random_filename(data: dict[str, Any], index: int) -> str:
+    """
+    Generiert einen zufälligen Dateinamen für eine Rechnung.
 
-Rechnungsnummer: {data.get('invoice_number', '')}
-Rechnungsdatum:  {data.get('invoice_date', '')}
+    Erzeugt verschiedene realistische Dateinamen-Muster:
+    - 2025-12-19_Rechnung_001.pdf
+    - Rechnung_MeisterMueller_2025-0001.pdf
+    - RE_2025_0001.pdf
+    - Invoice_20251219.pdf
+    - Lieferantenrechnung_001.pdf
+    - RG2025-0001_Handwerk.pdf
 
---------------------------------------------------------------------------------
-RECHNUNGSSTELLER
---------------------------------------------------------------------------------
-{data.get('supplier_name', '')}
-{data.get('supplier_address', '')}
-USt-IdNr.: {data.get('vat_id', '')}
+    Args:
+        data: Rechnungsdaten mit Lieferantenname, Datum, Nummer
+        index: Laufende Nummer
 
---------------------------------------------------------------------------------
-RECHNUNGSEMPFÄNGER
---------------------------------------------------------------------------------
-{data.get('customer_name', '')}
-{data.get('customer_address', '')}
+    Returns:
+        Zufälliger Dateiname (ohne Pfad)
+    """
+    import re
 
---------------------------------------------------------------------------------
-LEISTUNG
---------------------------------------------------------------------------------
-Leistungsdatum: {data.get('supply_date', '')}
+    # Daten extrahieren
+    invoice_date = data.get("invoice_date", "")
+    invoice_number = data.get("invoice_number", f"2025-{index:04d}")
+    supplier_name = data.get("supplier_name", "Lieferant")
+    template = data.get("template", "")
 
-{data.get('description', '')}
+    # Lieferantennamen bereinigen (nur alphanumerisch)
+    clean_supplier = re.sub(r"[^a-zA-ZäöüÄÖÜß0-9]", "", supplier_name)[:20]
 
---------------------------------------------------------------------------------
-BETRÄGE
---------------------------------------------------------------------------------
-Nettobetrag:                              {data.get('net_amount', '')} EUR
-MwSt. {data.get('vat_rate', '')}%:                              {data.get('vat_amount', '')} EUR
---------------------------------------------------------------------------------
-Bruttobetrag:                             {data.get('gross_amount', '')} EUR
-================================================================================
+    # Datum in verschiedenen Formaten
+    date_iso = ""
+    date_compact = ""
+    if invoice_date:
+        # Versuche Datum zu parsen (Format: DD.MM.YYYY oder YYYY-MM-DD)
+        try:
+            if "." in invoice_date:
+                parts = invoice_date.split(".")
+                if len(parts) == 3:
+                    date_iso = f"{parts[2]}-{parts[1]}-{parts[0]}"
+                    date_compact = f"{parts[2]}{parts[1]}{parts[0]}"
+            elif "-" in invoice_date:
+                date_iso = invoice_date
+                date_compact = invoice_date.replace("-", "")
+        except Exception:
+            date_iso = datetime.now().strftime("%Y-%m-%d")
+            date_compact = datetime.now().strftime("%Y%m%d")
+    else:
+        date_iso = datetime.now().strftime("%Y-%m-%d")
+        date_compact = datetime.now().strftime("%Y%m%d")
 
-Zahlbar innerhalb von 14 Tagen.
+    # Verschiedene Dateinamen-Muster
+    patterns = [
+        f"{date_iso}_Rechnung_{index:03d}.pdf",
+        f"Rechnung_{clean_supplier}_{invoice_number}.pdf",
+        f"RE_{invoice_number.replace('-', '_')}.pdf",
+        f"Invoice_{date_compact}.pdf",
+        f"Lieferantenrechnung_{index:03d}.pdf",
+        f"RG{invoice_number}_{template.split('_')[-1] if '_' in template else template}.pdf",
+        f"Rechnung-{index:04d}.pdf",
+        f"{date_compact}_RE{index:03d}.pdf",
+        f"INV-{invoice_number}.pdf",
+        f"Rg_{clean_supplier[:10]}_{date_compact}.pdf",
+        f"{invoice_number}_Rechnung.pdf",
+        f"Bill_{date_iso}_{index:02d}.pdf",
+    ]
 
-Bankverbindung:
-IBAN: {data.get('iban', '')}
+    return random.choice(patterns)
 
-================================================================================
-"""
+
+def _create_error_overview(solutions: list[dict[str, Any]], ruleset_id: str) -> str:
+    """
+    Erstellt eine Fehler-Übersichtsdatei für Trainer.
+
+    Args:
+        solutions: Liste der Lösungsdaten pro Rechnung
+        ruleset_id: Aktives Regelwerk
+
+    Returns:
+        Formatierter Text mit Fehlerübersicht
+    """
+    # Regelwerk-spezifische Fehlerbeschreibungen
+    error_descriptions = {
+        "DE_USTG": {
+            "missing_invoice_number": "Rechnungsnummer fehlt (§14 Abs. 4 Nr. 1 UStG)",
+            "invalid_vat_id": "Ungültige USt-IdNr. (§14 Abs. 4 Nr. 2 UStG)",
+            "missing_date": "Rechnungsdatum fehlt (§14 Abs. 4 Nr. 3 UStG)",
+            "calculation_error": "Rechenfehler bei Beträgen (§14 Abs. 4 Nr. 7-8 UStG)",
+            "missing_description": "Leistungsbeschreibung fehlt (§14 Abs. 4 Nr. 5 UStG)",
+            "vat_id_missing": "USt-IdNr. fehlt komplett (§14 Abs. 4 Nr. 2 UStG)",
+            "beneficiary_name_typo": "Tippfehler im Empfängernamen (§14 Abs. 4 Nr. 1 UStG)",
+            "beneficiary_alias_used": "Alias statt offiziellem Namen verwendet",
+            "beneficiary_wrong_address": "Falsche Empfängeradresse (§14 Abs. 4 Nr. 1 UStG)",
+            "beneficiary_completely_wrong": "Falscher Rechnungsempfänger (§14 Abs. 4 Nr. 1 UStG)",
+        },
+        "EU_VAT": {
+            "missing_invoice_number": "Invoice number missing (Art. 226(2) VAT Directive)",
+            "invalid_vat_id": "Invalid VAT ID (Art. 226(3) VAT Directive)",
+            "missing_date": "Invoice date missing (Art. 226(1) VAT Directive)",
+            "calculation_error": "Calculation error (Art. 226(8-10) VAT Directive)",
+            "missing_description": "Service description missing (Art. 226(6) VAT Directive)",
+            "vat_id_missing": "VAT ID missing (Art. 226(3) VAT Directive)",
+            "beneficiary_name_typo": "Typo in recipient name",
+            "beneficiary_alias_used": "Alias used instead of official name",
+            "beneficiary_wrong_address": "Wrong recipient address (Art. 226(5) VAT Directive)",
+            "beneficiary_completely_wrong": "Wrong recipient (Art. 226(5) VAT Directive)",
+        },
+        "CH_MWSTG": {
+            "missing_invoice_number": "Rechnungsnummer fehlt (Art. 26 Abs. 2 MWSTG)",
+            "invalid_vat_id": "Ungültige MWST-Nr. (Art. 26 Abs. 2 MWSTG)",
+            "missing_date": "Rechnungsdatum fehlt (Art. 26 Abs. 2 MWSTG)",
+            "calculation_error": "Rechenfehler (Art. 26 Abs. 2 MWSTG)",
+            "missing_description": "Leistungsbeschreibung fehlt (Art. 26 Abs. 2 MWSTG)",
+            "vat_id_missing": "MWST-Nr. fehlt (Art. 26 Abs. 2 MWSTG)",
+            "beneficiary_name_typo": "Tippfehler im Empfängernamen",
+            "beneficiary_alias_used": "Alias statt offizieller Name",
+            "beneficiary_wrong_address": "Falsche Empfängeradresse",
+            "beneficiary_completely_wrong": "Falscher Rechnungsempfänger",
+        },
+    }
+
+    # Fallback auf DE_USTG wenn Regelwerk nicht gefunden
+    descriptions = error_descriptions.get(ruleset_id, error_descriptions["DE_USTG"])
+
+    lines = [
+        "=" * 80,
+        "FEHLERÜBERSICHT - RECHNUNGSPRÜFUNG",
+        f"Regelwerk: {ruleset_id}",
+        "=" * 80,
+        "",
+        f"Generiert am: {datetime.now().strftime('%d.%m.%Y %H:%M')}",
+        f"Anzahl Rechnungen: {len(solutions)}",
+        f"Rechnungen mit Fehlern: {sum(1 for s in solutions if s.get('has_error'))}",
+        "",
+        "-" * 80,
+        "",
+    ]
+
+    # Rechnungen mit Fehlern auflisten
+    invoices_with_errors = [s for s in solutions if s.get("has_error") and s.get("errors")]
+    invoices_without_errors = [s for s in solutions if not s.get("has_error") or not s.get("errors")]
+
+    if invoices_with_errors:
+        lines.append("RECHNUNGEN MIT FEHLERN:")
+        lines.append("-" * 40)
+        lines.append("")
+
+        for solution in invoices_with_errors:
+            filename = solution.get("filename", "unbekannt")
+            errors = solution.get("errors", [])
+            correct_values = solution.get("correct_values", {})
+
+            lines.append(f"📄 {filename}")
+            lines.append(f"   Template: {solution.get('template', 'unbekannt')}")
+            lines.append(f"   Anzahl Fehler: {len(errors)}")
+            lines.append("")
+
+            for error in errors:
+                error_desc = descriptions.get(error, error)
+                lines.append(f"   ❌ {error_desc}")
+
+                # Korrekten Wert anzeigen wenn verfügbar
+                if error in ["missing_invoice_number", "missing_date", "missing_description"]:
+                    field_map = {
+                        "missing_invoice_number": "invoice_number",
+                        "missing_date": "invoice_date",
+                        "missing_description": "description",
+                    }
+                    field = field_map.get(error, "")
+                    if field and field in correct_values:
+                        lines.append(f"      → Korrekter Wert: {correct_values[field]}")
+
+                if error == "invalid_vat_id" and "vat_id" in correct_values:
+                    lines.append(f"      → Korrekte USt-IdNr.: {correct_values['vat_id']}")
+
+                if error == "calculation_error" and "gross_amount" in correct_values:
+                    lines.append(f"      → Korrekter Bruttobetrag: {correct_values['gross_amount']}")
+
+                if error in ["beneficiary_name_typo", "beneficiary_alias_used", "beneficiary_completely_wrong"]:
+                    if "customer_name" in correct_values:
+                        lines.append(f"      → Korrekter Name: {correct_values['customer_name']}")
+
+                if error in ["beneficiary_wrong_address", "beneficiary_completely_wrong"]:
+                    if "customer_address" in correct_values:
+                        lines.append(f"      → Korrekte Adresse: {correct_values['customer_address']}")
+
+            lines.append("")
+
+    if invoices_without_errors:
+        lines.append("")
+        lines.append("FEHLERFREIE RECHNUNGEN:")
+        lines.append("-" * 40)
+        for solution in invoices_without_errors:
+            lines.append(f"   ✓ {solution.get('filename', 'unbekannt')}")
+
+    lines.append("")
+    lines.append("=" * 80)
+    lines.append("ENDE DER FEHLERÜBERSICHT")
+    lines.append("=" * 80)
+
+    return "\n".join(lines)
+
+
+def _format_invoice_pdf(data: dict[str, Any], filepath: Path) -> None:
+    """
+    Erstellt eine professionelle PDF-Rechnung.
+
+    Args:
+        data: Rechnungsdaten
+        filepath: Ausgabepfad für die PDF
+    """
+    doc = SimpleDocTemplate(
+        str(filepath),
+        pagesize=A4,
+        rightMargin=2 * cm,
+        leftMargin=2 * cm,
+        topMargin=2 * cm,
+        bottomMargin=2 * cm,
+    )
+
+    # Styles definieren
+    styles = getSampleStyleSheet()
+    title_style = ParagraphStyle(
+        "Title",
+        parent=styles["Heading1"],
+        fontSize=24,
+        alignment=1,  # Center
+        spaceAfter=20,
+        textColor=colors.darkblue,
+    )
+    heading_style = ParagraphStyle(
+        "SectionHeading",
+        parent=styles["Heading2"],
+        fontSize=12,
+        textColor=colors.darkblue,
+        spaceBefore=15,
+        spaceAfter=8,
+        borderWidth=0,
+        borderColor=colors.darkblue,
+        borderPadding=5,
+    )
+    normal_style = ParagraphStyle(
+        "Normal",
+        parent=styles["Normal"],
+        fontSize=10,
+        leading=14,
+    )
+    bold_style = ParagraphStyle(
+        "Bold",
+        parent=styles["Normal"],
+        fontSize=10,
+        leading=14,
+        fontName="Helvetica-Bold",
+    )
+
+    elements = []
+
+    # Titel
+    elements.append(Paragraph("RECHNUNG", title_style))
+    elements.append(Spacer(1, 0.5 * cm))
+
+    # Rechnungsinformationen
+    invoice_info = [
+        ["Rechnungsnummer:", data.get("invoice_number", "")],
+        ["Rechnungsdatum:", data.get("invoice_date", "")],
+    ]
+    info_table = Table(invoice_info, colWidths=[4 * cm, 8 * cm])
+    info_table.setStyle(TableStyle([
+        ("FONTNAME", (0, 0), (0, -1), "Helvetica-Bold"),
+        ("FONTSIZE", (0, 0), (-1, -1), 10),
+        ("VALIGN", (0, 0), (-1, -1), "TOP"),
+        ("BOTTOMPADDING", (0, 0), (-1, -1), 6),
+    ]))
+    elements.append(info_table)
+    elements.append(Spacer(1, 0.8 * cm))
+
+    # Rechnungssteller
+    elements.append(Paragraph("RECHNUNGSSTELLER", heading_style))
+    supplier_text = f"""
+    <b>{data.get('supplier_name', '')}</b><br/>
+    {data.get('supplier_address', '')}<br/>
+    USt-IdNr.: {data.get('vat_id', '')}
+    """
+    elements.append(Paragraph(supplier_text, normal_style))
+    elements.append(Spacer(1, 0.5 * cm))
+
+    # Rechnungsempfänger
+    elements.append(Paragraph("RECHNUNGSEMPFÄNGER", heading_style))
+    customer_text = f"""
+    <b>{data.get('customer_name', '')}</b><br/>
+    {data.get('customer_address', '')}
+    """
+    elements.append(Paragraph(customer_text, normal_style))
+    elements.append(Spacer(1, 0.5 * cm))
+
+    # Leistung
+    elements.append(Paragraph("LEISTUNG", heading_style))
+    service_text = f"""
+    Leistungsdatum: {data.get('supply_date', '')}<br/><br/>
+    {data.get('description', '')}
+    """
+    elements.append(Paragraph(service_text, normal_style))
+    elements.append(Spacer(1, 0.8 * cm))
+
+    # Beträge-Tabelle
+    elements.append(Paragraph("BETRÄGE", heading_style))
+    amounts_data = [
+        ["Nettobetrag:", f"{data.get('net_amount', '')} EUR"],
+        [f"MwSt. {data.get('vat_rate', '')}%:", f"{data.get('vat_amount', '')} EUR"],
+        ["Bruttobetrag:", f"{data.get('gross_amount', '')} EUR"],
+    ]
+    amounts_table = Table(amounts_data, colWidths=[8 * cm, 4 * cm])
+    amounts_table.setStyle(TableStyle([
+        ("FONTNAME", (0, 0), (-1, -1), "Helvetica"),
+        ("FONTNAME", (0, 2), (-1, 2), "Helvetica-Bold"),
+        ("FONTSIZE", (0, 0), (-1, -1), 11),
+        ("ALIGN", (1, 0), (1, -1), "RIGHT"),
+        ("BOTTOMPADDING", (0, 0), (-1, -1), 8),
+        ("TOPPADDING", (0, 0), (-1, -1), 8),
+        ("LINEABOVE", (0, 2), (-1, 2), 1, colors.black),
+        ("LINEBELOW", (0, 2), (-1, 2), 2, colors.black),
+        ("BACKGROUND", (0, 2), (-1, 2), colors.lightgrey),
+    ]))
+    elements.append(amounts_table)
+    elements.append(Spacer(1, 1 * cm))
+
+    # Zahlungsinformationen
+    elements.append(Paragraph("ZAHLUNGSINFORMATIONEN", heading_style))
+    payment_text = f"""
+    Zahlbar innerhalb von 14 Tagen.<br/><br/>
+    <b>Bankverbindung:</b><br/>
+    IBAN: {data.get('iban', '')}
+    """
+    elements.append(Paragraph(payment_text, normal_style))
+
+    # PDF erstellen
+    doc.build(elements)
 
 
 # =============================================================================
@@ -889,7 +1235,8 @@ def export_results_task(
 
 async def _export_results_async(export_job_id: str) -> dict[str, Any]:
     """Async-Implementation des Exports."""
-    async with async_session_maker() as session:
+    celery_session_maker = get_celery_session_maker()
+    async with celery_session_maker() as session:
         # Job laden
         export_job = await session.get(ExportJob, export_job_id)
         if not export_job:
@@ -1092,7 +1439,8 @@ async def _cleanup_async() -> dict[str, Any]:
                     cleanup_stats["old_jobs_cleaned"] += 1
 
     # 4. Datenbank-Bereinigung (abgeschlossene Jobs älter als 90 Tage)
-    async with async_session_maker() as session:
+    celery_session_maker = get_celery_session_maker()
+    async with celery_session_maker() as session:
         cutoff_date = datetime.now(UTC) - timedelta(days=90)
 
         # Alte Export-Jobs löschen

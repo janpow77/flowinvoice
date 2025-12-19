@@ -78,6 +78,7 @@ export const api = {
       created_at: p.created_at,
       updated_at: p.created_at,
       beneficiary_name: p.beneficiary_name,
+      beneficiary: p.beneficiary as Record<string, unknown> | undefined,
       is_active: p.is_active,
     }))
   },
@@ -437,6 +438,10 @@ export const api = {
       country?: string
       vat_id?: string
     }
+    project_context?: {
+      project_number?: string
+      execution_location?: string
+    }
   }) => {
     const params = new URLSearchParams()
     if (options.project_id) params.append('project_id', options.project_id)
@@ -451,6 +456,7 @@ export const api = {
 
     const response = await apiClient.post(`/generator/run?${params.toString()}`, {
       beneficiary_data: options.beneficiary_data,
+      project_context: options.project_context,
     }, {
       headers: {
         'X-API-Key': localStorage.getItem('flowaudit_admin_key') || 'admin',

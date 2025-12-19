@@ -115,9 +115,10 @@ services:
       - OLLAMA_HOST=http://ollama:11434
       - STORAGE_PATH=/data
       - SECRET_KEY=${SECRET_KEY:-flowaudit_dev_secret_key_change_in_production}
-      - DEBUG=${DEBUG:-false}
+      - DEBUG=${DEBUG:-true}
       - LOG_LEVEL=${LOG_LEVEL:-INFO}
       - UVICORN_WORKERS=${UVICORN_WORKERS:-4}
+      - ADMIN_API_KEY=${ADMIN_API_KEY:-flowaudit_admin_key}
     volumes:
       - ../data:/data
       - ../backend/app:/app/app:ro
