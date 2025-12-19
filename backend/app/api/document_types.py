@@ -6,10 +6,10 @@ Endpoints für Dokumenttyp-Verwaltung mit Chunking-Konfiguration.
 """
 
 import logging
-from uuid import uuid4
+from uuid import UUID, uuid4
 
 from fastapi import APIRouter, Depends, Header, HTTPException, status
-from sqlalchemy import select
+from sqlalchemy import select, or_
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.database import get_async_session
@@ -23,6 +23,25 @@ from app.schemas.document_type import (
 
 logger = logging.getLogger(__name__)
 router = APIRouter()
+
+
+def is_valid_uuid(value: str) -> bool:
+    """Prüft ob ein String eine gültige UUID ist."""
+    try:
+        UUID(value)
+        return True
+    except (ValueError, TypeError):
+        return False
+
+
+def build_id_or_slug_filter(doc_type_id: str):
+    """Baut Filter für ID oder Slug-Suche."""
+    if is_valid_uuid(doc_type_id):
+        return or_(
+            DocumentTypeSettings.id == doc_type_id,
+            DocumentTypeSettings.slug == doc_type_id
+        )
+    return DocumentTypeSettings.slug == doc_type_id
 
 
 async def ensure_system_types(session: AsyncSession) -> None:
@@ -113,10 +132,7 @@ async def get_document_type(
     """
     # Suche nach ID oder Slug
     result = await session.execute(
-        select(DocumentTypeSettings).where(
-            (DocumentTypeSettings.id == doc_type_id)
-            | (DocumentTypeSettings.slug == doc_type_id)
-        )
+        select(DocumentTypeSettings).where(build_id_or_slug_filter(doc_type_id))
     )
     doc_type = result.scalar_one_or_none()
 
@@ -236,10 +252,7 @@ async def update_document_type(
         )
 
     result = await session.execute(
-        select(DocumentTypeSettings).where(
-            (DocumentTypeSettings.id == doc_type_id)
-            | (DocumentTypeSettings.slug == doc_type_id)
-        )
+        select(DocumentTypeSettings).where(build_id_or_slug_filter(doc_type_id))
     )
     doc_type = result.scalar_one_or_none()
 
@@ -307,10 +320,7 @@ async def delete_document_type(
         )
 
     result = await session.execute(
-        select(DocumentTypeSettings).where(
-            (DocumentTypeSettings.id == doc_type_id)
-            | (DocumentTypeSettings.slug == doc_type_id)
-        )
+        select(DocumentTypeSettings).where(build_id_or_slug_filter(doc_type_id))
     )
     doc_type = result.scalar_one_or_none()
 
