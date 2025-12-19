@@ -14,12 +14,14 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.database import get_async_session
 from app.models.document import Document, ParseRun
+from app.models.document_type import DocumentTypeSettings
 from app.models.enums import DocumentStatus
 from app.models.feedback import Feedback, RagExample
 from app.models.llm import LlmRun
 from app.models.result import FinalResult
-from app.rag import get_vectorstore
+from app.rag import get_rag_service, get_vectorstore
 from app.schemas.feedback import FeedbackCreate, FeedbackListItem, FeedbackResponse
+from app.services.parser import ParseResult, ExtractedValue
 
 logger = logging.getLogger(__name__)
 
@@ -155,6 +157,112 @@ async def create_feedback(
         except Exception as e:
             logger.exception(f"Error creating RAG examples: {e}")
             # Fehler bei RAG-Erstellung sollte Feedback nicht verhindern
+
+    # Bei Akzeptierung: Vollständiges Dokument für RAG lernen (mit Chunking)
+    if data.accept_result:
+        try:
+            # Raw-Text aus Dokument holen (bevorzugt) oder aus ParseRun
+            raw_text = document.raw_text
+            extracted_data_source = document.extracted_data
+
+            if not raw_text:
+                # Fallback: Parse-Run für Rohtext laden
+                parse_run_result = await session.execute(
+                    select(ParseRun)
+                    .where(ParseRun.document_id == document_id)
+                    .order_by(ParseRun.created_at.desc())
+                    .limit(1)
+                )
+                parse_run = parse_run_result.scalar_one_or_none()
+                if parse_run:
+                    raw_text = parse_run.raw_text
+                    extracted_data_source = parse_run.extracted_data
+
+            if raw_text:
+                # Dokumenttyp-Einstellungen laden für Chunking-Config
+                doc_type_slug = document.document_type.value.lower()
+                doc_type_result = await session.execute(
+                    select(DocumentTypeSettings).where(
+                        DocumentTypeSettings.slug == doc_type_slug
+                    )
+                )
+                doc_type_settings = doc_type_result.scalar_one_or_none()
+
+                # Chunking-Config erstellen
+                chunking_config = None
+                if doc_type_settings:
+                    chunking_config = {
+                        "chunk_size_tokens": doc_type_settings.chunk_size_tokens,
+                        "chunk_overlap_tokens": doc_type_settings.chunk_overlap_tokens,
+                        "max_chunks": doc_type_settings.max_chunks,
+                        "strategy": doc_type_settings.chunk_strategy,
+                    }
+                    logger.info(
+                        f"Using chunking config for {doc_type_slug}: "
+                        f"size={doc_type_settings.chunk_size_tokens}, "
+                        f"overlap={doc_type_settings.chunk_overlap_tokens}, "
+                        f"max={doc_type_settings.max_chunks}"
+                    )
+
+                # ParseResult rekonstruieren
+                extracted_data = {}
+                if extracted_data_source:
+                    for key, value in extracted_data_source.items():
+                        if isinstance(value, dict):
+                            extracted_data[key] = ExtractedValue(
+                                value=value.get("value"),
+                                raw_text=str(value.get("raw_text", value.get("value", ""))),
+                                confidence=value.get("confidence", 0.0),
+                                source=value.get("source", "unknown"),
+                            )
+                        else:
+                            extracted_data[key] = ExtractedValue(
+                                value=value,
+                                raw_text=str(value) if value else "",
+                                confidence=1.0,
+                                source="parse_run",
+                            )
+
+                parse_result = ParseResult(
+                    raw_text=raw_text,
+                    pages=[],  # Seiten nicht mehr verfügbar nach Parse
+                    extracted=extracted_data,
+                    timings_ms={},
+                )
+
+                # Korrekturen für RAG vorbereiten
+                corrections = None
+                if data.overrides:
+                    corrections = [
+                        {
+                            "error_type": o.correction_type or "manual_correction",
+                            "feature_id": o.feature_id,
+                            "wrong_value": str(o.original_value) if o.original_value else "",
+                            "correct_value": str(o.corrected_value) if o.corrected_value else "",
+                            "reasoning": o.reason or "",
+                        }
+                        for o in data.overrides
+                    ]
+
+                # RAG Service: Validierte Rechnung lernen
+                rag_service = get_rag_service()
+                rag_service.learn_from_validation(
+                    document_id=document_id,
+                    parse_result=parse_result,
+                    final_assessment="accepted",
+                    corrections=corrections,
+                    ruleset_id=document.ruleset_id or "DE_USTG",
+                    chunking_config=chunking_config,
+                )
+
+                logger.info(
+                    f"Learned from validated document {document_id} "
+                    f"(chunking: {chunking_config is not None})"
+                )
+
+        except Exception as e:
+            logger.exception(f"Error learning from validation: {e}")
+            # Fehler sollte Feedback nicht verhindern
 
     await session.commit()
 
