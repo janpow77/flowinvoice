@@ -107,8 +107,8 @@ export default function Projects() {
   if (isLoading) {
     return (
       <div className="flex items-center justify-center h-64">
-        <Loader2 className="h-8 w-8 text-primary-600 animate-spin" />
-        <span className="ml-3 text-gray-600">{t('common.loading')}</span>
+        <Loader2 className="h-8 w-8 text-accent-primary animate-spin" />
+        <span className="ml-3 text-theme-text-muted">{t('common.loading')}</span>
       </div>
     )
   }
@@ -116,19 +116,19 @@ export default function Projects() {
   // Error state
   if (error) {
     return (
-      <div className="bg-red-50 border border-red-200 rounded-lg p-6">
+      <div className="bg-status-danger-bg border border-status-danger-border rounded-lg p-6">
         <div className="flex items-center">
-          <AlertCircle className="h-6 w-6 text-red-600" />
+          <AlertCircle className="h-6 w-6 text-status-danger" />
           <div className="ml-3">
-            <h3 className="text-lg font-medium text-red-800">{t('common.error')}</h3>
-            <p className="text-sm text-red-600 mt-1">
+            <h3 className="text-lg font-medium text-status-danger">{t('common.error')}</h3>
+            <p className="text-sm text-status-danger mt-1">
               {t('errors.generic')}: {(error as Error).message}
             </p>
           </div>
         </div>
         <button
           onClick={() => queryClient.invalidateQueries({ queryKey: ['projects'] })}
-          className="mt-4 px-4 py-2 bg-red-100 text-red-700 rounded-lg hover:bg-red-200 transition-colors"
+          className="mt-4 px-4 py-2 bg-status-danger-bg text-status-danger rounded-lg hover:opacity-80 transition-colors"
         >
           {t('common.back')}
         </button>
@@ -140,10 +140,10 @@ export default function Projects() {
     <div className="space-y-6">
       {/* Header */}
       <div className="flex items-center justify-between">
-        <h2 className="text-xl font-semibold text-gray-900">{t('projects.title')}</h2>
+        <h2 className="text-xl font-semibold text-theme-text-primary">{t('projects.title')}</h2>
         <button
           onClick={openModal}
-          className="flex items-center px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors"
+          className="flex items-center px-4 py-2 bg-accent-primary text-white rounded-lg hover:bg-accent-primary-hover transition-colors"
         >
           <Plus className="h-5 w-5 mr-2" />
           {t('projects.createProject')}
@@ -156,22 +156,22 @@ export default function Projects() {
           {projects.map((project: Project) => (
             <div
               key={project.id}
-              className="bg-white rounded-lg border border-gray-200 p-6 hover:shadow-md transition-shadow relative group"
+              className="bg-theme-card rounded-lg border border-theme-border-default p-6 hover:shadow-md transition-shadow relative group"
             >
               <Link to={`/projects/${project.id}`} className="block">
                 <div className="flex items-start">
-                  <div className="p-2 bg-primary-50 rounded-lg">
-                    <FolderOpen className="h-6 w-6 text-primary-600" />
+                  <div className="p-2 bg-accent-primary/10 rounded-lg">
+                    <FolderOpen className="h-6 w-6 text-accent-primary" />
                   </div>
                   <div className="ml-4 flex-1 pr-8">
-                    <h3 className="font-medium text-gray-900">{project.title}</h3>
-                    <p className="text-sm text-gray-500 mt-1 line-clamp-2">
+                    <h3 className="font-medium text-theme-text-primary">{project.title}</h3>
+                    <p className="text-sm text-theme-text-muted mt-1 line-clamp-2">
                       {project.description || t('projects.noDescription')}
                     </p>
                   </div>
                 </div>
 
-                <div className="mt-4 flex items-center text-sm text-gray-500 space-x-4">
+                <div className="mt-4 flex items-center text-sm text-theme-text-muted space-x-4">
                   <span className="flex items-center">
                     <FileText className="h-4 w-4 mr-1" />
                     {project.document_count || 0} {t('projects.documentCount')}
@@ -186,7 +186,7 @@ export default function Projects() {
               {/* Delete Button */}
               <button
                 onClick={(e) => handleDeleteClick(e, project)}
-                className="absolute top-4 right-4 p-1.5 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg opacity-0 group-hover:opacity-100 transition-all"
+                className="absolute top-4 right-4 p-1.5 text-theme-text-muted hover:text-status-danger hover:bg-status-danger-bg rounded-lg opacity-0 group-hover:opacity-100 transition-all"
                 title={t('common.delete')}
               >
                 <Trash2 className="h-4 w-4" />
@@ -195,15 +195,15 @@ export default function Projects() {
           ))}
         </div>
       ) : (
-        <div className="bg-white rounded-lg border border-gray-200 p-12 text-center">
-          <FolderOpen className="h-12 w-12 text-gray-400 mx-auto" />
-          <h3 className="mt-4 text-lg font-medium text-gray-900">{t('projects.noProjects')}</h3>
-          <p className="mt-2 text-sm text-gray-500">
+        <div className="bg-theme-card rounded-lg border border-theme-border-default p-12 text-center">
+          <FolderOpen className="h-12 w-12 text-theme-text-muted mx-auto" />
+          <h3 className="mt-4 text-lg font-medium text-theme-text-primary">{t('projects.noProjects')}</h3>
+          <p className="mt-2 text-sm text-theme-text-muted">
             {t('projects.description')}
           </p>
           <button
             onClick={openModal}
-            className="mt-4 px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors"
+            className="mt-4 px-4 py-2 bg-accent-primary text-white rounded-lg hover:bg-accent-primary-hover transition-colors"
           >
             {t('projects.createProject')}
           </button>
@@ -221,15 +221,15 @@ export default function Projects() {
             />
 
             {/* Modal */}
-            <div className="relative bg-white rounded-xl shadow-xl w-full max-w-lg">
+            <div className="relative bg-theme-elevated rounded-xl shadow-xl w-full max-w-lg">
               {/* Header */}
-              <div className="flex items-center justify-between px-6 py-4 border-b border-gray-200">
-                <h3 className="text-lg font-semibold text-gray-900">
+              <div className="flex items-center justify-between px-6 py-4 border-b border-theme-border-default">
+                <h3 className="text-lg font-semibold text-theme-text-primary">
                   {t('projects.createProject')}
                 </h3>
                 <button
                   onClick={() => setIsModalOpen(false)}
-                  className="p-1 text-gray-400 hover:text-gray-600 rounded-lg hover:bg-gray-100"
+                  className="p-1 text-theme-text-muted hover:text-theme-text-primary rounded-lg hover:bg-theme-hover"
                 >
                   <X className="h-5 w-5" />
                 </button>
@@ -240,7 +240,7 @@ export default function Projects() {
                 <div className="px-6 py-4 space-y-4">
                   {/* Error Display */}
                   {createProjectMutation.error && (
-                    <div className="bg-red-50 border border-red-200 rounded-lg p-3 flex items-center text-sm text-red-600">
+                    <div className="bg-status-danger-bg border border-status-danger-border rounded-lg p-3 flex items-center text-sm text-status-danger">
                       <AlertCircle className="h-4 w-4 mr-2 flex-shrink-0" />
                       {(createProjectMutation.error as Error).message}
                     </div>
@@ -248,14 +248,14 @@ export default function Projects() {
 
                   {/* Project Name */}
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                    <label className="block text-sm font-medium text-theme-text-secondary mb-1">
                       {t('projects.projectName')} *
                     </label>
                     <input
                       type="text"
                       value={formData.title}
                       onChange={(e) => setFormData({ ...formData, title: e.target.value })}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
+                      className="w-full px-3 py-2 bg-theme-input border border-theme-border-default rounded-lg text-theme-text-primary focus:ring-2 focus:ring-accent-primary focus:border-accent-primary"
                       placeholder={t('projects.projectName')}
                       required
                       autoFocus
@@ -264,13 +264,13 @@ export default function Projects() {
 
                   {/* Description */}
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                    <label className="block text-sm font-medium text-theme-text-secondary mb-1">
                       {t('projects.description')}
                     </label>
                     <textarea
                       value={formData.description}
                       onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
+                      className="w-full px-3 py-2 bg-theme-input border border-theme-border-default rounded-lg text-theme-text-primary focus:ring-2 focus:ring-accent-primary focus:border-accent-primary"
                       placeholder={t('projects.description')}
                       rows={3}
                     />
@@ -278,13 +278,13 @@ export default function Projects() {
 
                   {/* Ruleset */}
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                    <label className="block text-sm font-medium text-theme-text-secondary mb-1">
                       {t('settings.defaultRuleset')}
                     </label>
                     <select
                       value={formData.ruleset_id}
                       onChange={(e) => setFormData({ ...formData, ruleset_id: e.target.value })}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
+                      className="w-full px-3 py-2 bg-theme-input border border-theme-border-default rounded-lg text-theme-text-primary focus:ring-2 focus:ring-accent-primary focus:border-accent-primary"
                     >
                       {rulesets && rulesets.length > 0 ? (
                         rulesets.map((ruleset: RulesetInfo) => (
@@ -305,43 +305,43 @@ export default function Projects() {
                   {/* Date Range */}
                   <div className="grid grid-cols-2 gap-4">
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">
+                      <label className="block text-sm font-medium text-theme-text-secondary mb-1">
                         {t('projectContext.projectPeriod')} (Start)
                       </label>
                       <input
                         type="date"
                         value={formData.start_date}
                         onChange={(e) => setFormData({ ...formData, start_date: e.target.value })}
-                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
+                        className="w-full px-3 py-2 bg-theme-input border border-theme-border-default rounded-lg text-theme-text-primary focus:ring-2 focus:ring-accent-primary focus:border-accent-primary"
                       />
                     </div>
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">
+                      <label className="block text-sm font-medium text-theme-text-secondary mb-1">
                         {t('projectContext.projectPeriod')} (Ende)
                       </label>
                       <input
                         type="date"
                         value={formData.end_date}
                         onChange={(e) => setFormData({ ...formData, end_date: e.target.value })}
-                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
+                        className="w-full px-3 py-2 bg-theme-input border border-theme-border-default rounded-lg text-theme-text-primary focus:ring-2 focus:ring-accent-primary focus:border-accent-primary"
                       />
                     </div>
                   </div>
                 </div>
 
                 {/* Footer */}
-                <div className="flex items-center justify-end gap-3 px-6 py-4 border-t border-gray-100 bg-gray-50 rounded-b-xl">
+                <div className="flex items-center justify-end gap-3 px-6 py-4 border-t border-theme-border-subtle bg-theme-hover rounded-b-xl">
                   <button
                     type="button"
                     onClick={() => setIsModalOpen(false)}
-                    className="px-4 py-2 text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
+                    className="px-4 py-2 text-theme-text-secondary bg-theme-card border border-theme-border-default rounded-lg hover:bg-theme-hover transition-colors"
                   >
                     {t('common.cancel')}
                   </button>
                   <button
                     type="submit"
                     disabled={createProjectMutation.isPending || !formData.title.trim()}
-                    className="px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center"
+                    className="px-4 py-2 bg-accent-primary text-white rounded-lg hover:bg-accent-primary-hover transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center"
                   >
                     {createProjectMutation.isPending && (
                       <Loader2 className="h-4 w-4 mr-2 animate-spin" />
@@ -366,28 +366,28 @@ export default function Projects() {
             />
 
             {/* Modal */}
-            <div className="relative bg-white rounded-xl shadow-xl w-full max-w-md p-6">
+            <div className="relative bg-theme-elevated rounded-xl shadow-xl w-full max-w-md p-6">
               <div className="flex items-center mb-4">
-                <div className="p-2 bg-red-100 rounded-lg">
-                  <Trash2 className="h-6 w-6 text-red-600" />
+                <div className="p-2 bg-status-danger-bg rounded-lg">
+                  <Trash2 className="h-6 w-6 text-status-danger" />
                 </div>
-                <h3 className="ml-3 text-lg font-semibold text-gray-900">
+                <h3 className="ml-3 text-lg font-semibold text-theme-text-primary">
                   {t('projects.deleteProject')}
                 </h3>
               </div>
 
-              <p className="text-gray-600 mb-2">
+              <p className="text-theme-text-secondary mb-2">
                 {t('projects.deleteConfirmMessage')}
               </p>
-              <p className="font-medium text-gray-900 mb-4">
+              <p className="font-medium text-theme-text-primary mb-4">
                 "{deleteConfirm.projectTitle}"
               </p>
-              <p className="text-sm text-red-600 mb-6">
+              <p className="text-sm text-status-danger mb-6">
                 {t('projects.deleteWarning')}
               </p>
 
               {deleteProjectMutation.error && (
-                <div className="bg-red-50 border border-red-200 rounded-lg p-3 mb-4 flex items-center text-sm text-red-600">
+                <div className="bg-status-danger-bg border border-status-danger-border rounded-lg p-3 mb-4 flex items-center text-sm text-status-danger">
                   <AlertCircle className="h-4 w-4 mr-2 flex-shrink-0" />
                   {(deleteProjectMutation.error as Error).message}
                 </div>
@@ -396,7 +396,7 @@ export default function Projects() {
               <div className="flex justify-end gap-3">
                 <button
                   onClick={() => setDeleteConfirm({ isOpen: false, projectId: null, projectTitle: '' })}
-                  className="px-4 py-2 text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
+                  className="px-4 py-2 text-theme-text-secondary bg-theme-card border border-theme-border-default rounded-lg hover:bg-theme-hover transition-colors"
                   disabled={deleteProjectMutation.isPending}
                 >
                   {t('common.cancel')}
@@ -404,7 +404,7 @@ export default function Projects() {
                 <button
                   onClick={confirmDelete}
                   disabled={deleteProjectMutation.isPending}
-                  className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors disabled:opacity-50 flex items-center"
+                  className="px-4 py-2 bg-status-danger text-white rounded-lg hover:opacity-80 transition-colors disabled:opacity-50 flex items-center"
                 >
                   {deleteProjectMutation.isPending && (
                     <Loader2 className="h-4 w-4 mr-2 animate-spin" />

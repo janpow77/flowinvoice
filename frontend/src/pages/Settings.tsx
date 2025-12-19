@@ -96,15 +96,15 @@ export default function Settings() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h2 className="text-xl font-semibold text-gray-900 dark:text-white">
+          <h2 className="text-xl font-semibold text-theme-text-primary">
             {t('settings.title')}
           </h2>
-          <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
+          <p className="text-sm text-theme-text-muted mt-1">
             {activeTabConfig?.description}
           </p>
         </div>
         {isAdmin && (
-          <div className="flex items-center gap-2 px-3 py-1.5 bg-amber-50 dark:bg-amber-900/20 text-amber-700 dark:text-amber-400 rounded-lg text-sm">
+          <div className="flex items-center gap-2 px-3 py-1.5 bg-status-warning-bg text-status-warning rounded-lg text-sm">
             <Shield className="h-4 w-4" />
             <span>Admin</span>
           </div>
@@ -112,7 +112,7 @@ export default function Settings() {
       </div>
 
       {/* Tab Navigation */}
-      <div className="border-b border-gray-200 dark:border-gray-700">
+      <div className="border-b border-theme-border-default">
         <nav className="-mb-px flex space-x-4 overflow-x-auto" aria-label="Tabs">
           {visibleTabs.map((tab) => {
             const Icon = tab.icon
@@ -124,21 +124,21 @@ export default function Settings() {
                 className={clsx(
                   'group inline-flex items-center gap-2 py-3 px-1 border-b-2 font-medium text-sm whitespace-nowrap transition-colors',
                   isActive
-                    ? 'border-primary-500 text-primary-600 dark:text-primary-400'
-                    : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 dark:text-gray-400 dark:hover:text-gray-300'
+                    ? 'border-accent-primary text-accent-primary'
+                    : 'border-transparent text-theme-text-muted hover:text-theme-text-primary hover:border-theme-border-strong'
                 )}
               >
                 <Icon
                   className={clsx(
                     'h-4 w-4',
                     isActive
-                      ? 'text-primary-500'
-                      : 'text-gray-400 group-hover:text-gray-500 dark:text-gray-500'
+                      ? 'text-accent-primary'
+                      : 'text-theme-text-muted group-hover:text-theme-text-secondary'
                   )}
                 />
                 {t(tab.labelKey, tab.id)}
                 {tab.adminOnly && (
-                  <span className="ml-1 px-1.5 py-0.5 text-xs bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400 rounded">
+                  <span className="ml-1 px-1.5 py-0.5 text-xs bg-status-warning-bg text-status-warning rounded">
                     Admin
                   </span>
                 )}
@@ -152,11 +152,11 @@ export default function Settings() {
       <div className="min-h-[400px]">{renderTabContent()}</div>
 
       {/* Footer Info */}
-      <div className="bg-gray-50 dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-4">
+      <div className="bg-theme-hover rounded-lg border border-theme-border-default p-4">
         <div className="flex items-start gap-3">
-          <Info className="h-5 w-5 text-gray-400 mt-0.5" />
-          <div className="text-sm text-gray-500 dark:text-gray-400">
-            <p className="font-medium text-gray-700 dark:text-gray-300 mb-1">
+          <Info className="h-5 w-5 text-theme-text-muted mt-0.5" />
+          <div className="text-sm text-theme-text-muted">
+            <p className="font-medium text-theme-text-secondary mb-1">
               {t('settings.helpTitle', 'Hilfe zu den Einstellungen')}
             </p>
             <p>
