@@ -236,3 +236,30 @@ async def activate_project(
     await session.flush()
 
     return {"active_project_id": project.id}
+
+
+@router.delete("/projects/{project_id}", status_code=status.HTTP_204_NO_CONTENT)
+async def delete_project(
+    project_id: str,
+    session: AsyncSession = Depends(get_async_session),
+) -> None:
+    """
+    Löscht ein Projekt und alle zugehörigen Dokumente.
+
+    Args:
+        project_id: Projekt-ID
+
+    Returns:
+        204 No Content bei Erfolg.
+    """
+    result = await session.execute(select(Project).where(Project.id == project_id))
+    project = result.scalar_one_or_none()
+
+    if not project:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Project {project_id} not found",
+        )
+
+    await session.delete(project)
+    await session.commit()

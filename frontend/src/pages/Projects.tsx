@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { Link } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
-import { FolderOpen, Plus, Calendar, FileText, X, AlertCircle, Loader2 } from 'lucide-react'
+import { FolderOpen, Plus, Calendar, FileText, X, AlertCircle, Loader2, Trash2 } from 'lucide-react'
 import { api } from '@/lib/api'
 import type { Project, RulesetInfo } from '@/lib/types'
 
@@ -12,6 +12,12 @@ interface CreateProjectForm {
   ruleset_id: string
   start_date: string
   end_date: string
+}
+
+interface DeleteConfirmState {
+  isOpen: boolean
+  projectId: string | null
+  projectTitle: string
 }
 
 export default function Projects() {
@@ -36,6 +42,12 @@ export default function Projects() {
     queryFn: () => api.getRulesets(),
   })
 
+  const [deleteConfirm, setDeleteConfirm] = useState<DeleteConfirmState>({
+    isOpen: false,
+    projectId: null,
+    projectTitle: '',
+  })
+
   const createProjectMutation = useMutation({
     mutationFn: (data: CreateProjectForm) => api.createProject(data),
     onSuccess: () => {
@@ -44,6 +56,30 @@ export default function Projects() {
       resetForm()
     },
   })
+
+  const deleteProjectMutation = useMutation({
+    mutationFn: (projectId: string) => api.deleteProject(projectId),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['projects'] })
+      setDeleteConfirm({ isOpen: false, projectId: null, projectTitle: '' })
+    },
+  })
+
+  const handleDeleteClick = (e: React.MouseEvent, project: Project) => {
+    e.preventDefault()
+    e.stopPropagation()
+    setDeleteConfirm({
+      isOpen: true,
+      projectId: project.id,
+      projectTitle: project.title,
+    })
+  }
+
+  const confirmDelete = () => {
+    if (deleteConfirm.projectId) {
+      deleteProjectMutation.mutate(deleteConfirm.projectId)
+    }
+  }
 
   const resetForm = () => {
     setFormData({
@@ -118,34 +154,44 @@ export default function Projects() {
       {projects && projects.length > 0 ? (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           {projects.map((project: Project) => (
-            <Link
+            <div
               key={project.id}
-              to={`/projects/${project.id}`}
-              className="bg-white rounded-lg border border-gray-200 p-6 hover:shadow-md transition-shadow"
+              className="bg-white rounded-lg border border-gray-200 p-6 hover:shadow-md transition-shadow relative group"
             >
-              <div className="flex items-start">
-                <div className="p-2 bg-primary-50 rounded-lg">
-                  <FolderOpen className="h-6 w-6 text-primary-600" />
+              <Link to={`/projects/${project.id}`} className="block">
+                <div className="flex items-start">
+                  <div className="p-2 bg-primary-50 rounded-lg">
+                    <FolderOpen className="h-6 w-6 text-primary-600" />
+                  </div>
+                  <div className="ml-4 flex-1 pr-8">
+                    <h3 className="font-medium text-gray-900">{project.title}</h3>
+                    <p className="text-sm text-gray-500 mt-1 line-clamp-2">
+                      {project.description || t('projects.noDescription')}
+                    </p>
+                  </div>
                 </div>
-                <div className="ml-4 flex-1">
-                  <h3 className="font-medium text-gray-900">{project.title}</h3>
-                  <p className="text-sm text-gray-500 mt-1 line-clamp-2">
-                    {project.description || t('projects.noProjects')}
-                  </p>
-                </div>
-              </div>
 
-              <div className="mt-4 flex items-center text-sm text-gray-500 space-x-4">
-                <span className="flex items-center">
-                  <Calendar className="h-4 w-4 mr-1" />
-                  {project.start_date} - {project.end_date}
-                </span>
-                <span className="flex items-center">
-                  <FileText className="h-4 w-4 mr-1" />
-                  {project.document_count || 0} {t('projects.documentCount')}
-                </span>
-              </div>
-            </Link>
+                <div className="mt-4 flex items-center text-sm text-gray-500 space-x-4">
+                  <span className="flex items-center">
+                    <FileText className="h-4 w-4 mr-1" />
+                    {project.document_count || 0} {t('projects.documentCount')}
+                  </span>
+                  <span className="flex items-center">
+                    <Calendar className="h-4 w-4 mr-1" />
+                    {new Date(project.created_at).toLocaleDateString('de-DE')}
+                  </span>
+                </div>
+              </Link>
+
+              {/* Delete Button */}
+              <button
+                onClick={(e) => handleDeleteClick(e, project)}
+                className="absolute top-4 right-4 p-1.5 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg opacity-0 group-hover:opacity-100 transition-all"
+                title={t('common.delete')}
+              >
+                <Trash2 className="h-4 w-4" />
+              </button>
+            </div>
           ))}
         </div>
       ) : (
@@ -240,11 +286,13 @@ export default function Projects() {
                       onChange={(e) => setFormData({ ...formData, ruleset_id: e.target.value })}
                       className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
                     >
-                      {rulesets?.map((ruleset: RulesetInfo) => (
-                        <option key={ruleset.id} value={ruleset.id}>
-                          {t(`rulesets.${ruleset.id}`) || ruleset.name}
-                        </option>
-                      )) || (
+                      {rulesets && rulesets.length > 0 ? (
+                        rulesets.map((ruleset: RulesetInfo) => (
+                          <option key={ruleset.id} value={ruleset.id}>
+                            {t(`rulesets.${ruleset.id}`, { defaultValue: ruleset.name })}
+                          </option>
+                        ))
+                      ) : (
                         <>
                           <option value="DE_USTG">{t('rulesets.DE_USTG')}</option>
                           <option value="EU_VAT">{t('rulesets.EU_VAT')}</option>
@@ -302,6 +350,68 @@ export default function Projects() {
                   </button>
                 </div>
               </form>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Delete Confirmation Dialog */}
+      {deleteConfirm.isOpen && (
+        <div className="fixed inset-0 z-50 overflow-y-auto">
+          <div className="flex min-h-screen items-center justify-center p-4">
+            {/* Backdrop */}
+            <div
+              className="fixed inset-0 bg-black/50 transition-opacity"
+              onClick={() => setDeleteConfirm({ isOpen: false, projectId: null, projectTitle: '' })}
+            />
+
+            {/* Modal */}
+            <div className="relative bg-white rounded-xl shadow-xl w-full max-w-md p-6">
+              <div className="flex items-center mb-4">
+                <div className="p-2 bg-red-100 rounded-lg">
+                  <Trash2 className="h-6 w-6 text-red-600" />
+                </div>
+                <h3 className="ml-3 text-lg font-semibold text-gray-900">
+                  {t('projects.deleteProject')}
+                </h3>
+              </div>
+
+              <p className="text-gray-600 mb-2">
+                {t('projects.deleteConfirmMessage')}
+              </p>
+              <p className="font-medium text-gray-900 mb-4">
+                "{deleteConfirm.projectTitle}"
+              </p>
+              <p className="text-sm text-red-600 mb-6">
+                {t('projects.deleteWarning')}
+              </p>
+
+              {deleteProjectMutation.error && (
+                <div className="bg-red-50 border border-red-200 rounded-lg p-3 mb-4 flex items-center text-sm text-red-600">
+                  <AlertCircle className="h-4 w-4 mr-2 flex-shrink-0" />
+                  {(deleteProjectMutation.error as Error).message}
+                </div>
+              )}
+
+              <div className="flex justify-end gap-3">
+                <button
+                  onClick={() => setDeleteConfirm({ isOpen: false, projectId: null, projectTitle: '' })}
+                  className="px-4 py-2 text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
+                  disabled={deleteProjectMutation.isPending}
+                >
+                  {t('common.cancel')}
+                </button>
+                <button
+                  onClick={confirmDelete}
+                  disabled={deleteProjectMutation.isPending}
+                  className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors disabled:opacity-50 flex items-center"
+                >
+                  {deleteProjectMutation.isPending && (
+                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  )}
+                  {t('common.delete')}
+                </button>
+              </div>
             </div>
           </div>
         </div>

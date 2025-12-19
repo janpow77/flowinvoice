@@ -162,6 +162,10 @@ export const api = {
     return response.data
   },
 
+  deleteProject: async (id: string) => {
+    await apiClient.delete(`/projects/${id}`)
+  },
+
   // Documents
   getDocuments: async (projectId?: string) => {
     if (!projectId) {
