@@ -18,10 +18,11 @@ import {
   X,
   Pencil,
   Save,
+  AlertTriangle,
 } from 'lucide-react'
 import { api } from '@/lib/api'
 import { TaxSystemSelector } from '@/components/tax-selector'
-import { RulesetId, getRuleset } from '@/lib/rulesets'
+import { RulesetId, getRuleset, isDocumentTypeSupported } from '@/lib/rulesets'
 import { useTranslation } from 'react-i18next'
 
 interface ProjectData {
@@ -799,6 +800,13 @@ export default function ProjectDetail() {
                           <option value="CONTRACT">{t('documentTypes.contract')}</option>
                           <option value="OTHER">{t('documentTypes.other')}</option>
                         </select>
+                        {/* Warning if document type not supported by ruleset */}
+                        {project.ruleset_id_hint && !isDocumentTypeSupported(project.ruleset_id_hint, file.documentType) && (
+                          <div className="mt-1 flex items-center gap-1 text-xs text-amber-600">
+                            <AlertTriangle className="h-3 w-3" />
+                            <span>{t('projectDetail.documentTypeNotSupported')}</span>
+                          </div>
+                        )}
                       </div>
                     )}
                   </div>

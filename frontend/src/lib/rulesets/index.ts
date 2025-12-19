@@ -78,3 +78,16 @@ export function isSmallAmountInvoice(id: RulesetId, grossAmount: number): boolea
   if (!ruleset.small_amount_threshold) return false;
   return grossAmount <= ruleset.small_amount_threshold;
 }
+
+/**
+ * Prüft ob ein Dokumenttyp vom Regelwerk unterstützt wird
+ */
+export function isDocumentTypeSupported(
+  id: RulesetId,
+  documentType: string
+): boolean {
+  const ruleset = getRuleset(id);
+  // Wenn keine supported_document_types definiert, nur INVOICE unterstützen
+  const supportedTypes = ruleset.supported_document_types || ['INVOICE'];
+  return supportedTypes.includes(documentType as 'INVOICE' | 'BANK_STATEMENT' | 'PROCUREMENT' | 'CONTRACT' | 'OTHER');
+}

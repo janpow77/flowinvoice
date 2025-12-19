@@ -29,6 +29,7 @@ export const EU_VAT: Ruleset = {
       description_en: 'Simplified invoices',
     },
   ],
+  supported_document_types: ['INVOICE'],
   small_amount_threshold: 400,
   small_amount_currency: 'EUR',
   features: [

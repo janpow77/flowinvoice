@@ -6,6 +6,8 @@
 
 export type RulesetId = 'DE_USTG' | 'EU_VAT' | 'UK_VAT';
 
+export type DocumentType = 'INVOICE' | 'BANK_STATEMENT' | 'PROCUREMENT' | 'CONTRACT' | 'OTHER';
+
 export type RequiredLevel = 'REQUIRED' | 'CONDITIONAL' | 'OPTIONAL';
 
 export type FeatureCategory =
@@ -55,6 +57,7 @@ export interface Ruleset {
   subtitle_en: string;
   legal_references: LegalReference[];
   features: RulesetFeature[];
+  supported_document_types?: DocumentType[];
   small_amount_threshold?: number;
   small_amount_currency?: string;
   vat_rates?: number[];

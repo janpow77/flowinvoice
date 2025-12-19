@@ -28,6 +28,7 @@ DE_USTG_RULESET = {
     "default_language": "de",
     "supported_ui_languages": ["de", "en"],
     "currency_default": "EUR",
+    "supported_document_types": ["INVOICE"],  # Nur Rechnungen werden geprüft
     "legal_references": [
         {
             "law": "UStG",
@@ -444,6 +445,7 @@ EU_VAT_RULESET = {
     "default_language": "de",
     "supported_ui_languages": ["de", "en"],
     "currency_default": "EUR",
+    "supported_document_types": ["INVOICE"],  # Nur Rechnungen werden geprüft
     "legal_references": [
         {
             "law": "MwSt-Systemrichtlinie",
@@ -768,6 +770,7 @@ UK_VAT_RULESET = {
     "default_language": "en",
     "supported_ui_languages": ["de", "en"],
     "currency_default": "GBP",
+    "supported_document_types": ["INVOICE"],  # Only invoices are checked
     "legal_references": [
         {
             "law": "VAT Act 1994",
@@ -1061,6 +1064,7 @@ async def seed_rulesets(session: AsyncSession, force: bool = False) -> int:
             existing.legal_references = ruleset_data["legal_references"]
             existing.features = ruleset_data["features"]
             existing.special_rules = ruleset_data.get("special_rules")
+            existing.supported_document_types = ruleset_data.get("supported_document_types", ["INVOICE"])
             logger.info(f"Ruleset {ruleset_id} v{version} aktualisiert")
         else:
             # Neues Ruleset erstellen
@@ -1076,6 +1080,7 @@ async def seed_rulesets(session: AsyncSession, force: bool = False) -> int:
                 supported_ui_languages=ruleset_data["supported_ui_languages"],
                 currency_default=ruleset_data["currency_default"],
                 special_rules=ruleset_data.get("special_rules"),
+                supported_document_types=ruleset_data.get("supported_document_types", ["INVOICE"]),
             )
             session.add(ruleset)
             logger.info(f"Ruleset {ruleset_id} v{version} erstellt")

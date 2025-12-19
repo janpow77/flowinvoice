@@ -51,6 +51,11 @@ class Ruleset(Base):
     )
     currency_default: Mapped[str] = mapped_column(String(3), default="EUR")
 
+    # Unterstützte Dokumenttypen
+    supported_document_types: Mapped[list[str]] = mapped_column(
+        ARRAY(String(50)), default=["INVOICE"]
+    )
+
     # Zeitstempel
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), default=datetime.utcnow

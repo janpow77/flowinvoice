@@ -117,6 +117,7 @@ export const de = {
     confidenceThreshold: 'Konfidenz-Schwellwert',
     maxRuns: 'Verarbeitungsläufe',
     recognizeDocuments: 'Belege erkennen',
+    documentTypeNotSupported: 'Dieser Dokumenttyp wird vom Regelwerk nicht unterstützt',
   },
 
   // Documents

@@ -29,6 +29,7 @@ export const UK_VAT: Ruleset = {
       description_en: 'VAT invoices',
     },
   ],
+  supported_document_types: ['INVOICE'],
   small_amount_threshold: 250,
   small_amount_currency: 'GBP',
   vat_rates: [20, 5, 0],

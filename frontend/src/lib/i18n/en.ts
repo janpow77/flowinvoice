@@ -117,6 +117,7 @@ export const en = {
     confidenceThreshold: 'Confidence Threshold',
     maxRuns: 'Processing Runs',
     recognizeDocuments: 'Recognize Documents',
+    documentTypeNotSupported: 'This document type is not supported by the ruleset',
   },
 
   // Documents

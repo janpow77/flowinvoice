@@ -41,6 +41,7 @@ async def list_rulesets(
                 "version": rs.version,
                 "title": title,
                 "language_support": rs.supported_ui_languages,
+                "supported_document_types": rs.supported_document_types or ["INVOICE"],
             }
         )
 

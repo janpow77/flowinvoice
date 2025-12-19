@@ -108,6 +108,9 @@ class RulesetListItem(BaseModel):
     version: str = Field(..., description="Version")
     title: str = Field(..., description="Titel (lokalisiert)")
     language_support: list[str] = Field(..., description="Unterstützte Sprachen")
+    supported_document_types: list[str] = Field(
+        default=["INVOICE"], description="Unterstützte Dokumenttypen"
+    )
 
 
 class RulesetResponse(BaseModel):
@@ -126,6 +129,9 @@ class RulesetResponse(BaseModel):
         default=["de", "en"], description="UI-Sprachen"
     )
     currency_default: str = Field(default="EUR", description="Standardwährung")
+    supported_document_types: list[str] = Field(
+        default=["INVOICE"], description="Unterstützte Dokumenttypen"
+    )
     features: list[FeatureSchema] = Field(..., description="Feature-Definitionen")
     special_rules: SpecialRules | None = Field(default=None, description="Sonderregeln")
     created_at: datetime = Field(..., description="Erstellungszeitpunkt")

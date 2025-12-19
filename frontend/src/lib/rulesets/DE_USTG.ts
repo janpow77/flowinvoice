@@ -35,6 +35,7 @@ export const DE_USTG: Ruleset = {
       description_en: 'Small amount invoices',
     },
   ],
+  supported_document_types: ['INVOICE'],
   small_amount_threshold: 250,
   small_amount_currency: 'EUR',
   vat_rates: [19, 7],
