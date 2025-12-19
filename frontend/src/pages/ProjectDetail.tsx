@@ -765,6 +765,22 @@ export default function ProjectDetail() {
             {t('projectDetail.tabOverview', 'Übersicht')}
           </button>
           <button
+            onClick={() => setActiveTab('upload')}
+            className={`flex items-center gap-2 px-4 py-3 text-sm font-medium border-b-2 transition-colors ${
+              activeTab === 'upload'
+                ? 'border-primary-500 text-primary-600'
+                : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+            }`}
+          >
+            <Search className="h-4 w-4" />
+            {t('projectDetail.tabAnalyze', 'Analysieren')}
+            {uploadQueue.length > 0 && (
+              <span className="ml-1 px-2 py-0.5 text-xs bg-primary-100 text-primary-600 rounded-full">
+                {uploadQueue.length}
+              </span>
+            )}
+          </button>
+          <button
             onClick={() => setActiveTab('documents')}
             className={`flex items-center gap-2 px-4 py-3 text-sm font-medium border-b-2 transition-colors ${
               activeTab === 'documents'
@@ -777,22 +793,6 @@ export default function ProjectDetail() {
             {processedDocs.length > 0 && (
               <span className="ml-1 px-2 py-0.5 text-xs bg-gray-100 text-gray-600 rounded-full">
                 {processedDocs.length}
-              </span>
-            )}
-          </button>
-          <button
-            onClick={() => setActiveTab('upload')}
-            className={`flex items-center gap-2 px-4 py-3 text-sm font-medium border-b-2 transition-colors ${
-              activeTab === 'upload'
-                ? 'border-primary-500 text-primary-600'
-                : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
-            }`}
-          >
-            <Upload className="h-4 w-4" />
-            {t('projectDetail.tabUpload', 'Upload')}
-            {uploadQueue.length > 0 && (
-              <span className="ml-1 px-2 py-0.5 text-xs bg-primary-100 text-primary-600 rounded-full">
-                {uploadQueue.length}
               </span>
             )}
           </button>
@@ -942,8 +942,8 @@ export default function ProjectDetail() {
               onClick={() => setActiveTab('upload')}
               className="w-full flex items-center justify-center gap-2 px-4 py-3 bg-primary-600 text-white rounded-lg hover:bg-primary-700"
             >
-              <Upload className="h-5 w-5" />
-              {t('projectDetail.uploadNewDocuments', 'Neue Belege hochladen')}
+              <Search className="h-5 w-5" />
+              {t('projectDetail.analyzeDocuments', 'Belege analysieren')}
             </button>
           </div>
         </div>
