@@ -213,12 +213,13 @@ export const api = {
     return response.data
   },
 
-  uploadDocument: async (file: File, projectId: string) => {
+  uploadDocument: async (file: File, projectId: string, documentType: string = 'INVOICE') => {
     if (!projectId) {
       throw new Error('Project ID is required for document upload')
     }
     const formData = new FormData()
     formData.append('files', file)  // Backend expects 'files' not 'file'
+    formData.append('document_type', documentType)
 
     const response = await apiClient.post(`/projects/${projectId}/documents/upload`, formData, {
       headers: {

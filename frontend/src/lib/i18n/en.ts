@@ -14,6 +14,15 @@ export const en = {
     settings: 'Settings',
   },
 
+  // Document Types
+  documentTypes: {
+    invoice: 'Invoice',
+    bankStatement: 'Bank Statement',
+    procurement: 'Procurement Documents',
+    contract: 'Contract',
+    other: 'Other',
+  },
+
   // Common
   common: {
     loading: 'Loading...',

@@ -14,7 +14,7 @@ from sqlalchemy.dialects.postgresql import JSONB, UUID
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.database import Base
-from app.models.enums import DocumentStatus
+from app.models.enums import DocumentStatus, DocumentType
 
 if TYPE_CHECKING:
     from app.models.feedback import Feedback
@@ -53,6 +53,11 @@ class Document(Base):
     file_size_bytes: Mapped[int | None] = mapped_column(BigInteger, nullable=True)
     mime_type: Mapped[str] = mapped_column(String(100), default="application/pdf")
     storage_path: Mapped[str] = mapped_column(String(1000), nullable=False)
+
+    # Dokumenttyp
+    document_type: Mapped[DocumentType] = mapped_column(
+        Enum(DocumentType), default=DocumentType.INVOICE, nullable=False
+    )
 
     # Status
     status: Mapped[DocumentStatus] = mapped_column(

@@ -12,7 +12,7 @@ from typing import Any
 from uuid import uuid4
 
 import aiofiles
-from fastapi import APIRouter, Depends, File, HTTPException, Query, UploadFile, status
+from fastapi import APIRouter, Depends, File, Form, HTTPException, Query, UploadFile, status
 from sqlalchemy import func, select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -20,7 +20,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.config import get_settings
 from app.database import get_async_session
 from app.models.document import Document, ParseRun, PrecheckRun
-from app.models.enums import DocumentStatus
+from app.models.enums import DocumentStatus, DocumentType
 from app.models.project import Project
 from app.schemas.document import (
     DocumentDeleteResponse,
@@ -46,6 +46,7 @@ settings = get_settings()
 async def upload_documents(
     project_id: str,
     files: list[UploadFile] = File(...),
+    document_type: str = Form(default="INVOICE"),
     session: AsyncSession = Depends(get_async_session),
 ) -> DocumentUploadResponse:
     """
@@ -100,6 +101,12 @@ async def upload_documents(
         async with aiofiles.open(storage_path, "wb") as f:
             await f.write(content)
 
+        # DocumentType validieren
+        try:
+            doc_type = DocumentType(document_type)
+        except ValueError:
+            doc_type = DocumentType.INVOICE
+
         # Dokument erstellen
         document = Document(
             id=doc_id,
@@ -109,6 +116,7 @@ async def upload_documents(
             sha256=sha256,
             file_size_bytes=len(content),
             storage_path=str(storage_path),
+            document_type=doc_type,
             status=DocumentStatus.UPLOADED,
             ruleset_id=project.ruleset_id_hint,
             ui_language=project.ui_language_hint,

@@ -82,10 +82,13 @@ interface DocumentItem {
   }
 }
 
+type DocumentType = 'INVOICE' | 'BANK_STATEMENT' | 'PROCUREMENT' | 'CONTRACT' | 'OTHER'
+
 interface UploadedFile {
   file: File
   id: string
   status: 'pending' | 'uploading' | 'done' | 'error'
+  documentType: DocumentType
   documentId?: string
   error?: string
 }
@@ -153,11 +156,11 @@ export default function ProjectDetail() {
   })
 
   const uploadMutation = useMutation({
-    mutationFn: async ({ file, fileId }: { file: File; fileId: string }) => {
+    mutationFn: async ({ file, fileId, documentType }: { file: File; fileId: string; documentType: DocumentType }) => {
       setUploadQueue(prev =>
         prev.map(f => (f.id === fileId ? { ...f, status: 'uploading' as const } : f))
       )
-      const result = await api.uploadDocument(file, id!)
+      const result = await api.uploadDocument(file, id!, documentType)
       return { fileId, result }
     },
     onSuccess: ({ fileId, result }) => {
@@ -257,6 +260,7 @@ export default function ProjectDetail() {
         file,
         id: `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
         status: 'pending' as const,
+        documentType: 'INVOICE' as DocumentType,
       }))
       setUploadQueue(prev => [...prev, ...newFiles])
     },
@@ -274,10 +278,20 @@ export default function ProjectDetail() {
     setUploadQueue(prev => prev.filter(f => f.id !== fileId))
   }
 
+  const updateDocumentType = (fileId: string, docType: DocumentType) => {
+    setUploadQueue(prev =>
+      prev.map(f => (f.id === fileId ? { ...f, documentType: docType } : f))
+    )
+  }
+
   const uploadAllFiles = async () => {
     const pendingFiles = uploadQueue.filter(f => f.status === 'pending')
     for (const uploadFile of pendingFiles) {
-      await uploadMutation.mutateAsync({ file: uploadFile.file, fileId: uploadFile.id })
+      await uploadMutation.mutateAsync({
+        file: uploadFile.file,
+        fileId: uploadFile.id,
+        documentType: uploadFile.documentType,
+      })
     }
   }
 
@@ -749,26 +763,44 @@ export default function ProjectDetail() {
 
             {/* File List */}
             {uploadQueue.length > 0 && (
-              <div className="mb-4 space-y-2 max-h-60 overflow-y-auto">
+              <div className="mb-4 space-y-2 max-h-80 overflow-y-auto">
                 {uploadQueue.map((file, index) => (
                   <div
                     key={file.id}
-                    className="flex items-center justify-between p-2 bg-gray-50 rounded text-sm"
+                    className="p-2 bg-gray-50 rounded text-sm"
                   >
-                    <div className="flex items-center gap-2 flex-1 min-w-0">
-                      <span className="text-gray-400 w-5">{index + 1}.</span>
-                      <span className="truncate">{file.file.name}</span>
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2 flex-1 min-w-0">
+                        <span className="text-gray-400 w-5">{index + 1}.</span>
+                        <span className="truncate">{file.file.name}</span>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        {file.status === 'uploading' && <Loader2 className="h-4 w-4 animate-spin text-primary-600" />}
+                        {file.status === 'done' && <CheckCircle className="h-4 w-4 text-green-500" />}
+                        {file.status === 'error' && <AlertCircle className="h-4 w-4 text-red-500" />}
+                        {file.status === 'pending' && (
+                          <button onClick={() => removeFromQueue(file.id)} className="text-gray-400 hover:text-red-500">
+                            <Trash2 className="h-4 w-4" />
+                          </button>
+                        )}
+                      </div>
                     </div>
-                    <div className="flex items-center gap-2">
-                      {file.status === 'uploading' && <Loader2 className="h-4 w-4 animate-spin text-primary-600" />}
-                      {file.status === 'done' && <CheckCircle className="h-4 w-4 text-green-500" />}
-                      {file.status === 'error' && <AlertCircle className="h-4 w-4 text-red-500" />}
-                      {file.status === 'pending' && (
-                        <button onClick={() => removeFromQueue(file.id)} className="text-gray-400 hover:text-red-500">
-                          <Trash2 className="h-4 w-4" />
-                        </button>
-                      )}
-                    </div>
+                    {/* Document Type Selector */}
+                    {file.status === 'pending' && (
+                      <div className="mt-2 pl-7">
+                        <select
+                          value={file.documentType}
+                          onChange={e => updateDocumentType(file.id, e.target.value as DocumentType)}
+                          className="w-full px-2 py-1 text-xs border border-gray-300 rounded focus:ring-1 focus:ring-primary-500 focus:border-primary-500"
+                        >
+                          <option value="INVOICE">{t('documentTypes.invoice')}</option>
+                          <option value="BANK_STATEMENT">{t('documentTypes.bankStatement')}</option>
+                          <option value="PROCUREMENT">{t('documentTypes.procurement')}</option>
+                          <option value="CONTRACT">{t('documentTypes.contract')}</option>
+                          <option value="OTHER">{t('documentTypes.other')}</option>
+                        </select>
+                      </div>
+                    )}
                   </div>
                 ))}
               </div>

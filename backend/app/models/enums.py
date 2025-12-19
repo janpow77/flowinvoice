@@ -30,6 +30,16 @@ class UiLanguage(str, Enum):
     EN = "en"
 
 
+class DocumentType(str, Enum):
+    """Dokumenttyp für die Kategorisierung."""
+
+    INVOICE = "INVOICE"  # Rechnung
+    BANK_STATEMENT = "BANK_STATEMENT"  # Kontoauszug
+    PROCUREMENT = "PROCUREMENT"  # Vergabeunterlagen
+    CONTRACT = "CONTRACT"  # Vertrag
+    OTHER = "OTHER"  # Sonstiges
+
+
 class DocumentStatus(str, Enum):
     """Dokumentstatus im Verarbeitungsablauf."""
 
