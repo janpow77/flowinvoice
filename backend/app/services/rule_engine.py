@@ -423,6 +423,17 @@ class RuleEngine:
             if tax_check.status == ValidationStatus.MISSING:
                 errors.append(tax_check)
 
+        # Projektzeitraum-Prüfung (Leistungsdatum im Projektzeitraum)
+        if project_start or project_end:
+            period_check = self._check_supply_date_in_project_period(
+                extracted, project_start, project_end
+            )
+            checks.append(period_check)
+            if period_check.status == ValidationStatus.INVALID:
+                errors.append(period_check)
+            elif period_check.status == ValidationStatus.WARNING:
+                warnings.append(period_check)
+
         return PrecheckResult(
             ruleset_id=self.ruleset_id,
             is_small_amount=is_small,
@@ -665,6 +676,113 @@ class RuleEngine:
             message="Weder Steuernummer noch USt-ID vorhanden",
             legal_basis="§ 14 Abs. 4 Nr. 2 UStG",
         )
+
+    def _check_supply_date_in_project_period(
+        self,
+        extracted: dict[str, ExtractedValue],
+        project_start: date | None,
+        project_end: date | None,
+    ) -> FeatureCheck:
+        """
+        Prüft ob Leistungsdatum im Projektzeitraum liegt.
+
+        Args:
+            extracted: Extrahierte Daten
+            project_start: Projektbeginn
+            project_end: Projektende
+
+        Returns:
+            FeatureCheck
+        """
+        supply_value = extracted.get("supply_date_or_period")
+
+        # Kein Leistungsdatum vorhanden
+        if not supply_value or not supply_value.value:
+            return FeatureCheck(
+                feature_id="supply_date_in_project_period",
+                status=ValidationStatus.WARNING,
+                error_source=ErrorSourceCategory.PROJECT_CONTEXT,
+                severity=Severity.MEDIUM,
+                message="Leistungsdatum nicht vorhanden - Projektzeitraum-Prüfung nicht möglich",
+            )
+
+        # Leistungsdatum parsen
+        supply_date = self._parse_date_value(supply_value.value)
+
+        if not supply_date:
+            return FeatureCheck(
+                feature_id="supply_date_in_project_period",
+                status=ValidationStatus.WARNING,
+                error_source=ErrorSourceCategory.PROJECT_CONTEXT,
+                severity=Severity.MEDIUM,
+                message="Leistungsdatum konnte nicht geparst werden - Projektzeitraum-Prüfung nicht möglich",
+            )
+
+        # Prüfung gegen Projektzeitraum
+        errors: list[str] = []
+
+        if project_start and supply_date < project_start:
+            errors.append(
+                f"Leistungsdatum ({supply_date.strftime('%d.%m.%Y')}) "
+                f"liegt vor Projektbeginn ({project_start.strftime('%d.%m.%Y')})"
+            )
+
+        if project_end and supply_date > project_end:
+            errors.append(
+                f"Leistungsdatum ({supply_date.strftime('%d.%m.%Y')}) "
+                f"liegt nach Projektende ({project_end.strftime('%d.%m.%Y')})"
+            )
+
+        if errors:
+            return FeatureCheck(
+                feature_id="supply_date_in_project_period",
+                status=ValidationStatus.INVALID,
+                value=supply_date,
+                raw_text=supply_value.raw_text,
+                error_type=TaxLawErrorType.DATE_INVALID,
+                error_source=ErrorSourceCategory.PROJECT_CONTEXT,
+                severity=Severity.HIGH,
+                message="; ".join(errors),
+            )
+
+        return FeatureCheck(
+            feature_id="supply_date_in_project_period",
+            status=ValidationStatus.VALID,
+            value=supply_date,
+            raw_text=supply_value.raw_text,
+            message="Leistungsdatum liegt im Projektzeitraum",
+        )
+
+    def _parse_date_value(self, value: Any) -> date | None:
+        """
+        Parst Datumswert aus verschiedenen Formaten.
+
+        Args:
+            value: Datumswert (date, datetime, str)
+
+        Returns:
+            date oder None
+        """
+        if isinstance(value, date):
+            return value
+
+        if isinstance(value, str):
+            # Verschiedene Datumsformate versuchen
+            formats = [
+                "%Y-%m-%d",      # ISO
+                "%d.%m.%Y",      # DE
+                "%d/%m/%Y",      # EU
+                "%m/%d/%Y",      # US
+                "%Y%m%d",        # Kompakt
+            ]
+            for fmt in formats:
+                try:
+                    from datetime import datetime
+                    return datetime.strptime(value, fmt).date()
+                except ValueError:
+                    continue
+
+        return None
 
     def _get_decimal_value(self, extracted: ExtractedValue | None) -> Decimal | None:
         """Extrahiert Decimal-Wert."""

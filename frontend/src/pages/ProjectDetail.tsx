@@ -169,6 +169,8 @@ interface EditFormData {
     project_description: string
     implementation_location: string
     implementation_city: string
+    period_start: string
+    period_end: string
   }
 }
 
@@ -319,6 +321,12 @@ export default function ProjectDetail() {
                 city: data.project.implementation_city || undefined,
               }
             : undefined,
+          project_period: data.project.period_start && data.project.period_end
+            ? {
+                start: data.project.period_start,
+                end: data.project.period_end,
+              }
+            : undefined,
         },
       })
     },
@@ -346,6 +354,8 @@ export default function ProjectDetail() {
           project_description: project.project.project_description || '',
           implementation_location: project.project.implementation?.location_name || '',
           implementation_city: project.project.implementation?.city || '',
+          period_start: project.project.project_period?.start || '',
+          period_end: project.project.project_period?.end || '',
         },
       })
       setIsEditing(true)
@@ -657,6 +667,32 @@ export default function ProjectDetail() {
               />
             </div>
 
+            {/* Execution Period */}
+            <div className="md:col-span-2">
+              <label className="block text-gray-500 mb-1">{t('projectDetail.executionPeriod', 'Durchführungszeitraum')}</label>
+              <div className="flex items-center gap-2">
+                <input
+                  type="date"
+                  value={editForm.project.period_start}
+                  onChange={e => setEditForm({
+                    ...editForm,
+                    project: { ...editForm.project, period_start: e.target.value }
+                  })}
+                  className="flex-1 px-2 py-1 border border-gray-300 rounded focus:ring-1 focus:ring-primary-500 focus:border-primary-500"
+                />
+                <span className="text-gray-500">{t('projectDetail.periodTo', 'bis')}</span>
+                <input
+                  type="date"
+                  value={editForm.project.period_end}
+                  onChange={e => setEditForm({
+                    ...editForm,
+                    project: { ...editForm.project, period_end: e.target.value }
+                  })}
+                  className="flex-1 px-2 py-1 border border-gray-300 rounded focus:ring-1 focus:ring-primary-500 focus:border-primary-500"
+                />
+              </div>
+            </div>
+
             {/* Project Description */}
             <div className="md:col-span-2 lg:col-span-3">
               <label className="block text-gray-500 mb-1">{t('projectDetail.projectDescription')}</label>
@@ -712,6 +748,16 @@ export default function ProjectDetail() {
               <span className="ml-2 font-medium">
                 {project.project.implementation
                   ? `${project.project.implementation.location_name || ''}${project.project.implementation.city ? `, ${project.project.implementation.city}` : ''}`
+                  : '-'}
+              </span>
+            </div>
+
+            {/* Execution Period (Durchführungszeitraum) */}
+            <div className="md:col-span-2">
+              <span className="text-gray-500">{t('projectDetail.executionPeriod', 'Durchführungszeitraum')}:</span>
+              <span className="ml-2 font-medium">
+                {project.project.project_period?.start && project.project.project_period?.end
+                  ? `${new Date(project.project.project_period.start).toLocaleDateString('de-DE')} ${t('projectDetail.periodTo', 'bis')} ${new Date(project.project.project_period.end).toLocaleDateString('de-DE')}`
                   : '-'}
               </span>
             </div>

@@ -11,7 +11,7 @@ import json
 import logging
 import random
 import shutil
-from datetime import UTC, datetime, timedelta
+from datetime import UTC, date, datetime, timedelta
 from io import BytesIO, StringIO
 from pathlib import Path
 from typing import Any
@@ -31,6 +31,7 @@ from app.llm import InvoiceAnalysisRequest, get_llm_adapter
 from app.models.document import Document
 from app.models.enums import DocumentStatus, Provider
 from app.models.export import ExportJob, GeneratorJob
+from app.models.project import Project
 from app.models.result import AnalysisResult
 from app.rag import get_rag_service
 from app.services.parser import get_parser
@@ -73,6 +74,55 @@ def get_celery_session_maker() -> async_sessionmaker[AsyncSession]:
         autocommit=False,
         autoflush=False,
     )
+
+
+def _parse_project_period(project: Project | None) -> tuple[date | None, date | None]:
+    """
+    Parst Projektzeitraum aus Projekt.
+
+    Args:
+        project: Projekt-Objekt oder None
+
+    Returns:
+        Tuple (project_start, project_end) als date-Objekte
+    """
+    if not project:
+        return None, None
+
+    period = project.project_period
+    if not period:
+        return None, None
+
+    project_start = None
+    project_end = None
+
+    # Start-Datum parsen
+    start_str = period.get("start")
+    if start_str:
+        try:
+            if isinstance(start_str, str):
+                project_start = datetime.strptime(start_str, "%Y-%m-%d").date()
+            elif hasattr(start_str, "date"):
+                project_start = start_str.date()
+            elif isinstance(start_str, date):
+                project_start = start_str
+        except (ValueError, AttributeError):
+            pass
+
+    # End-Datum parsen
+    end_str = period.get("end")
+    if end_str:
+        try:
+            if isinstance(end_str, str):
+                project_end = datetime.strptime(end_str, "%Y-%m-%d").date()
+            elif hasattr(end_str, "date"):
+                project_end = end_str.date()
+            elif isinstance(end_str, date):
+                project_end = end_str
+        except (ValueError, AttributeError):
+            pass
+
+    return project_start, project_end
 
 
 @celery_app.task(bind=True, max_retries=3)
@@ -138,8 +188,14 @@ async def _process_document_async(document_id: str) -> dict[str, Any]:
             document.status = DocumentStatus.VALIDATING
             await session.commit()
 
+            # Projekt laden für Zeitraumprüfung
+            project = None
+            if document.project_id:
+                project = await session.get(Project, document.project_id)
+            project_start, project_end = _parse_project_period(project)
+
             rule_engine = get_rule_engine(document.ruleset_id or "DE_USTG")
-            precheck = rule_engine.precheck(parse_result)
+            precheck = rule_engine.precheck(parse_result, project_start, project_end)
 
             # Vorprüfungsergebnis speichern
             document.precheck_passed = precheck.passed
@@ -233,9 +289,15 @@ async def _analyze_document_async(
             parser = get_parser()
             parse_result = parser.parse(document.file_path)
 
+            # Projekt laden für Zeitraumprüfung
+            project = None
+            if document.project_id:
+                project = await session.get(Project, document.project_id)
+            project_start, project_end = _parse_project_period(project)
+
             # Rule Engine für Precheck
             rule_engine = get_rule_engine(document.ruleset_id or "DE_USTG")
-            precheck = rule_engine.precheck(parse_result)
+            precheck = rule_engine.precheck(parse_result, project_start, project_end)
 
             # RAG-Kontext holen
             rag_service = get_rag_service()
