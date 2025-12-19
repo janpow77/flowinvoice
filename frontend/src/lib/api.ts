@@ -324,6 +324,12 @@ export const api = {
     return response.data
   },
 
+  getRulesetLlmSchema: async (id: string, version?: string) => {
+    const params = version ? `?version=${version}` : ''
+    const response = await apiClient.get(`/rulesets/${id}/llm-schema${params}`)
+    return response.data
+  },
+
   // Project Statistics
   getProjectStats: async (projectId: string) => {
     const response = await apiClient.get(`/projects/${projectId}/stats`)

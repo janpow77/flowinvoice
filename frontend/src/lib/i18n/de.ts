@@ -45,6 +45,7 @@ export const de = {
     noData: 'Keine Daten vorhanden',
     all: 'Alle',
     retry: 'Erneut versuchen',
+    copy: 'Kopieren',
   },
 
   // Dashboard
@@ -271,6 +272,15 @@ export const de = {
       offer: 'Angebot',
       order_confirmation: 'Auftragsbestätigung',
     },
+    // LLM Schema
+    llmSchema: 'LLM-Schema',
+    llmSchemaTitle: 'LLM-Schema Vorschau',
+    llmSchemaInfo: 'Diese Ansicht zeigt, wie das Regelwerk und die Merkmale an das LLM-Modell übermittelt werden. Sie können die Prompts und Schemas kopieren.',
+    systemPrompt: 'System-Prompt',
+    userPromptStructure: 'User-Prompt Struktur',
+    responseSchema: 'Response JSON-Schema',
+    featuresSchema: 'Features JSON-Schema',
+    noSchemaData: 'Keine Schema-Daten verfügbar',
   },
 
   // Tax Selector

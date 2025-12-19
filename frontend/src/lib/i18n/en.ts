@@ -45,6 +45,7 @@ export const en = {
     noData: 'No data available',
     all: 'All',
     retry: 'Retry',
+    copy: 'Copy',
   },
 
   // Dashboard
@@ -271,6 +272,15 @@ export const en = {
       offer: 'Offer',
       order_confirmation: 'Order Confirmation',
     },
+    // LLM Schema
+    llmSchema: 'LLM Schema',
+    llmSchemaTitle: 'LLM Schema Preview',
+    llmSchemaInfo: 'This view shows how the ruleset and features are sent to the LLM model. You can copy the prompts and schemas.',
+    systemPrompt: 'System Prompt',
+    userPromptStructure: 'User Prompt Structure',
+    responseSchema: 'Response JSON Schema',
+    featuresSchema: 'Features JSON Schema',
+    noSchemaData: 'No schema data available',
   },
 
   // Tax Selector

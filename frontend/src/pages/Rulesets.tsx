@@ -14,6 +14,9 @@ import {
   Save,
   Trash2,
   FileText,
+  Code2,
+  Copy,
+  Check,
 } from 'lucide-react'
 import clsx from 'clsx'
 import { api } from '@/lib/api'
@@ -101,6 +104,8 @@ export default function Rulesets() {
   const [selectedRuleset, setSelectedRuleset] = useState<Ruleset | null>(null)
   const [expandedFeatures, setExpandedFeatures] = useState<Set<string>>(new Set())
   const [editForm, setEditForm] = useState<Partial<Ruleset>>({})
+  const [showLlmSchema, setShowLlmSchema] = useState(false)
+  const [copiedField, setCopiedField] = useState<string | null>(null)
 
   // Fetch rulesets list
   const { data: rulesets, isLoading, error } = useQuery({
@@ -113,6 +118,13 @@ export default function Rulesets() {
     queryKey: ['ruleset', selectedRuleset?.ruleset_id],
     queryFn: () => api.getRuleset(selectedRuleset!.ruleset_id),
     enabled: !!selectedRuleset?.ruleset_id && (viewMode === 'detail' || viewMode === 'edit'),
+  })
+
+  // Fetch LLM schema
+  const { data: llmSchema, isLoading: isLoadingSchema } = useQuery({
+    queryKey: ['ruleset-llm-schema', selectedRuleset?.ruleset_id, selectedRuleset?.version],
+    queryFn: () => api.getRulesetLlmSchema(selectedRuleset!.ruleset_id, selectedRuleset?.version),
+    enabled: !!selectedRuleset?.ruleset_id && showLlmSchema,
   })
 
   // Create ruleset mutation
@@ -220,6 +232,12 @@ export default function Rulesets() {
     const features = [...(editForm.features || [])]
     features.splice(index, 1)
     setEditForm({ ...editForm, features })
+  }
+
+  const copyToClipboard = async (text: string, field: string) => {
+    await navigator.clipboard.writeText(text)
+    setCopiedField(field)
+    setTimeout(() => setCopiedField(null), 2000)
   }
 
   // Loading state
@@ -360,13 +378,22 @@ export default function Rulesets() {
               </p>
             </div>
           </div>
-          <button
-            onClick={handleEdit}
-            className="flex items-center px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors"
-          >
-            <Edit2 className="h-5 w-5 mr-2" />
-            {t('rulesets.edit')}
-          </button>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => setShowLlmSchema(true)}
+              className="flex items-center px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors"
+            >
+              <Code2 className="h-5 w-5 mr-2" />
+              {t('rulesets.llmSchema')}
+            </button>
+            <button
+              onClick={handleEdit}
+              className="flex items-center px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors"
+            >
+              <Edit2 className="h-5 w-5 mr-2" />
+              {t('rulesets.edit')}
+            </button>
+          </div>
         </div>
 
         {/* Legal References */}
@@ -464,6 +491,153 @@ export default function Rulesets() {
             ))}
           </div>
         </div>
+
+        {/* LLM Schema Modal */}
+        {showLlmSchema && (
+          <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+            <div className="bg-white rounded-xl shadow-xl max-w-4xl w-full max-h-[90vh] overflow-hidden flex flex-col">
+              {/* Modal Header */}
+              <div className="flex items-center justify-between px-6 py-4 border-b border-gray-200">
+                <div className="flex items-center gap-3">
+                  <Code2 className="h-6 w-6 text-primary-600" />
+                  <div>
+                    <h3 className="text-lg font-semibold text-gray-900">
+                      {t('rulesets.llmSchemaTitle')}
+                    </h3>
+                    <p className="text-sm text-gray-500">
+                      {ruleset.ruleset_id} v{ruleset.version}
+                    </p>
+                  </div>
+                </div>
+                <button
+                  onClick={() => setShowLlmSchema(false)}
+                  className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
+                >
+                  <X className="h-5 w-5 text-gray-500" />
+                </button>
+              </div>
+
+              {/* Modal Content */}
+              <div className="flex-1 overflow-auto p-6 space-y-6">
+                {isLoadingSchema ? (
+                  <div className="flex items-center justify-center py-12">
+                    <Loader2 className="h-8 w-8 text-primary-600 animate-spin" />
+                    <span className="ml-3 text-gray-600">{t('common.loading')}</span>
+                  </div>
+                ) : llmSchema ? (
+                  <>
+                    {/* Info */}
+                    <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                      <p className="text-sm text-blue-700">
+                        {t('rulesets.llmSchemaInfo')}
+                      </p>
+                    </div>
+
+                    {/* System Prompt */}
+                    <div>
+                      <div className="flex items-center justify-between mb-2">
+                        <h4 className="font-semibold text-gray-900">{t('rulesets.systemPrompt')}</h4>
+                        <button
+                          onClick={() => copyToClipboard(llmSchema.llm_schema.system_prompt, 'system')}
+                          className="flex items-center gap-1 px-2 py-1 text-xs text-gray-600 hover:bg-gray-100 rounded transition-colors"
+                        >
+                          {copiedField === 'system' ? (
+                            <Check className="h-3 w-3 text-green-600" />
+                          ) : (
+                            <Copy className="h-3 w-3" />
+                          )}
+                          {t('common.copy')}
+                        </button>
+                      </div>
+                      <pre className="bg-gray-900 text-gray-100 p-4 rounded-lg text-xs overflow-x-auto whitespace-pre-wrap font-mono">
+                        {llmSchema.llm_schema.system_prompt}
+                      </pre>
+                    </div>
+
+                    {/* User Prompt Structure */}
+                    <div>
+                      <div className="flex items-center justify-between mb-2">
+                        <h4 className="font-semibold text-gray-900">{t('rulesets.userPromptStructure')}</h4>
+                        <button
+                          onClick={() => copyToClipboard(llmSchema.llm_schema.user_prompt_structure, 'user')}
+                          className="flex items-center gap-1 px-2 py-1 text-xs text-gray-600 hover:bg-gray-100 rounded transition-colors"
+                        >
+                          {copiedField === 'user' ? (
+                            <Check className="h-3 w-3 text-green-600" />
+                          ) : (
+                            <Copy className="h-3 w-3" />
+                          )}
+                          {t('common.copy')}
+                        </button>
+                      </div>
+                      <pre className="bg-gray-900 text-gray-100 p-4 rounded-lg text-xs overflow-x-auto whitespace-pre-wrap font-mono">
+                        {llmSchema.llm_schema.user_prompt_structure}
+                      </pre>
+                    </div>
+
+                    {/* Response JSON Schema */}
+                    <div>
+                      <div className="flex items-center justify-between mb-2">
+                        <h4 className="font-semibold text-gray-900">{t('rulesets.responseSchema')}</h4>
+                        <button
+                          onClick={() => copyToClipboard(JSON.stringify(llmSchema.llm_schema.response_json_schema, null, 2), 'response')}
+                          className="flex items-center gap-1 px-2 py-1 text-xs text-gray-600 hover:bg-gray-100 rounded transition-colors"
+                        >
+                          {copiedField === 'response' ? (
+                            <Check className="h-3 w-3 text-green-600" />
+                          ) : (
+                            <Copy className="h-3 w-3" />
+                          )}
+                          {t('common.copy')}
+                        </button>
+                      </div>
+                      <pre className="bg-gray-900 text-gray-100 p-4 rounded-lg text-xs overflow-x-auto font-mono">
+                        {JSON.stringify(llmSchema.llm_schema.response_json_schema, null, 2)}
+                      </pre>
+                    </div>
+
+                    {/* Features Schema */}
+                    <div>
+                      <div className="flex items-center justify-between mb-2">
+                        <h4 className="font-semibold text-gray-900">
+                          {t('rulesets.featuresSchema')} ({llmSchema.features_count} {t('rulesets.featuresCount')})
+                        </h4>
+                        <button
+                          onClick={() => copyToClipboard(JSON.stringify(llmSchema.llm_schema.features_json_schema, null, 2), 'features')}
+                          className="flex items-center gap-1 px-2 py-1 text-xs text-gray-600 hover:bg-gray-100 rounded transition-colors"
+                        >
+                          {copiedField === 'features' ? (
+                            <Check className="h-3 w-3 text-green-600" />
+                          ) : (
+                            <Copy className="h-3 w-3" />
+                          )}
+                          {t('common.copy')}
+                        </button>
+                      </div>
+                      <pre className="bg-gray-900 text-gray-100 p-4 rounded-lg text-xs overflow-x-auto font-mono">
+                        {JSON.stringify(llmSchema.llm_schema.features_json_schema, null, 2)}
+                      </pre>
+                    </div>
+                  </>
+                ) : (
+                  <div className="text-center py-12 text-gray-500">
+                    {t('rulesets.noSchemaData')}
+                  </div>
+                )}
+              </div>
+
+              {/* Modal Footer */}
+              <div className="flex items-center justify-end px-6 py-4 border-t border-gray-200 bg-gray-50">
+                <button
+                  onClick={() => setShowLlmSchema(false)}
+                  className="px-4 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition-colors"
+                >
+                  {t('common.close')}
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
     )
   }

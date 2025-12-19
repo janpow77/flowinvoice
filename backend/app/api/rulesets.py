@@ -150,6 +150,187 @@ async def create_ruleset(
     return {"ruleset_id": ruleset.ruleset_id, "version": ruleset.version}
 
 
+@router.get("/rulesets/{ruleset_id}/llm-schema")
+async def get_ruleset_llm_schema(
+    ruleset_id: str,
+    version: str | None = None,
+    session: AsyncSession = Depends(get_async_session),
+    accept_language: str = Header(default="de", alias="Accept-Language"),
+) -> dict[str, Any]:
+    """
+    Gibt das LLM-Schema fuer ein Regelwerk zurueck.
+
+    Zeigt, wie das Regelwerk und die Merkmale an das LLM gesendet werden:
+    - System-Prompt mit Merkmalen
+    - Erwartetes Response-JSON-Schema
+    - Beispiel User-Prompt-Struktur
+
+    Args:
+        ruleset_id: Ruleset-ID (DE_USTG, EU_VAT, UK_VAT)
+        version: Optional: spezifische Version
+
+    Returns:
+        LLM-Schema mit Prompts und Response-Format.
+    """
+    query = select(Ruleset).where(Ruleset.ruleset_id == ruleset_id)
+
+    if version:
+        query = query.where(Ruleset.version == version)
+    else:
+        query = query.order_by(Ruleset.version.desc())
+
+    result = await session.execute(query)
+    ruleset = result.scalar_one_or_none()
+
+    if not ruleset:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Ruleset {ruleset_id} not found",
+        )
+
+    # Merkmale formatieren wie im LLM-Adapter
+    is_german = accept_language.startswith("de")
+    features_formatted = []
+    features_json_schema = {}
+
+    for feature in ruleset.features or []:
+        feature_id = feature.get("feature_id", "")
+        name = feature.get("name_de" if is_german else "name_en", feature_id)
+        required_level = feature.get("required_level", "OPTIONAL")
+        legal_basis = feature.get("legal_basis", "")
+        category = feature.get("category", "")
+        extraction_type = feature.get("extraction_type", "STRING")
+
+        # Für Prompt-Formatierung
+        required_label = {
+            "REQUIRED": "PFLICHT" if is_german else "REQUIRED",
+            "CONDITIONAL": "BEDINGT" if is_german else "CONDITIONAL",
+            "OPTIONAL": "OPTIONAL",
+        }.get(required_level, "OPTIONAL")
+
+        features_formatted.append({
+            "feature_id": feature_id,
+            "name": name,
+            "required_level": required_label,
+            "legal_basis": legal_basis,
+            "category": category,
+            "extraction_type": extraction_type,
+            "prompt_line": f"- {name} ({feature_id}): {required_label} | {legal_basis}",
+        })
+
+        # Für JSON-Schema
+        json_type = {
+            "STRING": "string",
+            "TEXTBLOCK": "string",
+            "DATE": "string (ISO date)",
+            "DATE_OR_RANGE": "string (date or date range)",
+            "MONEY": "number",
+            "PERCENTAGE": "number",
+            "NUMBER": "number",
+        }.get(extraction_type, "string")
+
+        features_json_schema[feature_id] = {
+            "type": json_type,
+            "description": name,
+            "required": required_level == "REQUIRED",
+        }
+
+    # System-Prompt Vorlage
+    system_prompt_template = f"""Du bist ein Experte für steuerliche Rechnungsprüfung.
+Deine Aufgabe ist die Prüfung von Rechnungen nach dem Regelwerk {ruleset_id}.
+
+REGELWERK: {ruleset.title_de if is_german else ruleset.title_en}
+RECHTSRAUM: {ruleset.jurisdiction}
+
+REGELWERK-MERKMALE:
+Die folgenden Merkmale müssen geprüft werden:
+""" + "\n".join([f["prompt_line"] for f in features_formatted]) + """
+
+WICHTIG:
+- Antworte IMMER auf Deutsch
+- Antworte im JSON-Format
+- Sei präzise und verweise auf konkrete Rechtsgrundlagen
+- Nutze die deutschen Merkmalsnamen aus dem Regelwerk"""
+
+    # Response JSON-Schema
+    response_schema = {
+        "type": "object",
+        "required": ["semantic_check", "economic_check", "beneficiary_match", "warnings", "overall_assessment", "confidence"],
+        "properties": {
+            "semantic_check": {
+                "type": "object",
+                "properties": {
+                    "supply_fits_project": {"type": "string", "enum": ["yes", "partial", "unclear", "no"]},
+                    "supply_description_quality": {"type": "string", "enum": ["clear", "vague", "missing"]},
+                    "reasoning": {"type": "string"},
+                },
+            },
+            "economic_check": {
+                "type": "object",
+                "properties": {
+                    "reasonable": {"type": "string", "enum": ["yes", "questionable", "no"]},
+                    "reasoning": {"type": "string"},
+                },
+            },
+            "beneficiary_match": {
+                "type": "object",
+                "properties": {
+                    "matches": {"type": "string", "enum": ["yes", "partial", "no"]},
+                    "detected_name": {"type": "string"},
+                    "reasoning": {"type": "string"},
+                },
+            },
+            "warnings": {
+                "type": "array",
+                "items": {
+                    "type": "object",
+                    "properties": {
+                        "type": {"type": "string"},
+                        "message": {"type": "string"},
+                        "severity": {"type": "string", "enum": ["low", "medium", "high"]},
+                    },
+                },
+            },
+            "overall_assessment": {"type": "string", "enum": ["ok", "review_needed", "reject"]},
+            "confidence": {"type": "number", "minimum": 0, "maximum": 1},
+        },
+    }
+
+    # User-Prompt Beispielstruktur
+    user_prompt_structure = """--- EXTRAHIERTE DATEN ---
+{feature_id}: {extrahierter_wert} (Roh: {roh_text})
+...
+--- ENDE EXTRAHIERTE DATEN ---
+
+--- RECHNUNGSTEXT (Auszug) ---
+{volltext_der_rechnung}
+--- ENDE RECHNUNGSTEXT ---
+
+--- PROJEKTKONTEXT ---
+Projekttitel: {projekt_titel}
+Projektzeitraum: {start_datum} - {end_datum}
+--- ENDE PROJEKTKONTEXT ---
+
+--- BEGÜNSTIGTENKONTEXT ---
+Name: {begünstigten_name}
+Adresse: {adresse}
+--- ENDE BEGÜNSTIGTENKONTEXT ---"""
+
+    return {
+        "ruleset_id": ruleset.ruleset_id,
+        "version": ruleset.version,
+        "title": ruleset.title_de if is_german else ruleset.title_en,
+        "features_count": len(features_formatted),
+        "features": features_formatted,
+        "llm_schema": {
+            "system_prompt": system_prompt_template,
+            "user_prompt_structure": user_prompt_structure,
+            "response_json_schema": response_schema,
+            "features_json_schema": features_json_schema,
+        },
+    }
+
+
 @router.put("/rulesets/{ruleset_id}/{version}")
 async def update_ruleset(
     ruleset_id: str,
