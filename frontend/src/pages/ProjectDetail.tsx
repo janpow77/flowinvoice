@@ -19,6 +19,12 @@ import {
   Pencil,
   Save,
   AlertTriangle,
+  ThumbsUp,
+  ThumbsDown,
+  Lock,
+  Eye,
+  List,
+  FolderOpen,
 } from 'lucide-react'
 import { api } from '@/lib/api'
 import { TaxSystemSelector } from '@/components/tax-selector'
@@ -72,16 +78,64 @@ interface DocumentItem {
   status: string
   created_at: string
   ruleset_id?: string
+  document_type?: string
   analysis_result?: {
+    id?: string
     overall_assessment?: string
     confidence?: number
+    provider?: string
   }
   extracted_data?: {
-    supplier_name_address?: { value?: string }
-    invoice_date?: { value?: string }
-    gross_amount?: { value?: string }
+    supplier_name_address?: { value?: string; confidence?: number }
+    invoice_date?: { value?: string; confidence?: number }
+    gross_amount?: { value?: string; confidence?: number }
+    invoice_number?: { value?: string; confidence?: number }
+    net_amount?: { value?: string; confidence?: number }
+    vat_amount?: { value?: string; confidence?: number }
+    vat_rate?: { value?: string; confidence?: number }
+    [key: string]: { value?: string; confidence?: number } | undefined
   }
 }
+
+interface FeedbackItem {
+  feedback_id: string
+  rating: string
+  override_count: number
+  created_at: string
+}
+
+interface FinalResult {
+  final_result_id: string
+  document_id: string
+  status: string
+  fields: Array<{
+    feature_id: string
+    value: unknown
+    confidence?: number
+  }>
+  overall?: {
+    traffic_light?: string
+    missing_required_features?: string[]
+    conflicts?: string[]
+  }
+}
+
+interface LlmRunItem {
+  id: string
+  provider: string
+  model_name: string
+  status: string
+  stats: {
+    duration_ms?: number
+    input_tokens?: number
+    output_tokens?: number
+  }
+  error_message?: string
+  created_at: string
+  completed_at?: string
+}
+
+type TabType = 'overview' | 'documents' | 'upload'
 
 type DocumentType = 'INVOICE' | 'BANK_STATEMENT' | 'PROCUREMENT' | 'CONTRACT' | 'OTHER'
 
@@ -135,6 +189,9 @@ export default function ProjectDetail() {
     maxRuns: 1,
   })
   const [editForm, setEditForm] = useState<EditFormData | null>(null)
+  const [activeTab, setActiveTab] = useState<TabType>('overview')
+  const [selectedDocument, setSelectedDocument] = useState<string | null>(null)
+  const [feedbackComment, setFeedbackComment] = useState('')
 
   const { data: project, isLoading, error } = useQuery<ProjectData>({
     queryKey: ['project', id],
@@ -146,6 +203,27 @@ export default function ProjectDetail() {
     queryKey: ['documents', id],
     queryFn: () => api.getDocuments(id),
     enabled: !!id,
+  })
+
+  // Query for selected document's feedback
+  const { data: selectedDocFeedback } = useQuery<FeedbackItem[]>({
+    queryKey: ['feedback', selectedDocument],
+    queryFn: () => api.getDocumentFeedback(selectedDocument!),
+    enabled: !!selectedDocument,
+  })
+
+  // Query for selected document's final result
+  const { data: selectedDocFinal } = useQuery<FinalResult | null>({
+    queryKey: ['final', selectedDocument],
+    queryFn: () => api.getDocumentFinal(selectedDocument!).catch(() => null),
+    enabled: !!selectedDocument,
+  })
+
+  // Query for selected document's LLM runs
+  const { data: selectedDocLlmRuns } = useQuery<LlmRunItem[]>({
+    queryKey: ['llm-runs', selectedDocument],
+    queryFn: () => api.getDocumentLlmRuns(selectedDocument!),
+    enabled: !!selectedDocument,
   })
 
   const updateRulesetMutation = useMutation({
@@ -187,6 +265,36 @@ export default function ProjectDetail() {
     },
     onSuccess: () => {
       refetchDocuments()
+    },
+  })
+
+  const finalizeMutation = useMutation({
+    mutationFn: async (documentId: string) => {
+      return api.finalizeDocument(documentId)
+    },
+    onSuccess: () => {
+      refetchDocuments()
+      queryClient.invalidateQueries({ queryKey: ['final', selectedDocument] })
+    },
+  })
+
+  const feedbackMutation = useMutation({
+    mutationFn: async ({ documentId, rating, acceptResult }: { documentId: string; rating: 'CORRECT' | 'INCORRECT'; acceptResult: boolean }) => {
+      // First get the final result for the document
+      const finalResult = await api.getDocumentFinal(documentId).catch(() => null)
+      return api.submitFeedback({
+        document_id: documentId,
+        result_id: finalResult?.final_result_id || documentId,
+        rating,
+        comment: feedbackComment || undefined,
+        accept_result: acceptResult,
+      })
+    },
+    onSuccess: () => {
+      setFeedbackComment('')
+      refetchDocuments()
+      queryClient.invalidateQueries({ queryKey: ['feedback', selectedDocument] })
+      queryClient.invalidateQueries({ queryKey: ['final', selectedDocument] })
     },
   })
 
@@ -642,231 +750,682 @@ export default function ProjectDetail() {
         </div>
       </div>
 
-      {/* Two Column Layout */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Left Column - Belegliste */}
-        <div className="lg:col-span-2 space-y-4">
-          {/* Collapsible Features */}
-          <div className="bg-white rounded-lg border border-gray-200">
-            <button
-              onClick={() => setShowFeatures(!showFeatures)}
-              className="w-full px-4 py-3 flex items-center justify-between text-left hover:bg-gray-50"
-            >
-              <span className="font-medium text-gray-900">{t('projectDetail.showFeatures')}</span>
-              {showFeatures ? (
-                <ChevronDown className="h-5 w-5 text-gray-400" />
-              ) : (
-                <ChevronRight className="h-5 w-5 text-gray-400" />
-              )}
-            </button>
-            {showFeatures && currentRuleset && (
-              <div className="px-4 pb-4 border-t border-gray-100">
-                <div className="mt-3 space-y-2 text-sm max-h-60 overflow-y-auto">
-                  {currentRuleset.features.map(feature => (
-                    <div key={feature.feature_id} className="flex items-center justify-between py-1">
-                      <span className="text-gray-600">
-                        {lang === 'de' ? feature.name_de : feature.name_en}
-                      </span>
-                      <span
-                        className={`px-2 py-0.5 text-xs rounded ${
-                          feature.required_level === 'REQUIRED'
-                            ? 'bg-red-100 text-red-700'
-                            : feature.required_level === 'CONDITIONAL'
-                            ? 'bg-yellow-100 text-yellow-700'
-                            : 'bg-gray-100 text-gray-600'
-                        }`}
-                      >
-                        {feature.required_level}
-                      </span>
-                    </div>
-                  ))}
-                </div>
-              </div>
+      {/* Tab Navigation */}
+      <div className="bg-white rounded-lg border border-gray-200">
+        <div className="flex border-b border-gray-200">
+          <button
+            onClick={() => setActiveTab('overview')}
+            className={`flex items-center gap-2 px-4 py-3 text-sm font-medium border-b-2 transition-colors ${
+              activeTab === 'overview'
+                ? 'border-primary-500 text-primary-600'
+                : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+            }`}
+          >
+            <FolderOpen className="h-4 w-4" />
+            {t('projectDetail.tabOverview', 'Übersicht')}
+          </button>
+          <button
+            onClick={() => setActiveTab('documents')}
+            className={`flex items-center gap-2 px-4 py-3 text-sm font-medium border-b-2 transition-colors ${
+              activeTab === 'documents'
+                ? 'border-primary-500 text-primary-600'
+                : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+            }`}
+          >
+            <List className="h-4 w-4" />
+            {t('projectDetail.tabDocuments', 'Belege & Feedback')}
+            {processedDocs.length > 0 && (
+              <span className="ml-1 px-2 py-0.5 text-xs bg-gray-100 text-gray-600 rounded-full">
+                {processedDocs.length}
+              </span>
             )}
+          </button>
+          <button
+            onClick={() => setActiveTab('upload')}
+            className={`flex items-center gap-2 px-4 py-3 text-sm font-medium border-b-2 transition-colors ${
+              activeTab === 'upload'
+                ? 'border-primary-500 text-primary-600'
+                : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+            }`}
+          >
+            <Upload className="h-4 w-4" />
+            {t('projectDetail.tabUpload', 'Upload')}
+            {uploadQueue.length > 0 && (
+              <span className="ml-1 px-2 py-0.5 text-xs bg-primary-100 text-primary-600 rounded-full">
+                {uploadQueue.length}
+              </span>
+            )}
+          </button>
+        </div>
+      </div>
+
+      {/* Tab Content */}
+      {activeTab === 'overview' && (
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          {/* Left Column - Belegliste */}
+          <div className="lg:col-span-2 space-y-4">
+            {/* Collapsible Features */}
+            <div className="bg-white rounded-lg border border-gray-200">
+              <button
+                onClick={() => setShowFeatures(!showFeatures)}
+                className="w-full px-4 py-3 flex items-center justify-between text-left hover:bg-gray-50"
+              >
+                <span className="font-medium text-gray-900">{t('projectDetail.showFeatures')}</span>
+                {showFeatures ? (
+                  <ChevronDown className="h-5 w-5 text-gray-400" />
+                ) : (
+                  <ChevronRight className="h-5 w-5 text-gray-400" />
+                )}
+              </button>
+              {showFeatures && currentRuleset && (
+                <div className="px-4 pb-4 border-t border-gray-100">
+                  <div className="mt-3 space-y-2 text-sm max-h-60 overflow-y-auto">
+                    {currentRuleset.features.map(feature => (
+                      <div key={feature.feature_id} className="flex items-center justify-between py-1">
+                        <span className="text-gray-600">
+                          {lang === 'de' ? feature.name_de : feature.name_en}
+                        </span>
+                        <span
+                          className={`px-2 py-0.5 text-xs rounded ${
+                            feature.required_level === 'REQUIRED'
+                              ? 'bg-red-100 text-red-700'
+                              : feature.required_level === 'CONDITIONAL'
+                              ? 'bg-yellow-100 text-yellow-700'
+                              : 'bg-gray-100 text-gray-600'
+                          }`}
+                        >
+                          {feature.required_level}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* Belegliste (Processed Documents) */}
+            <div className="bg-white rounded-lg border border-gray-200">
+              <div className="px-4 py-3 border-b border-gray-200">
+                <h3 className="font-semibold text-gray-900">{t('projectDetail.documentList')}</h3>
+              </div>
+
+              {processedDocs.length > 0 ? (
+                <div className="overflow-x-auto">
+                  <table className="w-full text-sm">
+                    <thead className="bg-gray-50">
+                      <tr>
+                        <th className="px-4 py-2 text-left text-gray-500 font-medium">Nr.</th>
+                        <th className="px-4 py-2 text-left text-gray-500 font-medium">
+                          {t('projectDetail.supplier')}
+                        </th>
+                        <th className="px-4 py-2 text-left text-gray-500 font-medium">
+                          {t('projectDetail.date')}
+                        </th>
+                        <th className="px-4 py-2 text-right text-gray-500 font-medium">
+                          {t('projectDetail.amount')}
+                        </th>
+                        <th className="px-4 py-2 text-center text-gray-500 font-medium">Status</th>
+                        <th className="px-4 py-2"></th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-gray-100">
+                      {processedDocs.map((doc, index) => (
+                        <tr key={doc.id} className="hover:bg-gray-50">
+                          <td className="px-4 py-3 text-gray-900">{index + 1}</td>
+                          <td className="px-4 py-3 text-gray-900">
+                            {doc.extracted_data?.supplier_name_address?.value?.split('\n')[0] || '-'}
+                          </td>
+                          <td className="px-4 py-3 text-gray-600">
+                            {doc.extracted_data?.invoice_date?.value || '-'}
+                          </td>
+                          <td className="px-4 py-3 text-right font-medium text-gray-900">
+                            {doc.extracted_data?.gross_amount?.value
+                              ? `${parseFloat(doc.extracted_data.gross_amount.value).toLocaleString('de-DE', { minimumFractionDigits: 2 })} €`
+                              : '-'}
+                          </td>
+                          <td className="px-4 py-3 text-center">
+                            {doc.analysis_result?.overall_assessment === 'ok' ? (
+                              <CheckCircle className="h-5 w-5 text-green-500 mx-auto" />
+                            ) : doc.analysis_result?.overall_assessment === 'rejected' ? (
+                              <AlertCircle className="h-5 w-5 text-red-500 mx-auto" />
+                            ) : (
+                              <Clock className="h-5 w-5 text-yellow-500 mx-auto" />
+                            )}
+                          </td>
+                          <td className="px-4 py-3">
+                            <button
+                              onClick={() => {
+                                setSelectedDocument(doc.id)
+                                setActiveTab('documents')
+                              }}
+                              className="text-primary-600 hover:text-primary-700"
+                            >
+                              <Eye className="h-5 w-5" />
+                            </button>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              ) : (
+                <div className="px-4 py-8 text-center text-gray-500">
+                  <FileText className="h-10 w-10 text-gray-300 mx-auto mb-2" />
+                  {t('projectDetail.noProcessedDocuments')}
+                </div>
+              )}
+            </div>
           </div>
 
-          {/* Belegliste (Processed Documents) */}
-          <div className="bg-white rounded-lg border border-gray-200">
+          {/* Right Column - Quick Stats */}
+          <div className="space-y-4">
+            <div className="bg-white rounded-lg border border-gray-200 p-4">
+              <h3 className="font-semibold text-gray-900 mb-3">{t('projectDetail.quickStats', 'Schnellübersicht')}</h3>
+              <div className="space-y-3">
+                <div className="flex justify-between items-center">
+                  <span className="text-gray-500">{t('projectDetail.totalDocuments', 'Belege gesamt')}</span>
+                  <span className="font-medium">{documents?.length || 0}</span>
+                </div>
+                <div className="flex justify-between items-center">
+                  <span className="text-gray-500">{t('projectDetail.analyzedDocuments', 'Analysiert')}</span>
+                  <span className="font-medium text-green-600">{processedDocs.length}</span>
+                </div>
+                <div className="flex justify-between items-center">
+                  <span className="text-gray-500">{t('projectDetail.acceptedDocuments', 'Akzeptiert')}</span>
+                  <span className="font-medium text-primary-600">
+                    {documents?.filter(d => d.status === 'ACCEPTED').length || 0}
+                  </span>
+                </div>
+              </div>
+            </div>
+            <button
+              onClick={() => setActiveTab('upload')}
+              className="w-full flex items-center justify-center gap-2 px-4 py-3 bg-primary-600 text-white rounded-lg hover:bg-primary-700"
+            >
+              <Upload className="h-5 w-5" />
+              {t('projectDetail.uploadNewDocuments', 'Neue Belege hochladen')}
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Documents & Feedback Tab */}
+      {activeTab === 'documents' && (
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          {/* Left: Document List */}
+          <div className="lg:col-span-1 bg-white rounded-lg border border-gray-200">
             <div className="px-4 py-3 border-b border-gray-200">
               <h3 className="font-semibold text-gray-900">{t('projectDetail.documentList')}</h3>
             </div>
-
-            {processedDocs.length > 0 ? (
-              <div className="overflow-x-auto">
-                <table className="w-full text-sm">
-                  <thead className="bg-gray-50">
-                    <tr>
-                      <th className="px-4 py-2 text-left text-gray-500 font-medium">Nr.</th>
-                      <th className="px-4 py-2 text-left text-gray-500 font-medium">
-                        {t('projectDetail.supplier')}
-                      </th>
-                      <th className="px-4 py-2 text-left text-gray-500 font-medium">
-                        {t('projectDetail.date')}
-                      </th>
-                      <th className="px-4 py-2 text-right text-gray-500 font-medium">
-                        {t('projectDetail.amount')}
-                      </th>
-                      <th className="px-4 py-2 text-center text-gray-500 font-medium">Status</th>
-                      <th className="px-4 py-2"></th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-gray-100">
-                    {processedDocs.map((doc, index) => (
-                      <tr key={doc.id} className="hover:bg-gray-50">
-                        <td className="px-4 py-3 text-gray-900">{index + 1}</td>
-                        <td className="px-4 py-3 text-gray-900">
-                          {doc.extracted_data?.supplier_name_address?.value?.split('\n')[0] || '-'}
-                        </td>
-                        <td className="px-4 py-3 text-gray-600">
-                          {doc.extracted_data?.invoice_date?.value || '-'}
-                        </td>
-                        <td className="px-4 py-3 text-right font-medium text-gray-900">
-                          {doc.extracted_data?.gross_amount?.value
-                            ? `${parseFloat(doc.extracted_data.gross_amount.value).toLocaleString('de-DE', { minimumFractionDigits: 2 })} €`
-                            : '-'}
-                        </td>
-                        <td className="px-4 py-3 text-center">
+            <div className="divide-y divide-gray-100 max-h-[600px] overflow-y-auto">
+              {processedDocs.length > 0 ? (
+                processedDocs.map((doc, index) => {
+                  const isSelected = selectedDocument === doc.id
+                  const isAccepted = doc.status === 'ACCEPTED'
+                  return (
+                    <button
+                      key={doc.id}
+                      onClick={() => setSelectedDocument(doc.id)}
+                      className={`w-full text-left px-4 py-3 hover:bg-gray-50 transition-colors ${
+                        isSelected ? 'bg-primary-50 border-l-4 border-primary-500' : ''
+                      }`}
+                    >
+                      <div className="flex items-center justify-between">
+                        <span className="font-medium text-gray-900 truncate">
+                          {index + 1}. {doc.extracted_data?.supplier_name_address?.value?.split('\n')[0] || doc.filename}
+                        </span>
+                        <div className="flex items-center gap-1">
+                          {isAccepted && <Lock className="h-4 w-4 text-green-500" />}
                           {doc.analysis_result?.overall_assessment === 'ok' ? (
-                            <CheckCircle className="h-5 w-5 text-green-500 mx-auto" />
+                            <CheckCircle className="h-4 w-4 text-green-500" />
                           ) : doc.analysis_result?.overall_assessment === 'rejected' ? (
-                            <AlertCircle className="h-5 w-5 text-red-500 mx-auto" />
+                            <AlertCircle className="h-4 w-4 text-red-500" />
                           ) : (
-                            <Clock className="h-5 w-5 text-yellow-500 mx-auto" />
+                            <Clock className="h-4 w-4 text-yellow-500" />
                           )}
-                        </td>
-                        <td className="px-4 py-3">
+                        </div>
+                      </div>
+                      <div className="text-sm text-gray-500 mt-1">
+                        {doc.extracted_data?.invoice_date?.value || '-'} • {doc.extracted_data?.gross_amount?.value
+                          ? `${parseFloat(doc.extracted_data.gross_amount.value).toLocaleString('de-DE', { minimumFractionDigits: 2 })} €`
+                          : '-'}
+                      </div>
+                    </button>
+                  )
+                })
+              ) : (
+                <div className="px-4 py-8 text-center text-gray-500">
+                  <FileText className="h-8 w-8 text-gray-300 mx-auto mb-2" />
+                  {t('projectDetail.noProcessedDocuments')}
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* Right: Document Details & Feedback */}
+          <div className="lg:col-span-2 space-y-4">
+            {selectedDocument ? (
+              (() => {
+                const doc = documents?.find(d => d.id === selectedDocument)
+                if (!doc) return null
+                const isAccepted = doc.status === 'ACCEPTED'
+                const hasFeedback = selectedDocFeedback && selectedDocFeedback.length > 0
+
+                return (
+                  <>
+                    {/* Document Header */}
+                    <div className="bg-white rounded-lg border border-gray-200 p-4">
+                      <div className="flex items-center justify-between mb-3">
+                        <h3 className="font-semibold text-gray-900">{doc.filename}</h3>
+                        <div className="flex items-center gap-2">
+                          {isAccepted ? (
+                            <span className="flex items-center gap-1 px-2 py-1 text-xs bg-green-100 text-green-700 rounded">
+                              <Lock className="h-3 w-3" />
+                              {t('projectDetail.accepted', 'Akzeptiert')}
+                            </span>
+                          ) : (
+                            <span className="flex items-center gap-1 px-2 py-1 text-xs bg-yellow-100 text-yellow-700 rounded">
+                              <Clock className="h-3 w-3" />
+                              {t('projectDetail.pendingReview', 'Prüfung ausstehend')}
+                            </span>
+                          )}
                           <Link
                             to={`/documents/${doc.id}`}
-                            className="text-primary-600 hover:text-primary-700"
+                            className="text-primary-600 hover:text-primary-700 p-1"
+                            title={t('projectDetail.viewDetails', 'Details anzeigen')}
                           >
                             <FileText className="h-5 w-5" />
                           </Link>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            ) : (
-              <div className="px-4 py-8 text-center text-gray-500">
-                <FileText className="h-10 w-10 text-gray-300 mx-auto mb-2" />
-                {t('projectDetail.noProcessedDocuments')}
-              </div>
-            )}
-          </div>
-        </div>
-
-        {/* Right Column - Upload & Actions */}
-        <div className="space-y-4">
-          {/* Upload Area */}
-          <div className="bg-white rounded-lg border border-gray-200 p-4">
-            <h3 className="font-semibold text-gray-900 mb-3">{t('projectDetail.uploadedFiles')}</h3>
-
-            {/* File List */}
-            {uploadQueue.length > 0 && (
-              <div className="mb-4 space-y-2 max-h-80 overflow-y-auto">
-                {uploadQueue.map((file, index) => (
-                  <div
-                    key={file.id}
-                    className="p-2 bg-gray-50 rounded text-sm"
-                  >
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-2 flex-1 min-w-0">
-                        <span className="text-gray-400 w-5">{index + 1}.</span>
-                        <span className="truncate">{file.file.name}</span>
+                        </div>
                       </div>
-                      <div className="flex items-center gap-2">
-                        {file.status === 'uploading' && <Loader2 className="h-4 w-4 animate-spin text-primary-600" />}
-                        {file.status === 'done' && <CheckCircle className="h-4 w-4 text-green-500" />}
-                        {file.status === 'error' && <AlertCircle className="h-4 w-4 text-red-500" />}
-                        {file.status === 'pending' && (
-                          <button onClick={() => removeFromQueue(file.id)} className="text-gray-400 hover:text-red-500">
-                            <Trash2 className="h-4 w-4" />
-                          </button>
-                        )}
+
+                      {/* Quick Info */}
+                      <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
+                        <div>
+                          <span className="text-gray-500">{t('projectDetail.date')}</span>
+                          <p className="font-medium">{doc.extracted_data?.invoice_date?.value || '-'}</p>
+                        </div>
+                        <div>
+                          <span className="text-gray-500">{t('projectDetail.amount')}</span>
+                          <p className="font-medium">
+                            {doc.extracted_data?.gross_amount?.value
+                              ? `${parseFloat(doc.extracted_data.gross_amount.value).toLocaleString('de-DE', { minimumFractionDigits: 2 })} €`
+                              : '-'}
+                          </p>
+                        </div>
+                        <div>
+                          <span className="text-gray-500">{t('projectDetail.confidence', 'Konfidenz')}</span>
+                          <p className="font-medium">
+                            {doc.analysis_result?.confidence
+                              ? `${Math.round(doc.analysis_result.confidence * 100)}%`
+                              : '-'}
+                          </p>
+                        </div>
+                        <div>
+                          <span className="text-gray-500">Status</span>
+                          <p className={`font-medium ${
+                            doc.analysis_result?.overall_assessment === 'ok' ? 'text-green-600' :
+                            doc.analysis_result?.overall_assessment === 'rejected' ? 'text-red-600' :
+                            'text-yellow-600'
+                          }`}>
+                            {doc.analysis_result?.overall_assessment === 'ok' ? t('projectDetail.ok', 'OK') :
+                             doc.analysis_result?.overall_assessment === 'rejected' ? t('projectDetail.rejected', 'Abgelehnt') :
+                             t('projectDetail.review', 'Prüfen')}
+                          </p>
+                        </div>
                       </div>
                     </div>
-                    {/* Document Type Selector */}
-                    {file.status === 'pending' && (
-                      <div className="mt-2 pl-7">
-                        <select
-                          value={file.documentType}
-                          onChange={e => updateDocumentType(file.id, e.target.value as DocumentType)}
-                          className="w-full px-2 py-1 text-xs border border-gray-300 rounded focus:ring-1 focus:ring-primary-500 focus:border-primary-500"
-                        >
-                          <option value="INVOICE">{t('documentTypes.invoice')}</option>
-                          <option value="BANK_STATEMENT">{t('documentTypes.bankStatement')}</option>
-                          <option value="PROCUREMENT">{t('documentTypes.procurement')}</option>
-                          <option value="CONTRACT">{t('documentTypes.contract')}</option>
-                          <option value="OTHER">{t('documentTypes.other')}</option>
-                        </select>
-                        {/* Warning if document type not supported by ruleset */}
-                        {project.ruleset_id_hint && !isDocumentTypeSupported(project.ruleset_id_hint, file.documentType) && (
-                          <div className="mt-1 flex items-center gap-1 text-xs text-amber-600">
-                            <AlertTriangle className="h-3 w-3" />
-                            <span>{t('projectDetail.documentTypeNotSupported')}</span>
-                          </div>
-                        )}
+
+                    {/* Extracted Features */}
+                    <div className="bg-white rounded-lg border border-gray-200 p-4">
+                      <h4 className="font-semibold text-gray-900 mb-3">{t('projectDetail.extractedFeatures', 'Erkannte Merkmale')}</h4>
+                      {doc.extracted_data && Object.keys(doc.extracted_data).length > 0 ? (
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-sm">
+                          {Object.entries(doc.extracted_data).map(([key, val]) => {
+                            const featureName = currentRuleset?.features.find(f => f.feature_id === key)
+                            const displayName = featureName
+                              ? (lang === 'de' ? featureName.name_de : featureName.name_en)
+                              : key.replace(/_/g, ' ')
+                            return (
+                              <div key={key} className="flex justify-between items-start p-2 bg-gray-50 rounded">
+                                <span className="text-gray-600 capitalize">{displayName}</span>
+                                <div className="text-right">
+                                  <span className="font-medium text-gray-900 block">
+                                    {val?.value || '-'}
+                                  </span>
+                                  {val?.confidence !== undefined && (
+                                    <span className="text-xs text-gray-400">
+                                      {Math.round(val.confidence * 100)}%
+                                    </span>
+                                  )}
+                                </div>
+                              </div>
+                            )
+                          })}
+                        </div>
+                      ) : (
+                        <p className="text-gray-500">{t('projectDetail.noExtractedData', 'Keine Daten extrahiert')}</p>
+                      )}
+                    </div>
+
+                    {/* LLM Runs History */}
+                    {selectedDocLlmRuns && selectedDocLlmRuns.length > 0 && (
+                      <div className="bg-white rounded-lg border border-gray-200 p-4">
+                        <h4 className="font-semibold text-gray-900 mb-3">{t('projectDetail.llmRuns', 'Erkennungsläufe')}</h4>
+                        <div className="space-y-3">
+                          {selectedDocLlmRuns.map((run, index) => (
+                            <div key={run.id} className="p-3 bg-gray-50 rounded-lg">
+                              <div className="flex items-center justify-between mb-2">
+                                <div className="flex items-center gap-2">
+                                  <span className="font-medium text-gray-900">
+                                    Run #{selectedDocLlmRuns.length - index}
+                                  </span>
+                                  <span className={`px-2 py-0.5 text-xs rounded ${
+                                    run.status === 'COMPLETED' ? 'bg-green-100 text-green-700' :
+                                    run.status === 'FAILED' ? 'bg-red-100 text-red-700' :
+                                    'bg-yellow-100 text-yellow-700'
+                                  }`}>
+                                    {run.status}
+                                  </span>
+                                </div>
+                                <span className="text-xs text-gray-400">
+                                  {new Date(run.created_at).toLocaleString('de-DE')}
+                                </span>
+                              </div>
+                              <div className="grid grid-cols-2 md:grid-cols-4 gap-2 text-sm">
+                                <div>
+                                  <span className="text-gray-500">{t('projectDetail.provider', 'Provider')}</span>
+                                  <p className="font-medium">{run.provider}</p>
+                                </div>
+                                <div>
+                                  <span className="text-gray-500">{t('projectDetail.model', 'Modell')}</span>
+                                  <p className="font-medium truncate" title={run.model_name}>{run.model_name}</p>
+                                </div>
+                                <div>
+                                  <span className="text-gray-500">{t('projectDetail.duration', 'Dauer')}</span>
+                                  <p className="font-medium">
+                                    {run.stats.duration_ms
+                                      ? `${(run.stats.duration_ms / 1000).toFixed(2)}s`
+                                      : '-'}
+                                  </p>
+                                </div>
+                                <div>
+                                  <span className="text-gray-500">{t('projectDetail.tokens', 'Tokens')}</span>
+                                  <p className="font-medium">
+                                    {run.stats.input_tokens && run.stats.output_tokens
+                                      ? `${run.stats.input_tokens} → ${run.stats.output_tokens}`
+                                      : '-'}
+                                  </p>
+                                </div>
+                              </div>
+                              {run.error_message && (
+                                <div className="mt-2 p-2 bg-red-50 rounded text-sm text-red-700">
+                                  {run.error_message}
+                                </div>
+                              )}
+                            </div>
+                          ))}
+                        </div>
                       </div>
                     )}
-                  </div>
-                ))}
+
+                    {/* Feedback History */}
+                    {hasFeedback && (
+                      <div className="bg-white rounded-lg border border-gray-200 p-4">
+                        <h4 className="font-semibold text-gray-900 mb-3">{t('projectDetail.feedbackHistory', 'Feedback-Verlauf')}</h4>
+                        <div className="space-y-2">
+                          {selectedDocFeedback.map((fb) => (
+                            <div key={fb.feedback_id} className="flex items-center justify-between p-2 bg-gray-50 rounded text-sm">
+                              <div className="flex items-center gap-2">
+                                {fb.rating === 'CORRECT' ? (
+                                  <ThumbsUp className="h-4 w-4 text-green-500" />
+                                ) : (
+                                  <ThumbsDown className="h-4 w-4 text-red-500" />
+                                )}
+                                <span>{fb.rating === 'CORRECT' ? t('feedback.correct', 'Korrekt') : t('feedback.incorrect', 'Fehlerhaft')}</span>
+                                {fb.override_count > 0 && (
+                                  <span className="text-xs text-gray-500">({fb.override_count} {t('feedback.corrections', 'Korrekturen')})</span>
+                                )}
+                              </div>
+                              <span className="text-gray-400 text-xs">
+                                {new Date(fb.created_at).toLocaleString('de-DE')}
+                              </span>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Feedback Actions - only if not accepted */}
+                    {!isAccepted && (
+                      <div className="bg-white rounded-lg border border-gray-200 p-4">
+                        <h4 className="font-semibold text-gray-900 mb-3">{t('projectDetail.submitFeedback', 'Feedback abgeben')}</h4>
+
+                        {/* Comment */}
+                        <div className="mb-4">
+                          <label className="block text-sm text-gray-600 mb-1">{t('projectDetail.comment', 'Kommentar (optional)')}</label>
+                          <textarea
+                            value={feedbackComment}
+                            onChange={(e) => setFeedbackComment(e.target.value)}
+                            className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-1 focus:ring-primary-500 focus:border-primary-500"
+                            rows={2}
+                            placeholder={t('projectDetail.commentPlaceholder', 'Anmerkungen zur Prüfung...')}
+                          />
+                        </div>
+
+                        {/* Action Buttons */}
+                        <div className="flex flex-wrap gap-2">
+                          {/* Finalize first if not finalized */}
+                          {!selectedDocFinal && (
+                            <button
+                              onClick={() => finalizeMutation.mutate(doc.id)}
+                              disabled={finalizeMutation.isPending}
+                              className="flex items-center gap-2 px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 disabled:opacity-50"
+                            >
+                              {finalizeMutation.isPending && <Loader2 className="h-4 w-4 animate-spin" />}
+                              <CheckCircle className="h-4 w-4" />
+                              {t('projectDetail.finalize', 'Finalisieren')}
+                            </button>
+                          )}
+
+                          {/* Feedback buttons */}
+                          <button
+                            onClick={() => feedbackMutation.mutate({
+                              documentId: doc.id,
+                              rating: 'CORRECT',
+                              acceptResult: false
+                            })}
+                            disabled={feedbackMutation.isPending}
+                            className="flex items-center gap-2 px-4 py-2 border border-green-200 text-green-600 rounded-lg hover:bg-green-50 disabled:opacity-50"
+                          >
+                            {feedbackMutation.isPending && <Loader2 className="h-4 w-4 animate-spin" />}
+                            <ThumbsUp className="h-4 w-4" />
+                            {t('feedback.correct', 'Korrekt')}
+                          </button>
+
+                          <button
+                            onClick={() => feedbackMutation.mutate({
+                              documentId: doc.id,
+                              rating: 'INCORRECT',
+                              acceptResult: false
+                            })}
+                            disabled={feedbackMutation.isPending}
+                            className="flex items-center gap-2 px-4 py-2 border border-red-200 text-red-600 rounded-lg hover:bg-red-50 disabled:opacity-50"
+                          >
+                            {feedbackMutation.isPending && <Loader2 className="h-4 w-4 animate-spin" />}
+                            <ThumbsDown className="h-4 w-4" />
+                            {t('feedback.incorrect', 'Fehlerhaft')}
+                          </button>
+
+                          <button
+                            onClick={() => feedbackMutation.mutate({
+                              documentId: doc.id,
+                              rating: 'CORRECT',
+                              acceptResult: true
+                            })}
+                            disabled={feedbackMutation.isPending}
+                            className="flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:opacity-50"
+                          >
+                            {feedbackMutation.isPending && <Loader2 className="h-4 w-4 animate-spin" />}
+                            <Lock className="h-4 w-4" />
+                            {t('projectDetail.acceptAndFinalize', 'Akzeptieren & Abschließen')}
+                          </button>
+                        </div>
+                      </div>
+                    )}
+                  </>
+                )
+              })()
+            ) : (
+              <div className="bg-white rounded-lg border border-gray-200 p-8 text-center text-gray-500">
+                <FileText className="h-12 w-12 text-gray-300 mx-auto mb-3" />
+                <p>{t('projectDetail.selectDocument', 'Wählen Sie einen Beleg aus der Liste')}</p>
               </div>
             )}
+          </div>
+        </div>
+      )}
 
-            {/* Dropzone */}
-            <div
-              {...getRootProps()}
-              className={`border-2 border-dashed rounded-lg p-6 text-center cursor-pointer transition-colors ${
-                isDragActive ? 'border-primary-500 bg-primary-50' : 'border-gray-300 hover:border-primary-400'
-              } ${uploadQueue.length >= 20 ? 'opacity-50 cursor-not-allowed' : ''}`}
-            >
-              <input {...getInputProps()} />
-              <Upload className="h-8 w-8 text-gray-400 mx-auto mb-2" />
-              <p className="text-sm text-gray-600">{t('projectDetail.dropzoneText')}</p>
-              <p className="text-xs text-gray-400 mt-1">
-                {t('projectDetail.maxFiles', { count: 20 - uploadQueue.length })}
-              </p>
-            </div>
+      {/* Upload Tab */}
+      {activeTab === 'upload' && (
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          {/* Left Column - Upload queue */}
+          <div className="lg:col-span-2 space-y-4">
+            {/* Upload Area */}
+            <div className="bg-white rounded-lg border border-gray-200 p-6">
+              <h3 className="font-semibold text-gray-900 mb-4">{t('projectDetail.uploadedFiles')}</h3>
 
-            {/* Upload Button */}
-            {uploadQueue.some(f => f.status === 'pending') && (
-              <button
-                onClick={uploadAllFiles}
-                disabled={uploadMutation.isPending}
-                className="mt-3 w-full px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 disabled:opacity-50 flex items-center justify-center gap-2"
+              {/* File List */}
+              {uploadQueue.length > 0 && (
+                <div className="mb-4 space-y-2 max-h-80 overflow-y-auto">
+                  {uploadQueue.map((file, index) => (
+                    <div
+                      key={file.id}
+                      className="p-3 bg-gray-50 rounded-lg"
+                    >
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-2 flex-1 min-w-0">
+                          <span className="text-gray-400 w-6">{index + 1}.</span>
+                          <span className="truncate font-medium">{file.file.name}</span>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          {file.status === 'uploading' && <Loader2 className="h-4 w-4 animate-spin text-primary-600" />}
+                          {file.status === 'done' && <CheckCircle className="h-4 w-4 text-green-500" />}
+                          {file.status === 'error' && <AlertCircle className="h-4 w-4 text-red-500" />}
+                          {file.status === 'pending' && (
+                            <button onClick={() => removeFromQueue(file.id)} className="text-gray-400 hover:text-red-500">
+                              <Trash2 className="h-4 w-4" />
+                            </button>
+                          )}
+                        </div>
+                      </div>
+                      {/* Document Type Selector */}
+                      {file.status === 'pending' && (
+                        <div className="mt-2 pl-8">
+                          <select
+                            value={file.documentType}
+                            onChange={e => updateDocumentType(file.id, e.target.value as DocumentType)}
+                            className="w-full px-2 py-1 text-sm border border-gray-300 rounded focus:ring-1 focus:ring-primary-500 focus:border-primary-500"
+                          >
+                            <option value="INVOICE">{t('documentTypes.invoice')}</option>
+                            <option value="BANK_STATEMENT">{t('documentTypes.bankStatement')}</option>
+                            <option value="PROCUREMENT">{t('documentTypes.procurement')}</option>
+                            <option value="CONTRACT">{t('documentTypes.contract')}</option>
+                            <option value="OTHER">{t('documentTypes.other')}</option>
+                          </select>
+                          {project.ruleset_id_hint && !isDocumentTypeSupported(project.ruleset_id_hint, file.documentType) && (
+                            <div className="mt-1 flex items-center gap-1 text-xs text-amber-600">
+                              <AlertTriangle className="h-3 w-3" />
+                              <span>{t('projectDetail.documentTypeNotSupported')}</span>
+                            </div>
+                          )}
+                        </div>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              )}
+
+              {/* Dropzone */}
+              <div
+                {...getRootProps()}
+                className={`border-2 border-dashed rounded-lg p-8 text-center cursor-pointer transition-colors ${
+                  isDragActive ? 'border-primary-500 bg-primary-50' : 'border-gray-300 hover:border-primary-400'
+                } ${uploadQueue.length >= 20 ? 'opacity-50 cursor-not-allowed' : ''}`}
               >
-                {uploadMutation.isPending && <Loader2 className="h-4 w-4 animate-spin" />}
-                <Upload className="h-4 w-4" />
-                {t('documents.uploadDocument')}
-              </button>
-            )}
+                <input {...getInputProps()} />
+                <Upload className="h-10 w-10 text-gray-400 mx-auto mb-3" />
+                <p className="text-gray-600">{t('projectDetail.dropzoneText')}</p>
+                <p className="text-sm text-gray-400 mt-2">
+                  {t('projectDetail.maxFiles', { count: 20 - uploadQueue.length })}
+                </p>
+              </div>
+            </div>
           </div>
 
-          {/* Actions */}
-          <div className="bg-white rounded-lg border border-gray-200 p-4">
-            <div className="flex items-center justify-between">
-              <button
-                onClick={() => setShowSettings(true)}
-                className="p-2 text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded-lg"
-                title={t('projectDetail.analysisSettings')}
-              >
-                <Settings className="h-5 w-5" />
-              </button>
+          {/* Right Column - Actions */}
+          <div className="space-y-4">
+            {/* Upload Actions */}
+            <div className="bg-white rounded-lg border border-gray-200 p-4">
+              <h3 className="font-semibold text-gray-900 mb-4">{t('projectDetail.actions', 'Aktionen')}</h3>
 
-              <button
-                onClick={analyzeAllDocuments}
-                disabled={analyzeMutation.isPending || !uploadQueue.some(f => f.status === 'done')}
-                className="flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                {analyzeMutation.isPending && <Loader2 className="h-4 w-4 animate-spin" />}
-                <Search className="h-4 w-4" />
-                {t('projectDetail.recognizeDocuments')}
-              </button>
+              <div className="space-y-3">
+                {/* Upload Button */}
+                {uploadQueue.some(f => f.status === 'pending') && (
+                  <button
+                    onClick={uploadAllFiles}
+                    disabled={uploadMutation.isPending}
+                    className="w-full px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 disabled:opacity-50 flex items-center justify-center gap-2"
+                  >
+                    {uploadMutation.isPending && <Loader2 className="h-4 w-4 animate-spin" />}
+                    <Upload className="h-4 w-4" />
+                    {t('documents.uploadDocument')}
+                  </button>
+                )}
+
+                {/* Analyze Button */}
+                <button
+                  onClick={analyzeAllDocuments}
+                  disabled={analyzeMutation.isPending || !uploadQueue.some(f => f.status === 'done')}
+                  className="w-full flex items-center justify-center gap-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  {analyzeMutation.isPending && <Loader2 className="h-4 w-4 animate-spin" />}
+                  <Search className="h-4 w-4" />
+                  {t('projectDetail.recognizeDocuments')}
+                </button>
+
+                {/* Settings Button */}
+                <button
+                  onClick={() => setShowSettings(true)}
+                  className="w-full flex items-center justify-center gap-2 px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50"
+                >
+                  <Settings className="h-4 w-4" />
+                  {t('projectDetail.analysisSettings')}
+                </button>
+              </div>
+            </div>
+
+            {/* Status Info */}
+            <div className="bg-white rounded-lg border border-gray-200 p-4">
+              <h3 className="font-semibold text-gray-900 mb-3">{t('projectDetail.uploadStatus', 'Upload-Status')}</h3>
+              <div className="space-y-2 text-sm">
+                <div className="flex justify-between">
+                  <span className="text-gray-500">{t('projectDetail.pending', 'Ausstehend')}</span>
+                  <span className="font-medium">{uploadQueue.filter(f => f.status === 'pending').length}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-gray-500">{t('projectDetail.uploaded', 'Hochgeladen')}</span>
+                  <span className="font-medium text-green-600">{uploadQueue.filter(f => f.status === 'done').length}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-gray-500">{t('projectDetail.errors', 'Fehler')}</span>
+                  <span className="font-medium text-red-600">{uploadQueue.filter(f => f.status === 'error').length}</span>
+                </div>
+              </div>
             </div>
           </div>
         </div>
-      </div>
+      )}
 
       {/* Settings Modal */}
       {showSettings && (

@@ -223,3 +223,37 @@ class DocumentDeleteResponse(BaseModel):
     deleted: bool = Field(..., description="Erfolgreich gelöscht")
     file_deleted: bool = Field(..., description="Datei vom Speicher entfernt")
     message: str = Field(..., description="Status-Nachricht")
+
+
+class LlmRunStats(BaseModel):
+    """LLM-Run Statistiken."""
+
+    model_config = ConfigDict(from_attributes=True)
+
+    duration_ms: int | None = Field(default=None, description="Dauer in ms")
+    input_tokens: int | None = Field(default=None, description="Input-Tokens")
+    output_tokens: int | None = Field(default=None, description="Output-Tokens")
+
+
+class LlmRunItem(BaseModel):
+    """Einzelner LLM-Run."""
+
+    model_config = ConfigDict(from_attributes=True)
+
+    id: str = Field(..., description="Run-ID")
+    provider: str = Field(..., description="Provider (Ollama, OpenAI, etc.)")
+    model_name: str = Field(..., description="Modellname")
+    status: str = Field(..., description="Status (PENDING, COMPLETED, FAILED)")
+    stats: LlmRunStats = Field(default_factory=LlmRunStats, description="Statistiken")
+    error_message: str | None = Field(default=None, description="Fehlermeldung")
+    created_at: datetime = Field(..., description="Erstellt")
+    completed_at: datetime | None = Field(default=None, description="Abgeschlossen")
+
+
+class LlmRunListResponse(BaseModel):
+    """Response für LLM-Run-Liste."""
+
+    model_config = ConfigDict(from_attributes=True)
+
+    data: list[LlmRunItem] = Field(..., description="LLM-Runs")
+    total: int = Field(..., description="Gesamtanzahl")

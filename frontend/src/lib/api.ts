@@ -199,6 +199,11 @@ export const api = {
     return response.data
   },
 
+  getDocumentLlmRuns: async (documentId: string) => {
+    const response = await apiClient.get(`/documents/${documentId}/llm-runs`)
+    return response.data.data || []
+  },
+
   uploadDocument: async (file: File, projectId: string, documentType: string = 'INVOICE') => {
     if (!projectId) {
       throw new Error('Project ID is required for document upload')
@@ -241,6 +246,21 @@ export const api = {
   },
 
   // Feedback
+  getDocumentFeedback: async (documentId: string) => {
+    const response = await apiClient.get(`/documents/${documentId}/feedback`)
+    return response.data.data || []
+  },
+
+  getDocumentFinal: async (documentId: string) => {
+    const response = await apiClient.get(`/documents/${documentId}/final`)
+    return response.data
+  },
+
+  finalizeDocument: async (documentId: string) => {
+    const response = await apiClient.post(`/documents/${documentId}/finalize`)
+    return response.data
+  },
+
   submitFeedback: async (data: {
     document_id: string
     result_id: string

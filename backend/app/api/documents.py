@@ -321,6 +321,65 @@ async def get_document(
     )
 
 
+@router.get("/documents/{document_id}/llm-runs")
+async def get_document_llm_runs(
+    document_id: str,
+    session: AsyncSession = Depends(get_async_session),
+):
+    """
+    Gibt LLM-Runs für ein Dokument zurück.
+
+    Args:
+        document_id: Dokument-ID
+
+    Returns:
+        Liste der LLM-Runs mit Statistiken.
+    """
+    from app.models.llm import LlmRun
+    from app.schemas.document import LlmRunItem, LlmRunListResponse, LlmRunStats
+
+    # Dokument prüfen
+    result = await session.execute(select(Document).where(Document.id == document_id))
+    document = result.scalar_one_or_none()
+
+    if not document:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Document {document_id} not found",
+        )
+
+    # LLM-Runs laden
+    runs_result = await session.execute(
+        select(LlmRun)
+        .where(LlmRun.document_id == document_id)
+        .order_by(LlmRun.created_at.desc())
+    )
+    runs = runs_result.scalars().all()
+
+    # Response bauen
+    run_items = []
+    for run in runs:
+        stats = LlmRunStats(
+            duration_ms=run.duration_ms,
+            input_tokens=run.input_tokens,
+            output_tokens=run.output_tokens,
+        )
+        run_items.append(
+            LlmRunItem(
+                id=run.id,
+                provider=run.provider.value,
+                model_name=run.model_name,
+                status=run.status,
+                stats=stats,
+                error_message=run.error_message,
+                created_at=run.created_at,
+                completed_at=run.completed_at,
+            )
+        )
+
+    return LlmRunListResponse(data=run_items, total=len(run_items))
+
+
 @router.get("/documents/{document_id}/file")
 async def get_document_file(
     document_id: str,
