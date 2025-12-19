@@ -141,11 +141,21 @@ async def upload_sample(
     # Automatisch parsen
     try:
         parser = get_parser()
-        parse_result = await parser.parse_pdf(storage_path)
+        parse_result = parser.parse(storage_path)
 
         sample.raw_text = parse_result.raw_text
+        # Konvertiere Werte zu JSON-serialisierbaren Typen
+        def serialize_value(val: Any) -> Any:
+            if hasattr(val, "isoformat"):  # date, datetime
+                return val.isoformat()
+            if isinstance(val, (float, int)):
+                return val
+            if hasattr(val, "__float__"):  # Decimal
+                return float(val)
+            return str(val) if val is not None else None
+
         sample.extracted_data = {
-            k: {"value": v.value, "confidence": v.confidence, "raw_text": v.raw_text}
+            k: {"value": serialize_value(v.value), "confidence": v.confidence, "raw_text": v.raw_text}
             for k, v in parse_result.extracted.items()
         }
         sample.status = SampleStatus.PENDING_REVIEW
