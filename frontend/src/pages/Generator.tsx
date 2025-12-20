@@ -165,11 +165,11 @@ export default function Generator() {
     <div className="space-y-6">
       {/* Header */}
       <div>
-        <h1 className="text-2xl font-bold text-gray-900 dark:text-white flex items-center gap-2">
-          <FileText className="h-7 w-7 text-primary-600" />
+        <h1 className="text-2xl font-bold text-theme-text-primary flex items-center gap-2">
+          <FileText className="h-7 w-7 text-accent-primary" />
           {t('generator.title', 'Rechnungs-Generator')}
         </h1>
-        <p className="text-gray-600 dark:text-gray-400 mt-1">
+        <p className="text-theme-text-muted mt-1">
           {t('generator.description', 'Generieren Sie Test-Rechnungen für Seminare und Schulungen')}
         </p>
       </div>
@@ -178,27 +178,27 @@ export default function Generator() {
       {currentJobId && jobStatus && (
         <div className={clsx(
           'p-4 rounded-lg border',
-          jobStatus.status === 'COMPLETED' ? 'bg-green-50 border-green-200 dark:bg-green-900/20 dark:border-green-800' :
-          jobStatus.status === 'ERROR' ? 'bg-red-50 border-red-200 dark:bg-red-900/20 dark:border-red-800' :
-          'bg-blue-50 border-blue-200 dark:bg-blue-900/20 dark:border-blue-800'
+          jobStatus.status === 'COMPLETED' ? 'bg-status-success-bg border-status-success-border' :
+          jobStatus.status === 'ERROR' ? 'bg-status-danger-bg border-status-danger-border' :
+          'bg-status-info-bg border-status-info-border'
         )}>
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
               {jobStatus.status === 'COMPLETED' ? (
-                <CheckCircle className="h-6 w-6 text-green-600" />
+                <CheckCircle className="h-6 w-6 text-status-success" />
               ) : jobStatus.status === 'ERROR' ? (
-                <AlertCircle className="h-6 w-6 text-red-600" />
+                <AlertCircle className="h-6 w-6 text-status-danger" />
               ) : (
-                <Loader2 className="h-6 w-6 text-blue-600 animate-spin" />
+                <Loader2 className="h-6 w-6 text-status-info animate-spin" />
               )}
               <div>
-                <p className="font-medium">
+                <p className="font-medium text-theme-text-primary">
                   {jobStatus.status === 'COMPLETED' ? t('generator.completed', 'Generierung abgeschlossen') :
                    jobStatus.status === 'ERROR' ? t('generator.error', 'Fehler bei der Generierung') :
                    t('generator.inProgress', 'Generierung läuft...')}
                 </p>
                 {jobStatus.generated_files && (
-                  <p className="text-sm text-gray-600 dark:text-gray-400">
+                  <p className="text-sm text-theme-text-muted">
                     {jobStatus.generated_files.length} {t('generator.filesGenerated', 'Dateien generiert')}
                   </p>
                 )}
@@ -208,7 +208,7 @@ export default function Generator() {
               <a
                 href={`/api/generator/jobs/${currentJobId}/download`}
                 download
-                className="flex items-center gap-2 px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors"
+                className="flex items-center gap-2 px-4 py-2 bg-accent-primary text-white rounded-lg hover:bg-accent-primary-hover transition-colors"
               >
                 <Download className="h-4 w-4" />
                 {t('generator.downloadAll', 'Alle herunterladen')}
@@ -218,23 +218,23 @@ export default function Generator() {
 
           {/* File list */}
           {jobStatus.status === 'COMPLETED' && jobStatus.generated_files && jobStatus.generated_files.length > 0 && (
-            <div className="mt-4 pt-4 border-t border-green-200 dark:border-green-800">
-              <h4 className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+            <div className="mt-4 pt-4 border-t border-status-success-border">
+              <h4 className="text-sm font-medium text-theme-text-secondary mb-2">
                 {t('generator.generatedFiles', 'Generierte Dateien')}
               </h4>
               <div className="max-h-48 overflow-y-auto space-y-1">
                 {jobStatus.generated_files.map((file: string, index: number) => {
                   const filename = file.split('/').pop() || file
                   return (
-                    <div key={index} className="flex items-center justify-between py-1 px-2 rounded hover:bg-green-100 dark:hover:bg-green-800/30">
-                      <span className="text-sm text-gray-600 dark:text-gray-400 flex items-center gap-2">
+                    <div key={index} className="flex items-center justify-between py-1 px-2 rounded hover:bg-status-success-bg">
+                      <span className="text-sm text-theme-text-muted flex items-center gap-2">
                         <FileText className="h-4 w-4" />
                         {filename}
                       </span>
                       <a
                         href={`/api/generator/jobs/${currentJobId}/files/${encodeURIComponent(filename)}`}
                         download={filename}
-                        className="text-primary-600 hover:text-primary-700"
+                        className="text-accent-primary hover:text-accent-primary-hover"
                         title={t('generator.download', 'Herunterladen')}
                       >
                         <Download className="h-4 w-4" />
@@ -253,15 +253,15 @@ export default function Generator() {
         <div className="lg:col-span-2 space-y-6">
 
           {/* 1. Project Selection */}
-          <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-6">
-            <h2 className="text-lg font-semibold text-gray-900 dark:text-white mb-4 flex items-center gap-2">
+          <div className="bg-theme-card rounded-xl shadow-sm border border-theme-border-default p-6">
+            <h2 className="text-lg font-semibold text-theme-text-primary mb-4 flex items-center gap-2">
               <FolderOpen className="h-5 w-5" />
               {t('generator.projectSelection', 'Projektauswahl')}
             </h2>
             <select
               value={config.project_id}
               onChange={(e) => setConfig({ ...config, project_id: e.target.value })}
-              className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+              className="w-full px-3 py-2 border border-theme-border-default rounded-lg bg-theme-input text-theme-text-primary"
             >
               <option value="">{t('generator.noProject', 'Kein Projekt ausgewählt')}</option>
               {(projects || []).map((project: { id: string; title: string }) => (
@@ -273,14 +273,14 @@ export default function Generator() {
           </div>
 
           {/* 2. Beneficiary Data + Project Context */}
-          <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-6">
-            <h2 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">
+          <div className="bg-theme-card rounded-xl shadow-sm border border-theme-border-default p-6">
+            <h2 className="text-lg font-semibold text-theme-text-primary mb-4">
               {t('generator.beneficiaryAndContext', 'Begünstigter & Projektkontext')}
             </h2>
 
             {/* Source Selection */}
             <div className="mb-4">
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+              <label className="block text-sm font-medium text-theme-text-secondary mb-2">
                 {t('generator.beneficiarySource', 'Datenquelle Begünstigter')}
               </label>
               <div className="flex gap-4">
@@ -291,9 +291,9 @@ export default function Generator() {
                     value="manual"
                     checked={config.beneficiary_source === 'manual'}
                     onChange={() => setConfig({ ...config, beneficiary_source: 'manual' })}
-                    className="text-primary-600"
+                    className="text-accent-primary"
                   />
-                  <span className="text-sm text-gray-700 dark:text-gray-300">
+                  <span className="text-sm text-theme-text-secondary">
                     {t('generator.manualInput', 'Manuelle Eingabe')}
                   </span>
                 </label>
@@ -308,15 +308,15 @@ export default function Generator() {
                     checked={config.beneficiary_source === 'project'}
                     onChange={() => setConfig({ ...config, beneficiary_source: 'project' })}
                     disabled={!config.project_id}
-                    className="text-primary-600"
+                    className="text-accent-primary"
                   />
-                  <span className="text-sm text-gray-700 dark:text-gray-300">
+                  <span className="text-sm text-theme-text-secondary">
                     {t('generator.fromProject', 'Aus Projekt übernehmen')}
                   </span>
                 </label>
               </div>
               {config.beneficiary_source === 'project' && !selectedProject?.beneficiary && config.project_id && (
-                <p className="text-sm text-amber-600 mt-2">
+                <p className="text-sm text-status-warning mt-2">
                   {t('generator.noBeneficiaryInProject', 'Das gewählte Projekt enthält keine Begünstigtendaten.')}
                 </p>
               )}
@@ -326,62 +326,62 @@ export default function Generator() {
             {config.beneficiary_source === 'manual' && (
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-6">
                 <div className="sm:col-span-2">
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                  <label className="block text-sm font-medium text-theme-text-secondary mb-1">
                     {t('generator.beneficiaryName', 'Name / Firma')}
                   </label>
                   <input
                     type="text"
                     value={config.beneficiary_name}
                     onChange={(e) => setConfig({ ...config, beneficiary_name: e.target.value })}
-                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                    className="w-full px-3 py-2 border border-theme-border-default rounded-lg bg-theme-input text-theme-text-primary"
                     placeholder="Muster GmbH"
                   />
                 </div>
                 <div className="sm:col-span-2">
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                  <label className="block text-sm font-medium text-theme-text-secondary mb-1">
                     {t('generator.street', 'Straße')}
                   </label>
                   <input
                     type="text"
                     value={config.street}
                     onChange={(e) => setConfig({ ...config, street: e.target.value })}
-                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                    className="w-full px-3 py-2 border border-theme-border-default rounded-lg bg-theme-input text-theme-text-primary"
                     placeholder="Musterstraße 1"
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                  <label className="block text-sm font-medium text-theme-text-secondary mb-1">
                     {t('generator.zip', 'PLZ')}
                   </label>
                   <input
                     type="text"
                     value={config.zip}
                     onChange={(e) => setConfig({ ...config, zip: e.target.value })}
-                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                    className="w-full px-3 py-2 border border-theme-border-default rounded-lg bg-theme-input text-theme-text-primary"
                     placeholder="12345"
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                  <label className="block text-sm font-medium text-theme-text-secondary mb-1">
                     {t('generator.city', 'Stadt')}
                   </label>
                   <input
                     type="text"
                     value={config.city}
                     onChange={(e) => setConfig({ ...config, city: e.target.value })}
-                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                    className="w-full px-3 py-2 border border-theme-border-default rounded-lg bg-theme-input text-theme-text-primary"
                     placeholder="Musterstadt"
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                  <label className="block text-sm font-medium text-theme-text-secondary mb-1">
                     {t('generator.vatId', 'USt-IdNr. (optional)')}
                   </label>
                   <input
                     type="text"
                     value={config.vat_id}
                     onChange={(e) => setConfig({ ...config, vat_id: e.target.value })}
-                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                    className="w-full px-3 py-2 border border-theme-border-default rounded-lg bg-theme-input text-theme-text-primary"
                     placeholder="DE123456789"
                   />
                 </div>
@@ -390,12 +390,12 @@ export default function Generator() {
 
             {/* Project Data Preview */}
             {config.beneficiary_source === 'project' && selectedProject?.beneficiary && (
-              <div className="bg-gray-50 dark:bg-gray-900 rounded-lg p-4 mb-6">
-                <h4 className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+              <div className="bg-theme-hover rounded-lg p-4 mb-6">
+                <h4 className="text-sm font-medium text-theme-text-secondary mb-2">
                   {t('generator.beneficiaryPreview', 'Begünstigtendaten aus Projekt')}
                 </h4>
-                <div className="text-sm text-gray-600 dark:text-gray-400 space-y-1">
-                  <p><strong>{selectedProject.beneficiary.beneficiary_name}</strong></p>
+                <div className="text-sm text-theme-text-muted space-y-1">
+                  <p><strong className="text-theme-text-primary">{selectedProject.beneficiary.beneficiary_name}</strong></p>
                   <p>{selectedProject.beneficiary.street}</p>
                   <p>{selectedProject.beneficiary.zip} {selectedProject.beneficiary.city}</p>
                   {selectedProject.beneficiary.vat_id && (
@@ -406,13 +406,13 @@ export default function Generator() {
             )}
 
             {/* Project Context */}
-            <div className="border-t border-gray-200 dark:border-gray-700 pt-4">
-              <h3 className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-3">
+            <div className="border-t border-theme-border-default pt-4">
+              <h3 className="text-sm font-medium text-theme-text-secondary mb-3">
                 {t('generator.projectContext', 'Projektkontext (optional)')}
               </h3>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1 flex items-center gap-2">
+                  <label className="block text-sm font-medium text-theme-text-secondary mb-1 flex items-center gap-2">
                     <Hash className="h-4 w-4" />
                     {t('generator.projectNumber', 'Projektnummer')}
                   </label>
@@ -420,12 +420,12 @@ export default function Generator() {
                     type="text"
                     value={config.project_number}
                     onChange={(e) => setConfig({ ...config, project_number: e.target.value })}
-                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                    className="w-full px-3 py-2 border border-theme-border-default rounded-lg bg-theme-input text-theme-text-primary"
                     placeholder="PRJ-2025-001"
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1 flex items-center gap-2">
+                  <label className="block text-sm font-medium text-theme-text-secondary mb-1 flex items-center gap-2">
                     <MapPin className="h-4 w-4" />
                     {t('generator.executionLocation', 'Durchführungsort')}
                   </label>
@@ -433,7 +433,7 @@ export default function Generator() {
                     type="text"
                     value={config.execution_location}
                     onChange={(e) => setConfig({ ...config, execution_location: e.target.value })}
-                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                    className="w-full px-3 py-2 border border-theme-border-default rounded-lg bg-theme-input text-theme-text-primary"
                     placeholder="Berlin"
                   />
                 </div>
@@ -442,14 +442,14 @@ export default function Generator() {
           </div>
 
           {/* 3. Template Selection */}
-          <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-6">
-            <h2 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">
+          <div className="bg-theme-card rounded-xl shadow-sm border border-theme-border-default p-6">
+            <h2 className="text-lg font-semibold text-theme-text-primary mb-4">
               {t('generator.templates', 'Rechnungs-Templates')}
             </h2>
 
             {templatesLoading ? (
               <div className="flex items-center justify-center py-8">
-                <Loader2 className="h-8 w-8 text-primary-600 animate-spin" />
+                <Loader2 className="h-8 w-8 text-accent-primary animate-spin" />
               </div>
             ) : (
               <div className="grid grid-cols-3 sm:grid-cols-4 lg:grid-cols-5 gap-3">
@@ -461,45 +461,45 @@ export default function Generator() {
                       className={clsx(
                         'relative border-2 rounded-lg overflow-hidden cursor-pointer transition-all group',
                         selectedTemplates.includes(template.template_id)
-                          ? 'border-primary-500 ring-2 ring-primary-200 dark:ring-primary-800'
-                          : 'border-gray-200 dark:border-gray-700 hover:border-gray-400'
+                          ? 'border-accent-primary ring-2 ring-accent-primary/30'
+                          : 'border-theme-border-default hover:border-theme-border-strong'
                       )}
                       onClick={() => toggleTemplate(template.template_id)}
                     >
                       {/* Realistische Rechnungsvorschau - 50% kleiner */}
-                      <div className="relative aspect-[3/4] bg-gray-50 dark:bg-gray-900 p-1">
-                        <div className="w-full h-full bg-white dark:bg-gray-800 shadow-sm rounded border border-gray-200 dark:border-gray-600 p-1.5 text-[5px] leading-tight">
+                      <div className="relative aspect-[3/4] bg-theme-hover p-1">
+                        <div className="w-full h-full bg-theme-card shadow-sm rounded border border-theme-border-default p-1.5 text-[5px] leading-tight">
                           {/* Header */}
                           <div className="text-center mb-1">
-                            <div className="font-bold text-[7px] text-gray-800 dark:text-gray-200">RECHNUNG</div>
-                            <div className="text-gray-500 dark:text-gray-400">Nr. 2025-001</div>
+                            <div className="font-bold text-[7px] text-theme-text-primary">RECHNUNG</div>
+                            <div className="text-theme-text-muted">Nr. 2025-001</div>
                           </div>
 
                           {/* Rechnungssteller */}
-                          <div className="border-t border-gray-200 dark:border-gray-600 pt-0.5 mb-1">
-                            <div className="font-semibold text-gray-700 dark:text-gray-300">{preview.supplier}</div>
-                            <div className="text-gray-400">Musterstr. 1</div>
+                          <div className="border-t border-theme-border-subtle pt-0.5 mb-1">
+                            <div className="font-semibold text-theme-text-secondary">{preview.supplier}</div>
+                            <div className="text-theme-text-muted">Musterstr. 1</div>
                           </div>
 
                           {/* Empfänger */}
-                          <div className="bg-gray-50 dark:bg-gray-700 rounded p-0.5 mb-1">
-                            <div className="text-gray-500">An: Kunde GmbH</div>
+                          <div className="bg-theme-hover rounded p-0.5 mb-1">
+                            <div className="text-theme-text-muted">An: Kunde GmbH</div>
                           </div>
 
                           {/* Leistung */}
                           <div className="mb-1">
-                            <div className="text-gray-500">{preview.type}</div>
+                            <div className="text-theme-text-muted">{preview.type}</div>
                           </div>
 
                           {/* Beträge */}
-                          <div className="border-t border-gray-300 dark:border-gray-500 pt-0.5 mt-auto">
+                          <div className="border-t border-theme-border-default pt-0.5 mt-auto">
                             <div className="flex justify-between">
-                              <span className="text-gray-500">Netto:</span>
-                              <span className="text-gray-700 dark:text-gray-300">{preview.amount}</span>
+                              <span className="text-theme-text-muted">Netto:</span>
+                              <span className="text-theme-text-secondary">{preview.amount}</span>
                             </div>
                             <div className="flex justify-between font-bold text-[6px]">
                               <span>Brutto:</span>
-                              <span className="text-primary-600">{preview.amount} EUR</span>
+                              <span className="text-accent-primary">{preview.amount} EUR</span>
                             </div>
                           </div>
                         </div>
@@ -511,24 +511,24 @@ export default function Generator() {
                               e.stopPropagation()
                               setPreviewTemplate(template.template_id)
                             }}
-                            className="opacity-0 group-hover:opacity-100 transition-opacity bg-white/90 dark:bg-gray-800/90 rounded-full p-1.5 shadow-lg hover:bg-white dark:hover:bg-gray-700"
+                            className="opacity-0 group-hover:opacity-100 transition-opacity bg-theme-card/90 rounded-full p-1.5 shadow-lg hover:bg-theme-hover"
                             title={t('generator.preview', 'Vorschau')}
                           >
-                            <Eye className="h-3 w-3 text-gray-700 dark:text-gray-300" />
+                            <Eye className="h-3 w-3 text-theme-text-secondary" />
                           </button>
                         </div>
 
                         {/* Ausgewählt-Marker */}
                         {selectedTemplates.includes(template.template_id) && (
-                          <div className="absolute top-1 right-1 bg-primary-600 rounded-full p-0.5">
+                          <div className="absolute top-1 right-1 bg-accent-primary rounded-full p-0.5">
                             <CheckCircle className="h-3 w-3 text-white" />
                           </div>
                         )}
                       </div>
 
                       {/* Template-Name klein unter dem Bild */}
-                      <div className="py-1 px-1 text-center bg-gray-50 dark:bg-gray-900">
-                        <p className="text-[9px] text-gray-500 dark:text-gray-400 truncate">
+                      <div className="py-1 px-1 text-center bg-theme-hover">
+                        <p className="text-[9px] text-theme-text-muted truncate">
                           {template.name}
                         </p>
                       </div>
@@ -543,8 +543,8 @@ export default function Generator() {
         {/* Right Column - Settings */}
         <div className="space-y-6">
           {/* Basic Settings */}
-          <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-6">
-            <h2 className="text-lg font-semibold text-gray-900 dark:text-white mb-4 flex items-center gap-2">
+          <div className="bg-theme-card rounded-xl shadow-sm border border-theme-border-default p-6">
+            <h2 className="text-lg font-semibold text-theme-text-primary mb-4 flex items-center gap-2">
               <Settings className="h-5 w-5" />
               {t('generator.settings', 'Einstellungen')}
             </h2>
@@ -552,7 +552,7 @@ export default function Generator() {
             <div className="space-y-4">
               {/* Count */}
               <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                <label className="block text-sm font-medium text-theme-text-secondary mb-1">
                   {t('generator.count', 'Anzahl Rechnungen')}
                 </label>
                 <input
@@ -561,19 +561,19 @@ export default function Generator() {
                   max={100}
                   value={config.count}
                   onChange={(e) => setConfig({ ...config, count: parseInt(e.target.value) || 20 })}
-                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                  className="w-full px-3 py-2 border border-theme-border-default rounded-lg bg-theme-input text-theme-text-primary"
                 />
               </div>
 
               {/* Ruleset */}
               <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                <label className="block text-sm font-medium text-theme-text-secondary mb-1">
                   {t('generator.ruleset', 'Regelwerk')}
                 </label>
                 <select
                   value={config.ruleset_id}
                   onChange={(e) => setConfig({ ...config, ruleset_id: e.target.value })}
-                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                  className="w-full px-3 py-2 border border-theme-border-default rounded-lg bg-theme-input text-theme-text-primary"
                 >
                   <option value="DE_USTG">DE_USTG (Deutsches UStG)</option>
                   <option value="EU_VAT">EU_VAT (EU-Mehrwertsteuer)</option>
@@ -584,15 +584,15 @@ export default function Generator() {
           </div>
 
           {/* Advanced Settings */}
-          <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-6">
+          <div className="bg-theme-card rounded-xl shadow-sm border border-theme-border-default p-6">
             <button
               onClick={() => setShowAdvanced(!showAdvanced)}
               className="w-full flex items-center justify-between text-left"
             >
-              <h2 className="text-lg font-semibold text-gray-900 dark:text-white">
+              <h2 className="text-lg font-semibold text-theme-text-primary">
                 {t('generator.advanced', 'Erweiterte Einstellungen')}
               </h2>
-              <span className="text-gray-400">
+              <span className="text-theme-text-muted">
                 {showAdvanced ? '−' : '+'}
               </span>
             </button>
@@ -601,7 +601,7 @@ export default function Generator() {
               <div className="mt-4 space-y-4">
                 {/* Error Rate */}
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                  <label className="block text-sm font-medium text-theme-text-secondary mb-1">
                     {t('generator.errorRate', 'Fehlerrate')} ({config.error_rate_total}%)
                   </label>
                   <input
@@ -613,14 +613,14 @@ export default function Generator() {
                     onChange={(e) => setConfig({ ...config, error_rate_total: parseFloat(e.target.value) })}
                     className="w-full"
                   />
-                  <p className="text-xs text-gray-500 mt-1">
+                  <p className="text-xs text-theme-text-muted mt-1">
                     {t('generator.errorRateHint', 'Prozentsatz der Rechnungen mit absichtlichen Fehlern')}
                   </p>
                 </div>
 
                 {/* Severity */}
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                  <label className="block text-sm font-medium text-theme-text-secondary mb-1">
                     {t('generator.severity', 'Schweregrad')} ({config.severity}/5)
                   </label>
                   <input
@@ -636,7 +636,7 @@ export default function Generator() {
 
                 {/* Alias Noise */}
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                  <label className="block text-sm font-medium text-theme-text-secondary mb-1">
                     {t('generator.aliasNoise', 'Alias-Rauschen')} ({config.alias_noise_probability}%)
                   </label>
                   <input
@@ -648,7 +648,7 @@ export default function Generator() {
                     onChange={(e) => setConfig({ ...config, alias_noise_probability: parseFloat(e.target.value) })}
                     className="w-full"
                   />
-                  <p className="text-xs text-gray-500 mt-1">
+                  <p className="text-xs text-theme-text-muted mt-1">
                     {t('generator.aliasNoiseHint', 'Variationen bei Firmennamen und Adressen')}
                   </p>
                 </div>
@@ -657,11 +657,11 @@ export default function Generator() {
           </div>
 
           {/* Summary */}
-          <div className="bg-gray-50 dark:bg-gray-900 rounded-xl p-4 border border-gray-200 dark:border-gray-700">
-            <h3 className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+          <div className="bg-theme-hover rounded-xl p-4 border border-theme-border-default">
+            <h3 className="text-sm font-medium text-theme-text-secondary mb-2">
               {t('generator.summary', 'Zusammenfassung')}
             </h3>
-            <ul className="text-sm text-gray-600 dark:text-gray-400 space-y-1">
+            <ul className="text-sm text-theme-text-muted space-y-1">
               <li>• {config.count} {t('generator.invoices', 'Rechnungen')}</li>
               <li>• {selectedTemplates.length} {t('generator.templatesSelected', 'Templates ausgewählt')}</li>
               <li>• {config.error_rate_total}% {t('generator.withErrors', 'mit Fehlern')}</li>
@@ -679,8 +679,8 @@ export default function Generator() {
             className={clsx(
               'w-full flex items-center justify-center gap-2 px-6 py-4 rounded-lg font-medium transition-colors text-lg',
               isRunning || selectedTemplates.length === 0
-                ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
-                : 'bg-primary-600 text-white hover:bg-primary-700'
+                ? 'bg-theme-hover text-theme-text-disabled cursor-not-allowed'
+                : 'bg-accent-primary text-white hover:bg-accent-primary-hover'
             )}
           >
             {isRunning ? (
@@ -701,26 +701,26 @@ export default function Generator() {
       {/* Preview Modal - zeigt Muster-PDF (50% kleiner) */}
       {previewTemplate && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white dark:bg-gray-800 rounded-xl shadow-xl max-w-2xl w-full max-h-[70vh] overflow-hidden">
-            <div className="flex items-center justify-between p-4 border-b border-gray-200 dark:border-gray-700">
+          <div className="bg-theme-elevated rounded-xl shadow-xl max-w-2xl w-full max-h-[70vh] overflow-hidden">
+            <div className="flex items-center justify-between p-4 border-b border-theme-border-default">
               <div>
-                <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
+                <h3 className="text-lg font-semibold text-theme-text-primary">
                   {t('generator.samplePreview', 'Muster-Rechnung')}
                 </h3>
-                <p className="text-sm text-gray-500 dark:text-gray-400">
+                <p className="text-sm text-theme-text-muted">
                   Template: {previewTemplate}
                 </p>
               </div>
               <button
                 onClick={() => setPreviewTemplate(null)}
-                className="p-2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700"
+                className="p-2 text-theme-text-muted hover:text-theme-text-primary rounded-lg hover:bg-theme-hover"
               >
                 ✕
               </button>
             </div>
             <div className="p-4 overflow-auto" style={{ maxHeight: 'calc(70vh - 80px)' }}>
               {/* PDF-Vorschau über iframe - 50% kleiner */}
-              <div className="bg-gray-100 dark:bg-gray-900 rounded-lg p-2">
+              <div className="bg-theme-hover rounded-lg p-2">
                 <iframe
                   src={`/api/generator/templates/${previewTemplate}/sample.pdf`}
                   className="w-full bg-white rounded shadow"
@@ -732,14 +732,14 @@ export default function Generator() {
                 <a
                   href={`/api/generator/templates/${previewTemplate}/sample.pdf`}
                   download={`Muster_${previewTemplate}.pdf`}
-                  className="flex items-center gap-2 px-3 py-1.5 bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-600 text-sm"
+                  className="flex items-center gap-2 px-3 py-1.5 bg-theme-hover text-theme-text-secondary rounded-lg hover:bg-theme-card text-sm"
                 >
                   <Download className="h-4 w-4" />
                   {t('generator.downloadSample', 'Muster herunterladen')}
                 </a>
                 <button
                   onClick={() => setPreviewTemplate(null)}
-                  className="px-3 py-1.5 bg-primary-600 text-white rounded-lg hover:bg-primary-700 text-sm"
+                  className="px-3 py-1.5 bg-accent-primary text-white rounded-lg hover:bg-accent-primary-hover text-sm"
                 >
                   {t('common.close', 'Schließen')}
                 </button>

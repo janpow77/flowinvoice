@@ -77,27 +77,27 @@ export default function Statistics() {
   if (isLoading) {
     return (
       <div className="flex items-center justify-center h-64">
-        <Loader2 className="h-8 w-8 text-primary-600 animate-spin" />
-        <span className="ml-3 text-gray-600">{t('common.loading')}</span>
+        <Loader2 className="h-8 w-8 text-accent-primary animate-spin" />
+        <span className="ml-3 text-theme-text-muted">{t('common.loading')}</span>
       </div>
     )
   }
 
   if (error) {
     return (
-      <div className="bg-red-50 border border-red-200 rounded-lg p-6">
+      <div className="bg-status-danger-bg border border-status-danger-border rounded-lg p-6">
         <div className="flex items-center">
-          <AlertCircle className="h-6 w-6 text-red-600" />
+          <AlertCircle className="h-6 w-6 text-status-danger" />
           <div className="ml-3">
-            <h3 className="text-lg font-medium text-red-800">{t('common.error')}</h3>
-            <p className="text-sm text-red-600 mt-1">
+            <h3 className="text-lg font-medium text-status-danger">{t('common.error')}</h3>
+            <p className="text-sm text-status-danger mt-1">
               {t('errors.network')}
             </p>
           </div>
         </div>
         <button
           onClick={() => refetch()}
-          className="mt-4 px-4 py-2 bg-red-100 text-red-700 rounded-lg hover:bg-red-200 transition-colors flex items-center"
+          className="mt-4 px-4 py-2 bg-status-danger-bg text-status-danger rounded-lg hover:bg-status-danger-bg/80 transition-colors flex items-center border border-status-danger-border"
         >
           <RefreshCw className="h-4 w-4 mr-2" />
           {t('common.retry')}
@@ -149,16 +149,16 @@ export default function Statistics() {
     <div className="space-y-6">
       {/* Header with Project Filter */}
       <div className="flex items-center justify-between">
-        <h2 className="text-xl font-semibold text-gray-900">
+        <h2 className="text-xl font-semibold text-theme-text-primary">
           {lang === 'de' ? 'Statistiken' : 'Statistics'}
         </h2>
 
         <div className="flex items-center gap-3">
-          <Filter className="h-5 w-5 text-gray-400" />
+          <Filter className="h-5 w-5 text-theme-text-muted" />
           <select
             value={selectedProjectId}
             onChange={(e) => setSelectedProjectId(e.target.value)}
-            className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
+            className="px-3 py-2 border border-theme-border-default rounded-lg bg-theme-input text-theme-text-primary focus:ring-2 focus:ring-accent-primary focus:border-accent-primary"
           >
             <option value="all">{lang === 'de' ? 'Alle Projekte' : 'All Projects'}</option>
             {projects?.map((project: Project) => (
@@ -172,29 +172,29 @@ export default function Statistics() {
 
       {/* Project-specific Stats (when a project is selected) */}
       {selectedProjectId !== 'all' && projStats && (
-        <div className="bg-white rounded-lg border border-gray-200 p-6">
+        <div className="bg-theme-card rounded-lg border border-theme-border-default p-6">
           <div className="flex items-center gap-2 mb-4">
-            <FolderOpen className="h-5 w-5 text-primary-600" />
-            <h3 className="text-lg font-semibold text-gray-900">
+            <FolderOpen className="h-5 w-5 text-accent-primary" />
+            <h3 className="text-lg font-semibold text-theme-text-primary">
               {lang === 'de' ? 'Projekt-Übersicht' : 'Project Overview'}
             </h3>
           </div>
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-            <div className="p-4 bg-gray-50 rounded-lg">
-              <p className="text-2xl font-bold text-gray-700">{projectCounters.documents_total || 0}</p>
-              <p className="text-sm text-gray-600">{lang === 'de' ? 'Dokumente' : 'Documents'}</p>
+            <div className="p-4 bg-theme-hover rounded-lg">
+              <p className="text-2xl font-bold text-theme-text-secondary">{projectCounters.documents_total || 0}</p>
+              <p className="text-sm text-theme-text-muted">{lang === 'de' ? 'Dokumente' : 'Documents'}</p>
             </div>
-            <div className="p-4 bg-green-50 rounded-lg">
-              <p className="text-2xl font-bold text-green-700">{projectCounters.accepted || 0}</p>
-              <p className="text-sm text-green-600">{lang === 'de' ? 'Akzeptiert' : 'Accepted'}</p>
+            <div className="p-4 bg-status-success-bg rounded-lg">
+              <p className="text-2xl font-bold text-status-success">{projectCounters.accepted || 0}</p>
+              <p className="text-sm text-status-success">{lang === 'de' ? 'Akzeptiert' : 'Accepted'}</p>
             </div>
-            <div className="p-4 bg-yellow-50 rounded-lg">
-              <p className="text-2xl font-bold text-yellow-700">{projectCounters.review_pending || 0}</p>
-              <p className="text-sm text-yellow-600">{lang === 'de' ? 'Prüfung' : 'Review'}</p>
+            <div className="p-4 bg-status-warning-bg rounded-lg">
+              <p className="text-2xl font-bold text-status-warning">{projectCounters.review_pending || 0}</p>
+              <p className="text-sm text-status-warning">{lang === 'de' ? 'Prüfung' : 'Review'}</p>
             </div>
-            <div className="p-4 bg-red-50 rounded-lg">
-              <p className="text-2xl font-bold text-red-700">{projectCounters.rejected || 0}</p>
-              <p className="text-sm text-red-600">{lang === 'de' ? 'Abgelehnt' : 'Rejected'}</p>
+            <div className="p-4 bg-status-danger-bg rounded-lg">
+              <p className="text-2xl font-bold text-status-danger">{projectCounters.rejected || 0}</p>
+              <p className="text-sm text-status-danger">{lang === 'de' ? 'Abgelehnt' : 'Rejected'}</p>
             </div>
           </div>
         </div>
@@ -202,8 +202,8 @@ export default function Statistics() {
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Error by Feature */}
-        <div className="bg-white rounded-lg border border-gray-200 p-6">
-          <h3 className="text-lg font-semibold text-gray-900 mb-4">
+        <div className="bg-theme-card rounded-lg border border-theme-border-default p-6">
+          <h3 className="text-lg font-semibold text-theme-text-primary mb-4">
             {lang === 'de' ? 'Fehler nach Merkmal' : 'Errors by Feature'}
           </h3>
           {errorByFeature.length > 0 ? (
@@ -219,15 +219,15 @@ export default function Statistics() {
               </ResponsiveContainer>
             </div>
           ) : (
-            <div className="h-64 flex items-center justify-center text-gray-500">
+            <div className="h-64 flex items-center justify-center text-theme-text-muted">
               <p>{lang === 'de' ? 'Keine Fehler erfasst' : 'No errors recorded'}</p>
             </div>
           )}
         </div>
 
         {/* Assessment Distribution */}
-        <div className="bg-white rounded-lg border border-gray-200 p-6">
-          <h3 className="text-lg font-semibold text-gray-900 mb-4">
+        <div className="bg-theme-card rounded-lg border border-theme-border-default p-6">
+          <h3 className="text-lg font-semibold text-theme-text-primary mb-4">
             {lang === 'de' ? 'Bewertungsverteilung' : 'Assessment Distribution'}
           </h3>
           {assessmentDistribution.length > 0 && totalRatings > 0 ? (
@@ -253,63 +253,63 @@ export default function Statistics() {
               </ResponsiveContainer>
             </div>
           ) : (
-            <div className="h-64 flex items-center justify-center text-gray-500">
+            <div className="h-64 flex items-center justify-center text-theme-text-muted">
               <p>{lang === 'de' ? 'Keine Bewertungen vorhanden' : 'No assessments available'}</p>
             </div>
           )}
         </div>
 
         {/* Summary Stats */}
-        <div className="lg:col-span-2 bg-white rounded-lg border border-gray-200 p-6">
-          <h3 className="text-lg font-semibold text-gray-900 mb-4">
+        <div className="lg:col-span-2 bg-theme-card rounded-lg border border-theme-border-default p-6">
+          <h3 className="text-lg font-semibold text-theme-text-primary mb-4">
             {lang === 'de' ? 'Übersicht' : 'Overview'}
           </h3>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <div className="p-4 bg-gray-50 rounded-lg">
-              <p className="text-2xl font-bold text-gray-700">{totalFeedback}</p>
-              <p className="text-sm text-gray-600">{lang === 'de' ? 'Feedback-Einträge' : 'Feedback Entries'}</p>
+            <div className="p-4 bg-theme-hover rounded-lg">
+              <p className="text-2xl font-bold text-theme-text-secondary">{totalFeedback}</p>
+              <p className="text-sm text-theme-text-muted">{lang === 'de' ? 'Feedback-Einträge' : 'Feedback Entries'}</p>
             </div>
-            <div className="p-4 bg-gray-50 rounded-lg">
-              <p className="text-2xl font-bold text-gray-700">{totalLlmRequests}</p>
-              <p className="text-sm text-gray-600">{lang === 'de' ? 'LLM-Anfragen' : 'LLM Requests'}</p>
+            <div className="p-4 bg-theme-hover rounded-lg">
+              <p className="text-2xl font-bold text-theme-text-secondary">{totalLlmRequests}</p>
+              <p className="text-sm text-theme-text-muted">{lang === 'de' ? 'LLM-Anfragen' : 'LLM Requests'}</p>
             </div>
-            <div className="p-4 bg-gray-50 rounded-lg">
-              <p className="text-2xl font-bold text-gray-700">{totalRagExamples}</p>
-              <p className="text-sm text-gray-600">{lang === 'de' ? 'RAG-Beispiele' : 'RAG Examples'}</p>
+            <div className="p-4 bg-theme-hover rounded-lg">
+              <p className="text-2xl font-bold text-theme-text-secondary">{totalRagExamples}</p>
+              <p className="text-sm text-theme-text-muted">{lang === 'de' ? 'RAG-Beispiele' : 'RAG Examples'}</p>
             </div>
           </div>
         </div>
 
         {/* Error Source Breakdown */}
-        <div className="lg:col-span-2 bg-white rounded-lg border border-gray-200 p-6">
-          <h3 className="text-lg font-semibold text-gray-900 mb-4">
+        <div className="lg:col-span-2 bg-theme-card rounded-lg border border-theme-border-default p-6">
+          <h3 className="text-lg font-semibold text-theme-text-primary mb-4">
             {lang === 'de' ? 'Fehlerquellen' : 'Error Sources'}
           </h3>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <div className="p-4 bg-blue-50 rounded-lg">
-              <p className="text-2xl font-bold text-blue-700">{taxLawErrors}%</p>
-              <p className="text-sm text-blue-600">
+            <div className="p-4 bg-status-info-bg rounded-lg border border-status-info-border">
+              <p className="text-2xl font-bold text-status-info">{taxLawErrors}%</p>
+              <p className="text-sm text-status-info">
                 {lang === 'de' ? 'Steuerrechtliche Fehler' : 'Tax Law Errors'}
               </p>
-              <p className="text-xs text-blue-500 mt-1">
+              <p className="text-xs text-theme-text-muted mt-1">
                 {lang === 'de' ? 'Fehlende Pflichtangaben, Formatfehler' : 'Missing required fields, format errors'}
               </p>
             </div>
-            <div className="p-4 bg-purple-50 rounded-lg">
-              <p className="text-2xl font-bold text-purple-700">{beneficiaryErrors}%</p>
-              <p className="text-sm text-purple-600">
+            <div className="p-4 bg-accent-primary/10 rounded-lg border border-accent-primary/30">
+              <p className="text-2xl font-bold text-accent-primary">{beneficiaryErrors}%</p>
+              <p className="text-sm text-accent-primary">
                 {lang === 'de' ? 'Begünstigtendaten' : 'Beneficiary Data'}
               </p>
-              <p className="text-xs text-purple-500 mt-1">
+              <p className="text-xs text-theme-text-muted mt-1">
                 {lang === 'de' ? 'Name/Adresse stimmt nicht überein' : 'Name/address mismatch'}
               </p>
             </div>
-            <div className="p-4 bg-orange-50 rounded-lg">
-              <p className="text-2xl font-bold text-orange-700">{locationErrors}%</p>
-              <p className="text-sm text-orange-600">
+            <div className="p-4 bg-status-warning-bg rounded-lg border border-status-warning-border">
+              <p className="text-2xl font-bold text-status-warning">{locationErrors}%</p>
+              <p className="text-sm text-status-warning">
                 {lang === 'de' ? 'Standortvalidierung' : 'Location Validation'}
               </p>
-              <p className="text-xs text-orange-500 mt-1">
+              <p className="text-xs text-theme-text-muted mt-1">
                 {lang === 'de' ? 'Durchführungsort weicht ab' : 'Implementation location differs'}
               </p>
             </div>
