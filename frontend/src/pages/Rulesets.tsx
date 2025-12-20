@@ -103,11 +103,11 @@ interface RulesetSample {
 }
 
 const SAMPLE_STATUS_COLORS: Record<SampleStatus, string> = {
-  UPLOADED: 'bg-gray-100 text-gray-700 border-gray-200',
-  PROCESSING: 'bg-blue-100 text-blue-700 border-blue-200',
-  PENDING_REVIEW: 'bg-yellow-100 text-yellow-700 border-yellow-200',
-  APPROVED: 'bg-green-100 text-green-700 border-green-200',
-  REJECTED: 'bg-red-100 text-red-700 border-red-200',
+  UPLOADED: 'bg-theme-hover text-theme-text-secondary border-theme-border-default',
+  PROCESSING: 'bg-status-info-bg text-status-info border-status-info-border',
+  PENDING_REVIEW: 'bg-status-warning-bg text-status-warning border-status-warning-border',
+  APPROVED: 'bg-status-success-bg text-status-success border-status-success-border',
+  REJECTED: 'bg-status-danger-bg text-status-danger border-status-danger-border',
 }
 
 const SAMPLE_STATUS_ICONS: Record<SampleStatus, React.ComponentType<{ className?: string }>> = {
@@ -119,9 +119,9 @@ const SAMPLE_STATUS_ICONS: Record<SampleStatus, React.ComponentType<{ className?
 }
 
 const REQUIRED_LEVEL_COLORS = {
-  REQUIRED: 'bg-red-100 text-red-700 border-red-200',
-  CONDITIONAL: 'bg-yellow-100 text-yellow-700 border-yellow-200',
-  OPTIONAL: 'bg-gray-100 text-gray-600 border-gray-200',
+  REQUIRED: 'bg-status-danger-bg text-status-danger border-status-danger-border',
+  CONDITIONAL: 'bg-status-warning-bg text-status-warning border-status-warning-border',
+  OPTIONAL: 'bg-theme-hover text-theme-text-muted border-theme-border-default',
 }
 
 const CATEGORY_ICONS: Record<string, string> = {
@@ -421,8 +421,8 @@ export default function Rulesets() {
   if (isLoading) {
     return (
       <div className="flex items-center justify-center h-64">
-        <Loader2 className="h-8 w-8 text-primary-600 animate-spin" />
-        <span className="ml-3 text-gray-600">{t('common.loading')}</span>
+        <Loader2 className="h-8 w-8 text-accent-primary animate-spin" />
+        <span className="ml-3 text-theme-text-muted">{t('common.loading')}</span>
       </div>
     )
   }
@@ -430,12 +430,12 @@ export default function Rulesets() {
   // Error state
   if (error) {
     return (
-      <div className="bg-red-50 border border-red-200 rounded-lg p-6">
+      <div className="bg-status-danger-bg border border-status-danger-border rounded-lg p-6">
         <div className="flex items-center">
-          <AlertCircle className="h-6 w-6 text-red-600" />
+          <AlertCircle className="h-6 w-6 text-status-danger" />
           <div className="ml-3">
-            <h3 className="text-lg font-medium text-red-800">{t('common.error')}</h3>
-            <p className="text-sm text-red-600 mt-1">{(error as Error).message}</p>
+            <h3 className="text-lg font-medium text-status-danger">{t('common.error')}</h3>
+            <p className="text-sm text-status-danger mt-1">{(error as Error).message}</p>
           </div>
         </div>
       </div>
@@ -449,12 +449,12 @@ export default function Rulesets() {
         {/* Header */}
         <div className="flex items-center justify-between">
           <div>
-            <h2 className="text-xl font-semibold text-gray-900">{t('rulesets.title')}</h2>
-            <p className="text-sm text-gray-500 mt-1">{t('rulesets.description')}</p>
+            <h2 className="text-xl font-semibold text-theme-text-primary">{t('rulesets.title')}</h2>
+            <p className="text-sm text-theme-text-muted mt-1">{t('rulesets.description')}</p>
           </div>
           <button
             onClick={handleCreate}
-            className="flex items-center px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors"
+            className="flex items-center px-4 py-2 bg-accent-primary text-white rounded-lg hover:bg-accent-primary-hover transition-colors"
           >
             <Plus className="h-5 w-5 mr-2" />
             {t('rulesets.createRuleset')}
@@ -466,16 +466,16 @@ export default function Rulesets() {
           {rulesets?.map((ruleset: RulesetListItem) => (
             <div
               key={`${ruleset.ruleset_id}-${ruleset.version}`}
-              className="bg-white rounded-lg border border-gray-200 p-6 hover:shadow-md transition-shadow"
+              className="bg-theme-card rounded-lg border border-theme-border-default p-6 hover:shadow-md transition-shadow"
             >
               <div className="flex items-start justify-between">
                 <div className="flex items-center gap-3">
-                  <div className="p-2 bg-primary-50 rounded-lg">
-                    <Book className="h-6 w-6 text-primary-600" />
+                  <div className="p-2 bg-accent-primary/10 rounded-lg">
+                    <Book className="h-6 w-6 text-accent-primary" />
                   </div>
                   <div>
-                    <h3 className="font-medium text-gray-900">{ruleset.title}</h3>
-                    <p className="text-sm text-gray-500">
+                    <h3 className="font-medium text-theme-text-primary">{ruleset.title}</h3>
+                    <p className="text-sm text-theme-text-muted">
                       {ruleset.ruleset_id} v{ruleset.version}
                     </p>
                   </div>
@@ -485,7 +485,7 @@ export default function Rulesets() {
               <div className="mt-4 flex items-center gap-2">
                 <button
                   onClick={() => handleViewDetail(ruleset)}
-                  className="flex items-center px-3 py-1.5 text-sm text-primary-600 hover:bg-primary-50 rounded-lg transition-colors"
+                  className="flex items-center px-3 py-1.5 text-sm text-accent-primary hover:bg-accent-primary/10 rounded-lg transition-colors"
                 >
                   <Eye className="h-4 w-4 mr-1" />
                   {t('rulesets.view')}
@@ -495,7 +495,7 @@ export default function Rulesets() {
                     setSelectedRuleset({ ruleset_id: ruleset.ruleset_id, version: ruleset.version } as Ruleset)
                     setViewMode('edit')
                   }}
-                  className="flex items-center px-3 py-1.5 text-sm text-gray-600 hover:bg-gray-50 rounded-lg transition-colors"
+                  className="flex items-center px-3 py-1.5 text-sm text-theme-text-secondary hover:bg-theme-hover rounded-lg transition-colors"
                 >
                   <Edit2 className="h-4 w-4 mr-1" />
                   {t('rulesets.edit')}
@@ -507,13 +507,13 @@ export default function Rulesets() {
 
         {/* Empty state */}
         {(!rulesets || rulesets.length === 0) && (
-          <div className="bg-white rounded-lg border border-gray-200 p-12 text-center">
-            <Book className="h-12 w-12 text-gray-400 mx-auto" />
-            <h3 className="mt-4 text-lg font-medium text-gray-900">{t('rulesets.noRulesets')}</h3>
-            <p className="mt-2 text-sm text-gray-500">{t('rulesets.noRulesetsDesc')}</p>
+          <div className="bg-theme-card rounded-lg border border-theme-border-default p-12 text-center">
+            <Book className="h-12 w-12 text-theme-text-muted mx-auto" />
+            <h3 className="mt-4 text-lg font-medium text-theme-text-primary">{t('rulesets.noRulesets')}</h3>
+            <p className="mt-2 text-sm text-theme-text-muted">{t('rulesets.noRulesetsDesc')}</p>
             <button
               onClick={handleCreate}
-              className="mt-4 px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors"
+              className="mt-4 px-4 py-2 bg-accent-primary text-white rounded-lg hover:bg-accent-primary-hover transition-colors"
             >
               {t('rulesets.createRuleset')}
             </button>
@@ -530,7 +530,7 @@ export default function Rulesets() {
     if (isLoadingDetail || !ruleset) {
       return (
         <div className="flex items-center justify-center h-64">
-          <Loader2 className="h-8 w-8 text-primary-600 animate-spin" />
+          <Loader2 className="h-8 w-8 text-accent-primary animate-spin" />
         </div>
       )
     }
@@ -542,15 +542,15 @@ export default function Rulesets() {
           <div className="flex items-center gap-4">
             <button
               onClick={() => setViewMode('list')}
-              className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
+              className="p-2 hover:bg-theme-hover rounded-lg transition-colors"
             >
-              <ChevronRight className="h-5 w-5 text-gray-500 rotate-180" />
+              <ChevronRight className="h-5 w-5 text-theme-text-muted rotate-180" />
             </button>
             <div>
-              <h2 className="text-xl font-semibold text-gray-900">
+              <h2 className="text-xl font-semibold text-theme-text-primary">
                 {lang === 'de' ? ruleset.title_de : ruleset.title_en}
               </h2>
-              <p className="text-sm text-gray-500">
+              <p className="text-sm text-theme-text-muted">
                 {ruleset.ruleset_id} v{ruleset.version} • {ruleset.jurisdiction}
               </p>
             </div>
@@ -558,21 +558,21 @@ export default function Rulesets() {
           <div className="flex items-center gap-2">
             <button
               onClick={() => setShowSamples(true)}
-              className="flex items-center px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors"
+              className="flex items-center px-4 py-2 bg-theme-hover text-theme-text-secondary rounded-lg hover:bg-theme-selected transition-colors"
             >
               <FileText className="h-5 w-5 mr-2" />
               {t('samples.title')}
             </button>
             <button
               onClick={() => setShowLlmSchema(true)}
-              className="flex items-center px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors"
+              className="flex items-center px-4 py-2 bg-theme-hover text-theme-text-secondary rounded-lg hover:bg-theme-selected transition-colors"
             >
               <Code2 className="h-5 w-5 mr-2" />
               {t('rulesets.llmSchema')}
             </button>
             <button
               onClick={handleEdit}
-              className="flex items-center px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors"
+              className="flex items-center px-4 py-2 bg-accent-primary text-white rounded-lg hover:bg-accent-primary-hover transition-colors"
             >
               <Edit2 className="h-5 w-5 mr-2" />
               {t('rulesets.edit')}
@@ -581,15 +581,15 @@ export default function Rulesets() {
         </div>
 
         {/* Legal References */}
-        <div className="bg-white rounded-lg border border-gray-200 p-6">
-          <h3 className="text-lg font-semibold text-gray-900 mb-4">{t('rulesets.legalReferences')}</h3>
+        <div className="bg-theme-card rounded-lg border border-theme-border-default p-6">
+          <h3 className="text-lg font-semibold text-theme-text-primary mb-4">{t('rulesets.legalReferences')}</h3>
           <div className="space-y-2">
             {ruleset.legal_references?.map((ref: LegalReference, idx: number) => (
               <div key={idx} className="flex items-start gap-2 text-sm">
-                <FileText className="h-4 w-4 text-gray-400 mt-0.5" />
+                <FileText className="h-4 w-4 text-theme-text-muted mt-0.5" />
                 <div>
-                  <span className="font-medium">{ref.law} {ref.section}</span>
-                  <span className="text-gray-500 ml-2">
+                  <span className="font-medium text-theme-text-primary">{ref.law} {ref.section}</span>
+                  <span className="text-theme-text-muted ml-2">
                     {lang === 'de' ? ref.description_de : ref.description_en}
                   </span>
                 </div>
@@ -599,10 +599,10 @@ export default function Rulesets() {
         </div>
 
         {/* Features List */}
-        <div className="bg-white rounded-lg border border-gray-200 p-6">
+        <div className="bg-theme-card rounded-lg border border-theme-border-default p-6">
           <div className="flex items-center justify-between mb-4">
-            <h3 className="text-lg font-semibold text-gray-900">{t('rulesets.features')}</h3>
-            <span className="text-sm text-gray-500">
+            <h3 className="text-lg font-semibold text-theme-text-primary">{t('rulesets.features')}</h3>
+            <span className="text-sm text-theme-text-muted">
               {ruleset.features?.length || 0} {t('rulesets.featuresCount')}
             </span>
           </div>
@@ -611,19 +611,19 @@ export default function Rulesets() {
             {ruleset.features?.map((feature: Feature) => (
               <div
                 key={feature.feature_id}
-                className="border border-gray-200 rounded-lg overflow-hidden"
+                className="border border-theme-border-default rounded-lg overflow-hidden"
               >
                 <button
                   onClick={() => toggleFeature(feature.feature_id)}
-                  className="w-full flex items-center justify-between p-4 hover:bg-gray-50 transition-colors"
+                  className="w-full flex items-center justify-between p-4 hover:bg-theme-hover transition-colors"
                 >
                   <div className="flex items-center gap-3">
                     <span className="text-lg">{CATEGORY_ICONS[feature.category] || '📋'}</span>
                     <div className="text-left">
-                      <p className="font-medium text-gray-900">
+                      <p className="font-medium text-theme-text-primary">
                         {lang === 'de' ? feature.name_de : feature.name_en}
                       </p>
-                      <p className="text-sm text-gray-500">{feature.legal_basis}</p>
+                      <p className="text-sm text-theme-text-muted">{feature.legal_basis}</p>
                     </div>
                   </div>
                   <div className="flex items-center gap-2">
@@ -636,31 +636,31 @@ export default function Rulesets() {
                       {t(`rulesets.${feature.required_level.toLowerCase()}`)}
                     </span>
                     {expandedFeatures.has(feature.feature_id) ? (
-                      <ChevronDown className="h-5 w-5 text-gray-400" />
+                      <ChevronDown className="h-5 w-5 text-theme-text-muted" />
                     ) : (
-                      <ChevronRight className="h-5 w-5 text-gray-400" />
+                      <ChevronRight className="h-5 w-5 text-theme-text-muted" />
                     )}
                   </div>
                 </button>
 
                 {expandedFeatures.has(feature.feature_id) && (
-                  <div className="px-4 pb-4 bg-gray-50 border-t border-gray-200">
+                  <div className="px-4 pb-4 bg-theme-hover border-t border-theme-border-default">
                     <div className="pt-3 space-y-2 text-sm">
-                      <p className="text-gray-600">
+                      <p className="text-theme-text-secondary">
                         {lang === 'de' ? feature.explanation_de : feature.explanation_en}
                       </p>
-                      <div className="flex items-center gap-2 flex-wrap text-xs text-gray-500">
+                      <div className="flex items-center gap-2 flex-wrap text-xs text-theme-text-muted">
                         <span>ID: {feature.feature_id}</span>
                         <span>Kategorie: {feature.category}</span>
                       </div>
                       {feature.applies_to && Object.entries(feature.applies_to).some(([, v]) => v) && (
                         <div className="flex items-center gap-1 flex-wrap mt-2">
-                          <span className="text-xs text-gray-500 mr-1">{t('rulesets.appliesTo')}:</span>
+                          <span className="text-xs text-theme-text-muted mr-1">{t('rulesets.appliesTo')}:</span>
                           {Object.entries(feature.applies_to).map(([docType, enabled]) =>
                             enabled && (
                               <span
                                 key={docType}
-                                className="px-2 py-0.5 text-xs bg-blue-100 text-blue-700 rounded"
+                                className="px-2 py-0.5 text-xs bg-status-info-bg text-status-info rounded"
                               >
                                 {t(`rulesets.documentTypes.${docType}`)}
                               </span>
@@ -679,25 +679,25 @@ export default function Rulesets() {
         {/* LLM Schema Modal */}
         {showLlmSchema && (
           <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-            <div className="bg-white rounded-xl shadow-xl max-w-4xl w-full max-h-[90vh] overflow-hidden flex flex-col">
+            <div className="bg-theme-elevated rounded-xl shadow-xl max-w-4xl w-full max-h-[90vh] overflow-hidden flex flex-col">
               {/* Modal Header */}
-              <div className="flex items-center justify-between px-6 py-4 border-b border-gray-200">
+              <div className="flex items-center justify-between px-6 py-4 border-b border-theme-border-default">
                 <div className="flex items-center gap-3">
-                  <Code2 className="h-6 w-6 text-primary-600" />
+                  <Code2 className="h-6 w-6 text-accent-primary" />
                   <div>
-                    <h3 className="text-lg font-semibold text-gray-900">
+                    <h3 className="text-lg font-semibold text-theme-text-primary">
                       {t('rulesets.llmSchemaTitle')}
                     </h3>
-                    <p className="text-sm text-gray-500">
+                    <p className="text-sm text-theme-text-muted">
                       {ruleset.ruleset_id} v{ruleset.version}
                     </p>
                   </div>
                 </div>
                 <button
                   onClick={() => setShowLlmSchema(false)}
-                  className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
+                  className="p-2 hover:bg-theme-hover rounded-lg transition-colors"
                 >
-                  <X className="h-5 w-5 text-gray-500" />
+                  <X className="h-5 w-5 text-theme-text-muted" />
                 </button>
               </div>
 
@@ -705,14 +705,14 @@ export default function Rulesets() {
               <div className="flex-1 overflow-auto p-6 space-y-6">
                 {isLoadingSchema ? (
                   <div className="flex items-center justify-center py-12">
-                    <Loader2 className="h-8 w-8 text-primary-600 animate-spin" />
-                    <span className="ml-3 text-gray-600">{t('common.loading')}</span>
+                    <Loader2 className="h-8 w-8 text-accent-primary animate-spin" />
+                    <span className="ml-3 text-theme-text-muted">{t('common.loading')}</span>
                   </div>
                 ) : llmSchema ? (
                   <>
                     {/* Info */}
-                    <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-                      <p className="text-sm text-blue-700">
+                    <div className="bg-status-info-bg border border-status-info-border rounded-lg p-4">
+                      <p className="text-sm text-status-info">
                         {t('rulesets.llmSchemaInfo')}
                       </p>
                     </div>
@@ -720,13 +720,13 @@ export default function Rulesets() {
                     {/* System Prompt */}
                     <div>
                       <div className="flex items-center justify-between mb-2">
-                        <h4 className="font-semibold text-gray-900">{t('rulesets.systemPrompt')}</h4>
+                        <h4 className="font-semibold text-theme-text-primary">{t('rulesets.systemPrompt')}</h4>
                         <button
                           onClick={() => copyToClipboard(llmSchema.llm_schema.system_prompt, 'system')}
-                          className="flex items-center gap-1 px-2 py-1 text-xs text-gray-600 hover:bg-gray-100 rounded transition-colors"
+                          className="flex items-center gap-1 px-2 py-1 text-xs text-theme-text-muted hover:bg-theme-hover rounded transition-colors"
                         >
                           {copiedField === 'system' ? (
-                            <Check className="h-3 w-3 text-green-600" />
+                            <Check className="h-3 w-3 text-status-success" />
                           ) : (
                             <Copy className="h-3 w-3" />
                           )}
@@ -741,13 +741,13 @@ export default function Rulesets() {
                     {/* User Prompt Structure */}
                     <div>
                       <div className="flex items-center justify-between mb-2">
-                        <h4 className="font-semibold text-gray-900">{t('rulesets.userPromptStructure')}</h4>
+                        <h4 className="font-semibold text-theme-text-primary">{t('rulesets.userPromptStructure')}</h4>
                         <button
                           onClick={() => copyToClipboard(llmSchema.llm_schema.user_prompt_structure, 'user')}
-                          className="flex items-center gap-1 px-2 py-1 text-xs text-gray-600 hover:bg-gray-100 rounded transition-colors"
+                          className="flex items-center gap-1 px-2 py-1 text-xs text-theme-text-muted hover:bg-theme-hover rounded transition-colors"
                         >
                           {copiedField === 'user' ? (
-                            <Check className="h-3 w-3 text-green-600" />
+                            <Check className="h-3 w-3 text-status-success" />
                           ) : (
                             <Copy className="h-3 w-3" />
                           )}
@@ -762,13 +762,13 @@ export default function Rulesets() {
                     {/* Response JSON Schema */}
                     <div>
                       <div className="flex items-center justify-between mb-2">
-                        <h4 className="font-semibold text-gray-900">{t('rulesets.responseSchema')}</h4>
+                        <h4 className="font-semibold text-theme-text-primary">{t('rulesets.responseSchema')}</h4>
                         <button
                           onClick={() => copyToClipboard(JSON.stringify(llmSchema.llm_schema.response_json_schema, null, 2), 'response')}
-                          className="flex items-center gap-1 px-2 py-1 text-xs text-gray-600 hover:bg-gray-100 rounded transition-colors"
+                          className="flex items-center gap-1 px-2 py-1 text-xs text-theme-text-muted hover:bg-theme-hover rounded transition-colors"
                         >
                           {copiedField === 'response' ? (
-                            <Check className="h-3 w-3 text-green-600" />
+                            <Check className="h-3 w-3 text-status-success" />
                           ) : (
                             <Copy className="h-3 w-3" />
                           )}
@@ -783,15 +783,15 @@ export default function Rulesets() {
                     {/* Features Schema */}
                     <div>
                       <div className="flex items-center justify-between mb-2">
-                        <h4 className="font-semibold text-gray-900">
+                        <h4 className="font-semibold text-theme-text-primary">
                           {t('rulesets.featuresSchema')} ({llmSchema.features_count} {t('rulesets.featuresCount')})
                         </h4>
                         <button
                           onClick={() => copyToClipboard(JSON.stringify(llmSchema.llm_schema.features_json_schema, null, 2), 'features')}
-                          className="flex items-center gap-1 px-2 py-1 text-xs text-gray-600 hover:bg-gray-100 rounded transition-colors"
+                          className="flex items-center gap-1 px-2 py-1 text-xs text-theme-text-muted hover:bg-theme-hover rounded transition-colors"
                         >
                           {copiedField === 'features' ? (
-                            <Check className="h-3 w-3 text-green-600" />
+                            <Check className="h-3 w-3 text-status-success" />
                           ) : (
                             <Copy className="h-3 w-3" />
                           )}
@@ -804,17 +804,17 @@ export default function Rulesets() {
                     </div>
                   </>
                 ) : (
-                  <div className="text-center py-12 text-gray-500">
+                  <div className="text-center py-12 text-theme-text-muted">
                     {t('rulesets.noSchemaData')}
                   </div>
                 )}
               </div>
 
               {/* Modal Footer */}
-              <div className="flex items-center justify-end px-6 py-4 border-t border-gray-200 bg-gray-50">
+              <div className="flex items-center justify-end px-6 py-4 border-t border-theme-border-subtle bg-theme-hover">
                 <button
                   onClick={() => setShowLlmSchema(false)}
-                  className="px-4 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition-colors"
+                  className="px-4 py-2 bg-theme-card text-theme-text-secondary border border-theme-border-default rounded-lg hover:bg-theme-hover transition-colors"
                 >
                   {t('common.close')}
                 </button>
@@ -826,25 +826,25 @@ export default function Rulesets() {
         {/* Samples Modal */}
         {showSamples && (
           <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-            <div className="bg-white rounded-xl shadow-xl max-w-4xl w-full max-h-[90vh] overflow-hidden flex flex-col">
+            <div className="bg-theme-elevated rounded-xl shadow-xl max-w-4xl w-full max-h-[90vh] overflow-hidden flex flex-col">
               {/* Modal Header */}
-              <div className="flex items-center justify-between px-6 py-4 border-b border-gray-200">
+              <div className="flex items-center justify-between px-6 py-4 border-b border-theme-border-default">
                 <div className="flex items-center gap-3">
-                  <FileText className="h-6 w-6 text-primary-600" />
+                  <FileText className="h-6 w-6 text-accent-primary" />
                   <div>
-                    <h3 className="text-lg font-semibold text-gray-900">
+                    <h3 className="text-lg font-semibold text-theme-text-primary">
                       {t('samples.title')}
                     </h3>
-                    <p className="text-sm text-gray-500">
+                    <p className="text-sm text-theme-text-muted">
                       {ruleset.ruleset_id} v{ruleset.version}
                     </p>
                   </div>
                 </div>
                 <button
                   onClick={() => setShowSamples(false)}
-                  className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
+                  className="p-2 hover:bg-theme-hover rounded-lg transition-colors"
                 >
-                  <X className="h-5 w-5 text-gray-500" />
+                  <X className="h-5 w-5 text-theme-text-muted" />
                 </button>
               </div>
 
@@ -858,18 +858,18 @@ export default function Rulesets() {
                   className={clsx(
                     'border-2 border-dashed rounded-lg p-8 text-center transition-colors',
                     isDragging
-                      ? 'border-primary-500 bg-primary-50'
-                      : 'border-gray-300 hover:border-gray-400'
+                      ? 'border-accent-primary bg-theme-selected'
+                      : 'border-theme-border-default hover:border-accent-primary'
                   )}
                 >
                   <Upload className={clsx(
                     'h-12 w-12 mx-auto mb-4',
-                    isDragging ? 'text-primary-500' : 'text-gray-400'
+                    isDragging ? 'text-accent-primary' : 'text-theme-text-muted'
                   )} />
-                  <p className="text-gray-600 mb-2">
+                  <p className="text-theme-text-secondary mb-2">
                     {t('samples.dragDropHint')}
                   </p>
-                  <label className="inline-flex items-center px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 cursor-pointer transition-colors">
+                  <label className="inline-flex items-center px-4 py-2 bg-accent-primary text-white rounded-lg hover:bg-accent-primary-hover cursor-pointer transition-colors">
                     <input
                       type="file"
                       accept=".pdf"
@@ -879,19 +879,19 @@ export default function Rulesets() {
                     />
                     {t('samples.selectFile')}
                   </label>
-                  <p className="text-xs text-gray-500 mt-2">
+                  <p className="text-xs text-theme-text-muted mt-2">
                     {t('samples.onlyPdfAllowed')}
                   </p>
                 </div>
 
                 {/* Upload Error */}
                 {uploadError && (
-                  <div className="bg-red-50 border border-red-200 rounded-lg p-4 flex items-center text-sm text-red-600">
+                  <div className="bg-status-danger-bg border border-status-danger-border rounded-lg p-4 flex items-center text-sm text-status-danger">
                     <AlertCircle className="h-4 w-4 mr-2 flex-shrink-0" />
                     {uploadError}
                     <button
                       onClick={() => setUploadError(null)}
-                      className="ml-auto p-1 hover:bg-red-100 rounded"
+                      className="ml-auto p-1 hover:opacity-80 rounded"
                     >
                       <X className="h-4 w-4" />
                     </button>
@@ -900,7 +900,7 @@ export default function Rulesets() {
 
                 {/* Uploading indicator */}
                 {uploadSampleMutation.isPending && (
-                  <div className="flex items-center gap-2 text-sm text-gray-600">
+                  <div className="flex items-center gap-2 text-sm text-theme-text-muted">
                     <Loader2 className="h-4 w-4 animate-spin" />
                     {t('samples.uploading')}
                   </div>
@@ -908,13 +908,13 @@ export default function Rulesets() {
 
                 {/* Samples List */}
                 <div>
-                  <h4 className="font-semibold text-gray-900 mb-3">
+                  <h4 className="font-semibold text-theme-text-primary mb-3">
                     {t('samples.existingSamples')} ({samples?.length || 0})
                   </h4>
 
                   {isLoadingSamples ? (
                     <div className="flex items-center justify-center py-8">
-                      <Loader2 className="h-6 w-6 text-primary-600 animate-spin" />
+                      <Loader2 className="h-6 w-6 text-accent-primary animate-spin" />
                     </div>
                   ) : samples && samples.length > 0 ? (
                     <div className="space-y-2">
@@ -923,13 +923,13 @@ export default function Rulesets() {
                         return (
                           <div
                             key={sample.id}
-                            className="flex items-center justify-between p-4 border border-gray-200 rounded-lg hover:bg-gray-50"
+                            className="flex items-center justify-between p-4 border border-theme-border-default rounded-lg hover:bg-theme-hover"
                           >
                             <div className="flex items-center gap-3">
-                              <File className="h-8 w-8 text-red-500" />
+                              <File className="h-8 w-8 text-status-danger" />
                               <div>
-                                <p className="font-medium text-gray-900">{sample.filename}</p>
-                                <p className="text-xs text-gray-500">
+                                <p className="font-medium text-theme-text-primary">{sample.filename}</p>
+                                <p className="text-xs text-theme-text-muted">
                                   {new Date(sample.created_at).toLocaleDateString()}
                                   {sample.description && ` • ${sample.description}`}
                                 </p>
@@ -948,7 +948,7 @@ export default function Rulesets() {
                               {(sample.status === 'PENDING_REVIEW' || sample.status === 'APPROVED') && (
                                 <button
                                   onClick={() => handleOpenSampleReview(sample)}
-                                  className="p-1.5 text-primary-600 hover:bg-primary-50 rounded transition-colors"
+                                  className="p-1.5 text-accent-primary hover:bg-accent-primary/10 rounded transition-colors"
                                   title={t('samples.review')}
                                 >
                                   <Eye className="h-4 w-4" />
@@ -960,7 +960,7 @@ export default function Rulesets() {
                                     deleteSampleMutation.mutate(sample.id)
                                   }
                                 }}
-                                className="p-1.5 text-red-600 hover:bg-red-50 rounded transition-colors"
+                                className="p-1.5 text-status-danger hover:bg-status-danger-bg rounded transition-colors"
                                 title={t('common.delete')}
                               >
                                 <Trash2 className="h-4 w-4" />
@@ -971,8 +971,8 @@ export default function Rulesets() {
                       })}
                     </div>
                   ) : (
-                    <div className="text-center py-8 text-gray-500">
-                      <FileText className="h-12 w-12 mx-auto mb-2 text-gray-300" />
+                    <div className="text-center py-8 text-theme-text-muted">
+                      <FileText className="h-12 w-12 mx-auto mb-2 text-theme-text-muted" />
                       <p>{t('samples.noSamples')}</p>
                       <p className="text-xs mt-1">{t('samples.uploadHint')}</p>
                     </div>
@@ -981,10 +981,10 @@ export default function Rulesets() {
               </div>
 
               {/* Modal Footer */}
-              <div className="flex items-center justify-end px-6 py-4 border-t border-gray-200 bg-gray-50">
+              <div className="flex items-center justify-end px-6 py-4 border-t border-theme-border-subtle bg-theme-hover">
                 <button
                   onClick={() => setShowSamples(false)}
-                  className="px-4 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition-colors"
+                  className="px-4 py-2 bg-theme-card text-theme-text-secondary border border-theme-border-default rounded-lg hover:bg-theme-hover transition-colors"
                 >
                   {t('common.close')}
                 </button>
@@ -996,20 +996,20 @@ export default function Rulesets() {
         {/* Sample Review Modal */}
         {selectedSample && (
           <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-            <div className="bg-white rounded-xl shadow-xl max-w-3xl w-full max-h-[90vh] overflow-hidden flex flex-col">
+            <div className="bg-theme-elevated rounded-xl shadow-xl max-w-3xl w-full max-h-[90vh] overflow-hidden flex flex-col">
               {/* Modal Header */}
-              <div className="flex items-center justify-between px-6 py-4 border-b border-gray-200">
+              <div className="flex items-center justify-between px-6 py-4 border-b border-theme-border-default">
                 <div>
-                  <h3 className="text-lg font-semibold text-gray-900">
+                  <h3 className="text-lg font-semibold text-theme-text-primary">
                     {t('samples.reviewSample')}
                   </h3>
-                  <p className="text-sm text-gray-500">{selectedSample.filename}</p>
+                  <p className="text-sm text-theme-text-muted">{selectedSample.filename}</p>
                 </div>
                 <button
                   onClick={() => setSelectedSample(null)}
-                  className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
+                  className="p-2 hover:bg-theme-hover rounded-lg transition-colors"
                 >
-                  <X className="h-5 w-5 text-gray-500" />
+                  <X className="h-5 w-5 text-theme-text-muted" />
                 </button>
               </div>
 
@@ -1017,7 +1017,7 @@ export default function Rulesets() {
               <div className="flex-1 overflow-auto p-6 space-y-4">
                 {/* Status */}
                 <div className="flex items-center gap-2">
-                  <span className="text-sm text-gray-600">{t('samples.currentStatus')}:</span>
+                  <span className="text-sm text-theme-text-secondary">{t('samples.currentStatus')}:</span>
                   <span
                     className={clsx(
                       'flex items-center gap-1 px-2 py-0.5 text-xs font-medium rounded border',
@@ -1030,8 +1030,8 @@ export default function Rulesets() {
 
                 {/* Rejection Reason */}
                 {selectedSample.rejection_reason && (
-                  <div className="bg-red-50 border border-red-200 rounded-lg p-3">
-                    <p className="text-sm text-red-700">
+                  <div className="bg-status-danger-bg border border-status-danger-border rounded-lg p-3">
+                    <p className="text-sm text-status-danger">
                       <strong>{t('samples.rejectionReason')}:</strong> {selectedSample.rejection_reason}
                     </p>
                   </div>
@@ -1040,12 +1040,12 @@ export default function Rulesets() {
                 {/* Ground Truth Editor */}
                 <div>
                   <div className="flex items-center justify-between mb-2">
-                    <h4 className="font-semibold text-gray-900">{t('samples.groundTruth')}</h4>
+                    <h4 className="font-semibold text-theme-text-primary">{t('samples.groundTruth')}</h4>
                     {selectedSample.status === 'PENDING_REVIEW' && (
                       <button
                         onClick={handleSaveGroundTruth}
                         disabled={updateSampleMutation.isPending}
-                        className="flex items-center gap-1 px-3 py-1.5 text-sm bg-primary-600 text-white rounded-lg hover:bg-primary-700 disabled:opacity-50 transition-colors"
+                        className="flex items-center gap-1 px-3 py-1.5 text-sm bg-accent-primary text-white rounded-lg hover:bg-accent-primary-hover disabled:opacity-50 transition-colors"
                       >
                         {updateSampleMutation.isPending ? (
                           <Loader2 className="h-4 w-4 animate-spin" />
@@ -1057,12 +1057,12 @@ export default function Rulesets() {
                     )}
                   </div>
 
-                  <div className="bg-gray-50 border border-gray-200 rounded-lg p-4">
+                  <div className="bg-theme-hover border border-theme-border-default rounded-lg p-4">
                     {groundTruthEdit && Object.keys(groundTruthEdit).length > 0 ? (
                       <div className="space-y-3">
                         {Object.entries(groundTruthEdit).map(([key, value]) => (
                           <div key={key} className="flex gap-2">
-                            <label className="w-1/3 text-sm font-medium text-gray-600 pt-2">
+                            <label className="w-1/3 text-sm font-medium text-theme-text-secondary pt-2">
                               {key}
                             </label>
                             <input
@@ -1075,13 +1075,13 @@ export default function Rulesets() {
                                 })
                               }
                               disabled={selectedSample.status !== 'PENDING_REVIEW'}
-                              className="flex-1 px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 disabled:bg-gray-100 disabled:text-gray-500"
+                              className="flex-1 px-3 py-2 text-sm bg-theme-input border border-theme-border-default rounded-lg text-theme-text-primary focus:ring-2 focus:ring-accent-primary disabled:opacity-50"
                             />
                           </div>
                         ))}
                       </div>
                     ) : (
-                      <p className="text-sm text-gray-500 text-center py-4">
+                      <p className="text-sm text-theme-text-muted text-center py-4">
                         {t('samples.noExtractedData')}
                       </p>
                     )}
@@ -1090,13 +1090,13 @@ export default function Rulesets() {
               </div>
 
               {/* Modal Footer */}
-              <div className="flex items-center justify-between px-6 py-4 border-t border-gray-200 bg-gray-50">
+              <div className="flex items-center justify-between px-6 py-4 border-t border-theme-border-subtle bg-theme-hover">
                 <div>
                   {selectedSample.status === 'PENDING_REVIEW' && (
                     <button
                       onClick={handleRejectSample}
                       disabled={rejectSampleMutation.isPending}
-                      className="flex items-center gap-1 px-4 py-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                      className="flex items-center gap-1 px-4 py-2 text-status-danger hover:bg-status-danger-bg rounded-lg transition-colors"
                     >
                       {rejectSampleMutation.isPending ? (
                         <Loader2 className="h-4 w-4 animate-spin" />
@@ -1110,7 +1110,7 @@ export default function Rulesets() {
                 <div className="flex items-center gap-2">
                   <button
                     onClick={() => setSelectedSample(null)}
-                    className="px-4 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition-colors"
+                    className="px-4 py-2 bg-theme-card text-theme-text-secondary border border-theme-border-default rounded-lg hover:bg-theme-hover transition-colors"
                   >
                     {t('common.close')}
                   </button>
@@ -1118,7 +1118,7 @@ export default function Rulesets() {
                     <button
                       onClick={handleApproveSample}
                       disabled={approveSampleMutation.isPending}
-                      className="flex items-center gap-1 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:opacity-50 transition-colors"
+                      className="flex items-center gap-1 px-4 py-2 bg-status-success text-white rounded-lg hover:opacity-80 disabled:opacity-50 transition-colors"
                     >
                       {approveSampleMutation.isPending ? (
                         <Loader2 className="h-4 w-4 animate-spin" />
@@ -1148,18 +1148,18 @@ export default function Rulesets() {
           <div className="flex items-center gap-4">
             <button
               onClick={() => setViewMode(viewMode === 'create' ? 'list' : 'detail')}
-              className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
+              className="p-2 hover:bg-theme-hover rounded-lg transition-colors"
             >
-              <X className="h-5 w-5 text-gray-500" />
+              <X className="h-5 w-5 text-theme-text-muted" />
             </button>
-            <h2 className="text-xl font-semibold text-gray-900">
+            <h2 className="text-xl font-semibold text-theme-text-primary">
               {viewMode === 'create' ? t('rulesets.createRuleset') : t('rulesets.editRuleset')}
             </h2>
           </div>
           <button
             onClick={handleSave}
             disabled={isSaving}
-            className="flex items-center px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors disabled:opacity-50"
+            className="flex items-center px-4 py-2 bg-accent-primary text-white rounded-lg hover:bg-accent-primary-hover transition-colors disabled:opacity-50"
           >
             {isSaving ? (
               <Loader2 className="h-5 w-5 mr-2 animate-spin" />
@@ -1172,73 +1172,73 @@ export default function Rulesets() {
 
         {/* Error Display */}
         {(createMutation.error || updateMutation.error) && (
-          <div className="bg-red-50 border border-red-200 rounded-lg p-4 flex items-center text-sm text-red-600">
+          <div className="bg-status-danger-bg border border-status-danger-border rounded-lg p-4 flex items-center text-sm text-status-danger">
             <AlertCircle className="h-4 w-4 mr-2 flex-shrink-0" />
             {((createMutation.error || updateMutation.error) as Error).message}
           </div>
         )}
 
         {/* Basic Info */}
-        <div className="bg-white rounded-lg border border-gray-200 p-6">
-          <h3 className="text-lg font-semibold text-gray-900 mb-4">{t('rulesets.basicInfo')}</h3>
+        <div className="bg-theme-card rounded-lg border border-theme-border-default p-6">
+          <h3 className="text-lg font-semibold text-theme-text-primary mb-4">{t('rulesets.basicInfo')}</h3>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
+              <label className="block text-sm font-medium text-theme-text-secondary mb-1">
                 {t('rulesets.rulesetId')} *
               </label>
               <input
                 type="text"
                 value={editForm.ruleset_id || ''}
                 onChange={(e) => setEditForm({ ...editForm, ruleset_id: e.target.value.toUpperCase() })}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500"
+                className="w-full px-3 py-2 bg-theme-input border border-theme-border-default rounded-lg text-theme-text-primary focus:ring-2 focus:ring-accent-primary"
                 placeholder="DE_USTG"
                 disabled={viewMode === 'edit'}
               />
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
+              <label className="block text-sm font-medium text-theme-text-secondary mb-1">
                 {t('rulesets.version')} *
               </label>
               <input
                 type="text"
                 value={editForm.version || ''}
                 onChange={(e) => setEditForm({ ...editForm, version: e.target.value })}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500"
+                className="w-full px-3 py-2 bg-theme-input border border-theme-border-default rounded-lg text-theme-text-primary focus:ring-2 focus:ring-accent-primary"
                 placeholder="1.0.0"
               />
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
+              <label className="block text-sm font-medium text-theme-text-secondary mb-1">
                 {t('rulesets.titleDe')} *
               </label>
               <input
                 type="text"
                 value={editForm.title_de || ''}
                 onChange={(e) => setEditForm({ ...editForm, title_de: e.target.value })}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500"
+                className="w-full px-3 py-2 bg-theme-input border border-theme-border-default rounded-lg text-theme-text-primary focus:ring-2 focus:ring-accent-primary"
                 placeholder="Deutschland – Umsatzsteuergesetz"
               />
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
+              <label className="block text-sm font-medium text-theme-text-secondary mb-1">
                 {t('rulesets.titleEn')} *
               </label>
               <input
                 type="text"
                 value={editForm.title_en || ''}
                 onChange={(e) => setEditForm({ ...editForm, title_en: e.target.value })}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500"
+                className="w-full px-3 py-2 bg-theme-input border border-theme-border-default rounded-lg text-theme-text-primary focus:ring-2 focus:ring-accent-primary"
                 placeholder="Germany – VAT Act"
               />
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
+              <label className="block text-sm font-medium text-theme-text-secondary mb-1">
                 {t('rulesets.jurisdiction')}
               </label>
               <select
                 value={editForm.jurisdiction || 'DE'}
                 onChange={(e) => setEditForm({ ...editForm, jurisdiction: e.target.value })}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500"
+                className="w-full px-3 py-2 bg-theme-input border border-theme-border-default rounded-lg text-theme-text-primary focus:ring-2 focus:ring-accent-primary"
               >
                 <option value="DE">Deutschland (DE)</option>
                 <option value="AT">Österreich (AT)</option>
@@ -1248,13 +1248,13 @@ export default function Rulesets() {
               </select>
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
+              <label className="block text-sm font-medium text-theme-text-secondary mb-1">
                 {t('rulesets.currency')}
               </label>
               <select
                 value={editForm.currency_default || 'EUR'}
                 onChange={(e) => setEditForm({ ...editForm, currency_default: e.target.value })}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500"
+                className="w-full px-3 py-2 bg-theme-input border border-theme-border-default rounded-lg text-theme-text-primary focus:ring-2 focus:ring-accent-primary"
               >
                 <option value="EUR">Euro (EUR)</option>
                 <option value="CHF">Schweizer Franken (CHF)</option>
@@ -1266,12 +1266,12 @@ export default function Rulesets() {
         </div>
 
         {/* Features */}
-        <div className="bg-white rounded-lg border border-gray-200 p-6">
+        <div className="bg-theme-card rounded-lg border border-theme-border-default p-6">
           <div className="flex items-center justify-between mb-4">
-            <h3 className="text-lg font-semibold text-gray-900">{t('rulesets.features')}</h3>
+            <h3 className="text-lg font-semibold text-theme-text-primary">{t('rulesets.features')}</h3>
             <button
               onClick={handleAddFeature}
-              className="flex items-center px-3 py-1.5 text-sm bg-primary-50 text-primary-600 rounded-lg hover:bg-primary-100 transition-colors"
+              className="flex items-center px-3 py-1.5 text-sm bg-accent-primary/10 text-accent-primary rounded-lg hover:bg-accent-primary/20 transition-colors"
             >
               <Plus className="h-4 w-4 mr-1" />
               {t('rulesets.addFeature')}
@@ -1280,14 +1280,14 @@ export default function Rulesets() {
 
           <div className="space-y-4">
             {editForm.features?.map((feature, index) => (
-              <div key={feature.feature_id} className="border border-gray-200 rounded-lg p-4">
+              <div key={feature.feature_id} className="border border-theme-border-default rounded-lg p-4">
                 <div className="flex items-start justify-between mb-4">
-                  <h4 className="font-medium text-gray-900">
+                  <h4 className="font-medium text-theme-text-primary">
                     {feature.name_de || `Merkmal ${index + 1}`}
                   </h4>
                   <button
                     onClick={() => handleDeleteFeature(index)}
-                    className="p-1 text-red-500 hover:bg-red-50 rounded transition-colors"
+                    className="p-1 text-status-danger hover:bg-status-danger-bg rounded transition-colors"
                   >
                     <Trash2 className="h-4 w-4" />
                   </button>
@@ -1295,24 +1295,24 @@ export default function Rulesets() {
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                   <div>
-                    <label className="block text-xs font-medium text-gray-500 mb-1">
+                    <label className="block text-xs font-medium text-theme-text-muted mb-1">
                       Feature-ID
                     </label>
                     <input
                       type="text"
                       value={feature.feature_id}
                       onChange={(e) => handleUpdateFeature(index, { feature_id: e.target.value })}
-                      className="w-full px-2 py-1.5 text-sm border border-gray-300 rounded focus:ring-2 focus:ring-primary-500"
+                      className="w-full px-2 py-1.5 text-sm bg-theme-input border border-theme-border-default rounded text-theme-text-primary focus:ring-2 focus:ring-accent-primary"
                     />
                   </div>
                   <div>
-                    <label className="block text-xs font-medium text-gray-500 mb-1">
+                    <label className="block text-xs font-medium text-theme-text-muted mb-1">
                       Kategorie
                     </label>
                     <select
                       value={feature.category}
                       onChange={(e) => handleUpdateFeature(index, { category: e.target.value })}
-                      className="w-full px-2 py-1.5 text-sm border border-gray-300 rounded focus:ring-2 focus:ring-primary-500"
+                      className="w-full px-2 py-1.5 text-sm bg-theme-input border border-theme-border-default rounded text-theme-text-primary focus:ring-2 focus:ring-accent-primary"
                     >
                       <option value="IDENTITY">Identität</option>
                       <option value="DATE">Datum</option>
@@ -1322,47 +1322,47 @@ export default function Rulesets() {
                     </select>
                   </div>
                   <div>
-                    <label className="block text-xs font-medium text-gray-500 mb-1">
+                    <label className="block text-xs font-medium text-theme-text-muted mb-1">
                       Name (DE)
                     </label>
                     <input
                       type="text"
                       value={feature.name_de}
                       onChange={(e) => handleUpdateFeature(index, { name_de: e.target.value })}
-                      className="w-full px-2 py-1.5 text-sm border border-gray-300 rounded focus:ring-2 focus:ring-primary-500"
+                      className="w-full px-2 py-1.5 text-sm bg-theme-input border border-theme-border-default rounded text-theme-text-primary focus:ring-2 focus:ring-accent-primary"
                     />
                   </div>
                   <div>
-                    <label className="block text-xs font-medium text-gray-500 mb-1">
+                    <label className="block text-xs font-medium text-theme-text-muted mb-1">
                       Name (EN)
                     </label>
                     <input
                       type="text"
                       value={feature.name_en}
                       onChange={(e) => handleUpdateFeature(index, { name_en: e.target.value })}
-                      className="w-full px-2 py-1.5 text-sm border border-gray-300 rounded focus:ring-2 focus:ring-primary-500"
+                      className="w-full px-2 py-1.5 text-sm bg-theme-input border border-theme-border-default rounded text-theme-text-primary focus:ring-2 focus:ring-accent-primary"
                     />
                   </div>
                   <div>
-                    <label className="block text-xs font-medium text-gray-500 mb-1">
+                    <label className="block text-xs font-medium text-theme-text-muted mb-1">
                       Rechtsgrundlage
                     </label>
                     <input
                       type="text"
                       value={feature.legal_basis}
                       onChange={(e) => handleUpdateFeature(index, { legal_basis: e.target.value })}
-                      className="w-full px-2 py-1.5 text-sm border border-gray-300 rounded focus:ring-2 focus:ring-primary-500"
+                      className="w-full px-2 py-1.5 text-sm bg-theme-input border border-theme-border-default rounded text-theme-text-primary focus:ring-2 focus:ring-accent-primary"
                       placeholder="§ 14 Abs. 4 Nr. 1 UStG"
                     />
                   </div>
                   <div>
-                    <label className="block text-xs font-medium text-gray-500 mb-1">
+                    <label className="block text-xs font-medium text-theme-text-muted mb-1">
                       Erforderlichkeit
                     </label>
                     <select
                       value={feature.required_level}
                       onChange={(e) => handleUpdateFeature(index, { required_level: e.target.value as Feature['required_level'] })}
-                      className="w-full px-2 py-1.5 text-sm border border-gray-300 rounded focus:ring-2 focus:ring-primary-500"
+                      className="w-full px-2 py-1.5 text-sm bg-theme-input border border-theme-border-default rounded text-theme-text-primary focus:ring-2 focus:ring-accent-primary"
                     >
                       <option value="REQUIRED">Pflicht</option>
                       <option value="CONDITIONAL">Bedingt</option>
@@ -1370,18 +1370,18 @@ export default function Rulesets() {
                     </select>
                   </div>
                   <div className="md:col-span-2">
-                    <label className="block text-xs font-medium text-gray-500 mb-1">
+                    <label className="block text-xs font-medium text-theme-text-muted mb-1">
                       Erklärung (DE)
                     </label>
                     <textarea
                       value={feature.explanation_de}
                       onChange={(e) => handleUpdateFeature(index, { explanation_de: e.target.value })}
-                      className="w-full px-2 py-1.5 text-sm border border-gray-300 rounded focus:ring-2 focus:ring-primary-500"
+                      className="w-full px-2 py-1.5 text-sm bg-theme-input border border-theme-border-default rounded text-theme-text-primary focus:ring-2 focus:ring-accent-primary"
                       rows={2}
                     />
                   </div>
                   <div className="md:col-span-2">
-                    <label className="block text-xs font-medium text-gray-500 mb-2">
+                    <label className="block text-xs font-medium text-theme-text-muted mb-2">
                       {t('rulesets.appliesTo')}
                     </label>
                     <div className="flex flex-wrap gap-3">
@@ -1396,9 +1396,9 @@ export default function Rulesets() {
                                 [docType]: e.target.checked
                               }
                             })}
-                            className="rounded border-gray-300 text-primary-600 focus:ring-primary-500"
+                            className="rounded border-theme-border-default text-accent-primary focus:ring-accent-primary"
                           />
-                          <span className="text-gray-700">{t(`rulesets.documentTypes.${docType}`)}</span>
+                          <span className="text-theme-text-secondary">{t(`rulesets.documentTypes.${docType}`)}</span>
                         </label>
                       ))}
                     </div>
@@ -1408,11 +1408,11 @@ export default function Rulesets() {
             ))}
 
             {(!editForm.features || editForm.features.length === 0) && (
-              <div className="text-center py-8 text-gray-500">
+              <div className="text-center py-8 text-theme-text-muted">
                 <p>{t('rulesets.noFeatures')}</p>
                 <button
                   onClick={handleAddFeature}
-                  className="mt-2 text-primary-600 hover:underline"
+                  className="mt-2 text-accent-primary hover:underline"
                 >
                   {t('rulesets.addFirstFeature')}
                 </button>
