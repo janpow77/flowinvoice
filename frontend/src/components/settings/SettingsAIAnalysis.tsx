@@ -152,7 +152,7 @@ export function SettingsAIAnalysis({ isAdmin }: Props) {
   if (isLoading) {
     return (
       <div className="flex items-center justify-center h-64">
-        <Loader2 className="h-8 w-8 text-primary-600 animate-spin" />
+        <Loader2 className="h-8 w-8 text-accent-primary animate-spin" />
       </div>
     )
   }
@@ -164,15 +164,15 @@ export function SettingsAIAnalysis({ isAdmin }: Props) {
   return (
     <div className="space-y-6">
       {/* KI-Status Card */}
-      <div className="bg-gradient-to-r from-primary-50 to-blue-50 dark:from-primary-900/20 dark:to-blue-900/20 rounded-lg border border-primary-200 dark:border-primary-800 p-4">
+      <div className="bg-gradient-to-r from-primary-50 to-blue-50 dark:from-primary-900/20 dark:to-blue-900/20 rounded-lg border border-accent-primary/30 p-4">
         <div className="flex items-center justify-between mb-3">
-          <h3 className="text-sm font-semibold text-primary-900 dark:text-primary-100 flex items-center gap-2">
+          <h3 className="text-sm font-semibold text-accent-primary flex items-center gap-2">
             <Zap className="h-4 w-4" />
             KI-Konfiguration
           </h3>
           <button
             onClick={() => refetchHealth()}
-            className="text-xs text-primary-600 hover:text-primary-800 flex items-center gap-1"
+            className="text-xs text-accent-primary hover:text-accent-primary-hover flex items-center gap-1"
           >
             <RefreshCw className="h-3 w-3" />
             Aktualisieren
@@ -180,27 +180,27 @@ export function SettingsAIAnalysis({ isAdmin }: Props) {
         </div>
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
           <div>
-            <p className="text-gray-500 dark:text-gray-400 text-xs">Aktiver Provider</p>
-            <p className="font-medium text-gray-900 dark:text-white">
+            <p className="text-theme-text-muted text-xs">Aktiver Provider</p>
+            <p className="font-medium text-theme-text-primary">
               {defaultProviderId ? PROVIDER_CONFIGS.find(c => c.id === defaultProviderId)?.name : '-'}
             </p>
           </div>
           <div>
-            <p className="text-gray-500 dark:text-gray-400 text-xs">Ollama Status</p>
+            <p className="text-theme-text-muted text-xs">Ollama Status</p>
             <p className="font-medium flex items-center gap-1.5">
               <span
                 className={clsx(
                   'w-2 h-2 rounded-full',
-                  ollamaStatus === 'active' && 'bg-green-500',
-                  ollamaStatus === 'inactive' && 'bg-gray-400',
-                  ollamaStatus === 'offline' && 'bg-red-500'
+                  ollamaStatus === 'active' && 'bg-status-success',
+                  ollamaStatus === 'inactive' && 'bg-theme-text-muted',
+                  ollamaStatus === 'offline' && 'bg-status-danger'
                 )}
               />
               <span
                 className={clsx(
-                  ollamaStatus === 'active' && 'text-green-700 dark:text-green-400',
-                  ollamaStatus === 'inactive' && 'text-gray-600 dark:text-gray-400',
-                  ollamaStatus === 'offline' && 'text-red-700 dark:text-red-400'
+                  ollamaStatus === 'active' && 'text-status-success',
+                  ollamaStatus === 'inactive' && 'text-theme-text-muted',
+                  ollamaStatus === 'offline' && 'text-status-danger'
                 )}
               >
                 {ollamaStatus === 'active' && 'Aktiv'}
@@ -210,12 +210,12 @@ export function SettingsAIAnalysis({ isAdmin }: Props) {
             </p>
           </div>
           <div>
-            <p className="text-gray-500 dark:text-gray-400 text-xs">Aktives Profil</p>
-            <p className="font-medium text-gray-900 dark:text-white">Standard-Profil</p>
+            <p className="text-theme-text-muted text-xs">Aktives Profil</p>
+            <p className="font-medium text-theme-text-primary">Standard-Profil</p>
           </div>
           <div>
-            <p className="text-gray-500 dark:text-gray-400 text-xs">Zuletzt geprüft</p>
-            <p className="font-medium text-gray-900 dark:text-white">
+            <p className="text-theme-text-muted text-xs">Zuletzt geprüft</p>
+            <p className="font-medium text-theme-text-primary">
               {lastHealthCheck ? lastHealthCheck.toLocaleTimeString('de-DE') : '-'}
             </p>
           </div>
@@ -223,14 +223,14 @@ export function SettingsAIAnalysis({ isAdmin }: Props) {
       </div>
 
       {/* Provider Selection */}
-      <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-6">
+      <div className="bg-theme-card rounded-lg border border-theme-border-default p-6">
         <div className="flex items-center gap-2 mb-4">
-          <Cpu className="h-5 w-5 text-primary-600" />
-          <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
+          <Cpu className="h-5 w-5 text-accent-primary" />
+          <h3 className="text-lg font-semibold text-theme-text-primary">
             {t('settings.llmProvider')}
           </h3>
         </div>
-        <p className="text-sm text-gray-500 dark:text-gray-400 mb-6">
+        <p className="text-sm text-theme-text-muted mb-6">
           {t('settings.llmProviderDescription')}
         </p>
 
@@ -248,21 +248,21 @@ export function SettingsAIAnalysis({ isAdmin }: Props) {
                 className={clsx(
                   'p-4 rounded-lg border-2 transition-all',
                   isDefault
-                    ? 'border-primary-500 bg-primary-50 dark:bg-primary-900/20'
-                    : 'border-gray-200 dark:border-gray-600 hover:border-gray-300 dark:hover:border-gray-500'
+                    ? 'border-accent-primary bg-accent-primary/10'
+                    : 'border-theme-border-default hover:border-theme-border-hover'
                 )}
               >
                 {/* Header */}
                 <div className="flex items-center justify-between mb-3">
                   <div className="flex items-center gap-3">
                     {config.type === 'local' ? (
-                      <Server className="h-5 w-5 text-gray-600 dark:text-gray-400" />
+                      <Server className="h-5 w-5 text-theme-text-muted" />
                     ) : (
-                      <Cloud className="h-5 w-5 text-blue-600" />
+                      <Cloud className="h-5 w-5 text-status-info" />
                     )}
                     <div>
-                      <p className="font-medium text-gray-900 dark:text-white">{config.name}</p>
-                      <p className="text-xs text-gray-500 dark:text-gray-400">
+                      <p className="font-medium text-theme-text-primary">{config.name}</p>
+                      <p className="text-xs text-theme-text-muted">
                         {config.type === 'local' ? t('settings.localProvider') : t('settings.cloudProvider')}
                       </p>
                     </div>
@@ -273,17 +273,17 @@ export function SettingsAIAnalysis({ isAdmin }: Props) {
                       <span
                         className={clsx(
                           'flex items-center gap-1 text-xs px-2 py-1 rounded-full',
-                          ollamaStatus === 'active' && 'bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400',
-                          ollamaStatus === 'inactive' && 'bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-400',
-                          ollamaStatus === 'offline' && 'bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-400'
+                          ollamaStatus === 'active' && 'bg-status-success-bg text-status-success',
+                          ollamaStatus === 'inactive' && 'bg-theme-hover text-theme-text-muted',
+                          ollamaStatus === 'offline' && 'bg-status-danger-bg text-status-danger'
                         )}
                       >
                         <span
                           className={clsx(
                             'w-2 h-2 rounded-full',
-                            ollamaStatus === 'active' && 'bg-green-500',
-                            ollamaStatus === 'inactive' && 'bg-gray-400',
-                            ollamaStatus === 'offline' && 'bg-red-500'
+                            ollamaStatus === 'active' && 'bg-status-success',
+                            ollamaStatus === 'inactive' && 'bg-theme-text-muted',
+                            ollamaStatus === 'offline' && 'bg-status-danger'
                           )}
                         />
                         {ollamaStatus === 'active' && 'Aktiv'}
@@ -293,20 +293,20 @@ export function SettingsAIAnalysis({ isAdmin }: Props) {
                     ) : (
                       <>
                         {isHealthy ? (
-                          <span className="flex items-center gap-1 text-xs text-green-600 dark:text-green-400">
-                            <span className="w-2 h-2 bg-green-500 rounded-full" />
+                          <span className="flex items-center gap-1 text-xs text-status-success">
+                            <span className="w-2 h-2 bg-status-success rounded-full" />
                             {t('common.online')}
                           </span>
                         ) : (
-                          <span className="flex items-center gap-1 text-xs text-gray-400">
-                            <span className="w-2 h-2 bg-gray-400 rounded-full" />
+                          <span className="flex items-center gap-1 text-xs text-theme-text-muted">
+                            <span className="w-2 h-2 bg-theme-text-muted rounded-full" />
                             {t('common.offline')}
                           </span>
                         )}
                       </>
                     )}
                     {isDefault && (
-                      <span className="text-xs bg-primary-500 text-white px-2 py-1 rounded">
+                      <span className="text-xs bg-accent-primary text-white px-2 py-1 rounded">
                         {t('settings.currentDefault')}
                       </span>
                     )}
@@ -318,7 +318,7 @@ export function SettingsAIAnalysis({ isAdmin }: Props) {
                   {config.models.map((model) => (
                     <span
                       key={model}
-                      className="text-xs bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 px-2 py-0.5 rounded"
+                      className="text-xs bg-theme-hover text-theme-text-secondary px-2 py-0.5 rounded"
                     >
                       {model}
                     </span>
@@ -327,10 +327,10 @@ export function SettingsAIAnalysis({ isAdmin }: Props) {
 
                 {/* API Key Input for Cloud Providers */}
                 {config.requiresApiKey && (
-                  <div className="mt-3 pt-3 border-t border-gray-200 dark:border-gray-600">
+                  <div className="mt-3 pt-3 border-t border-theme-border-default">
                     <div className="flex items-center gap-2 mb-2">
-                      <Key className="h-4 w-4 text-gray-500" />
-                      <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                      <Key className="h-4 w-4 text-theme-text-muted" />
+                      <span className="text-sm font-medium text-theme-text-secondary">
                         {t('settings.apiKey')}
                       </span>
                       {providerData?.is_default !== undefined && (
@@ -338,8 +338,8 @@ export function SettingsAIAnalysis({ isAdmin }: Props) {
                           className={clsx(
                             'text-xs px-2 py-0.5 rounded',
                             isHealthy
-                              ? 'bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400'
-                              : 'bg-gray-100 dark:bg-gray-700 text-gray-500 dark:text-gray-400'
+                              ? 'bg-status-success-bg text-status-success'
+                              : 'bg-theme-hover text-theme-text-muted'
                           )}
                         >
                           {isHealthy ? t('settings.apiKeySet') : t('settings.apiKeyNotSet')}
@@ -352,12 +352,12 @@ export function SettingsAIAnalysis({ isAdmin }: Props) {
                         placeholder={t('settings.apiKeyPlaceholder')}
                         value={apiKeyInputs[config.id] || ''}
                         onChange={(e) => setApiKeyInputs((prev) => ({ ...prev, [config.id]: e.target.value }))}
-                        className="flex-1 px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-primary-500"
+                        className="flex-1 px-3 py-2 text-sm border border-theme-border-default rounded-lg bg-theme-input text-theme-text-primary focus:ring-2 focus:ring-accent-primary"
                       />
                       <button
                         onClick={() => handleSaveApiKey(config.id)}
                         disabled={!apiKeyInputs[config.id] || savingApiKey === config.id}
-                        className="px-3 py-2 bg-primary-600 text-white text-sm rounded-lg hover:bg-primary-700 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-1"
+                        className="px-3 py-2 bg-accent-primary text-white text-sm rounded-lg hover:bg-accent-primary-hover disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-1"
                       >
                         {savingApiKey === config.id ? (
                           <Loader2 className="h-4 w-4 animate-spin" />
@@ -369,7 +369,7 @@ export function SettingsAIAnalysis({ isAdmin }: Props) {
                       {isHealthy && (
                         <button
                           onClick={() => deleteApiKeyMutation.mutate(config.id)}
-                          className="px-3 py-2 text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg"
+                          className="px-3 py-2 text-status-danger hover:bg-status-danger-bg rounded-lg"
                           title={t('settings.deleteApiKey')}
                         >
                           <Trash2 className="h-4 w-4" />
@@ -380,11 +380,11 @@ export function SettingsAIAnalysis({ isAdmin }: Props) {
                 )}
 
                 {/* Actions */}
-                <div className="mt-3 pt-3 border-t border-gray-200 dark:border-gray-600 flex items-center gap-2">
+                <div className="mt-3 pt-3 border-t border-theme-border-default flex items-center gap-2">
                   <button
                     onClick={() => handleTestConnection(config.id)}
                     disabled={testingProvider === config.id}
-                    className="px-3 py-1.5 text-sm border border-gray-300 dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 flex items-center gap-1"
+                    className="px-3 py-1.5 text-sm border border-theme-border-default rounded-lg hover:bg-theme-hover flex items-center gap-1"
                   >
                     {testingProvider === config.id ? (
                       <Loader2 className="h-4 w-4 animate-spin" />
@@ -396,7 +396,7 @@ export function SettingsAIAnalysis({ isAdmin }: Props) {
                   {!isDefault && (
                     <button
                       onClick={() => setDefaultMutation.mutate(config.id)}
-                      className="px-3 py-1.5 text-sm bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-600"
+                      className="px-3 py-1.5 text-sm bg-theme-hover text-theme-text-secondary rounded-lg hover:bg-theme-hover"
                     >
                       {t('settings.selectAsDefault')}
                     </button>
@@ -406,8 +406,8 @@ export function SettingsAIAnalysis({ isAdmin }: Props) {
                       className={clsx(
                         'ml-auto text-xs px-2 py-1 rounded',
                         testResult.status === 'ok'
-                          ? 'bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400'
-                          : 'bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-400'
+                          ? 'bg-status-success-bg text-status-success'
+                          : 'bg-status-danger-bg text-status-danger'
                       )}
                     >
                       {testResult.status === 'ok' ? t('settings.connectionSuccess') : t('settings.connectionFailed')}
@@ -422,29 +422,29 @@ export function SettingsAIAnalysis({ isAdmin }: Props) {
       </div>
 
       {/* Profile Selection (Read-only for non-admin) */}
-      <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-6">
+      <div className="bg-theme-card rounded-lg border border-theme-border-default p-6">
         <div className="flex items-center justify-between mb-4">
           <div className="flex items-center gap-2">
-            <AlertCircle className="h-5 w-5 text-primary-600" />
-            <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
+            <AlertCircle className="h-5 w-5 text-accent-primary" />
+            <h3 className="text-lg font-semibold text-theme-text-primary">
               Aktives Profil
             </h3>
           </div>
           {!isAdmin && (
-            <span className="flex items-center gap-1 text-xs text-gray-500">
+            <span className="flex items-center gap-1 text-xs text-theme-text-muted">
               <Lock className="h-3 w-3" />
               Zentral durch Admin festgelegt
             </span>
           )}
         </div>
-        <p className="text-sm text-gray-500 dark:text-gray-400 mb-4">
+        <p className="text-sm text-theme-text-muted mb-4">
           Profile definieren die LLM-Parameter für die Dokumentenanalyse.
         </p>
 
         <select
           disabled={!isAdmin}
           className={clsx(
-            'w-full md:w-64 px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-primary-500',
+            'w-full md:w-64 px-3 py-2 border border-theme-border-default rounded-lg bg-theme-input text-theme-text-primary focus:ring-2 focus:ring-accent-primary',
             !isAdmin && 'opacity-60 cursor-not-allowed'
           )}
         >
@@ -452,43 +452,43 @@ export function SettingsAIAnalysis({ isAdmin }: Props) {
         </select>
 
         {isAdmin && (
-          <p className="mt-2 text-xs text-gray-400">
+          <p className="mt-2 text-xs text-theme-text-muted">
             Profile können im Tab "Profile & Modelle" verwaltet werden.
           </p>
         )}
       </div>
 
       {/* RAG Settings */}
-      <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-6">
-        <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">
+      <div className="bg-theme-card rounded-lg border border-theme-border-default p-6">
+        <h3 className="text-lg font-semibold text-theme-text-primary mb-4">
           {t('settings.ragSettings')}
         </h3>
-        <p className="text-sm text-gray-500 dark:text-gray-400 mb-4">
+        <p className="text-sm text-theme-text-muted mb-4">
           {t('settings.ragDescription')}
         </p>
 
         <div className="space-y-4">
           <div className="flex items-center justify-between">
             <div>
-              <p className="font-medium text-gray-900 dark:text-white">{t('settings.autoLearning')}</p>
-              <p className="text-sm text-gray-500 dark:text-gray-400">
+              <p className="font-medium text-theme-text-primary">{t('settings.autoLearning')}</p>
+              <p className="text-sm text-theme-text-muted">
                 {t('settings.autoLearningDescription')}
               </p>
             </div>
             <label className="relative inline-flex items-center cursor-pointer">
               <input type="checkbox" className="sr-only peer" defaultChecked />
-              <div className="w-11 h-6 bg-gray-200 dark:bg-gray-600 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-primary-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary-600" />
+              <div className="w-11 h-6 bg-theme-hover peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-accent-primary/50 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-theme-border-default after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-accent-primary" />
             </label>
           </div>
 
           <div className="flex items-center justify-between">
             <div>
-              <p className="font-medium text-gray-900 dark:text-white">{t('settings.fewShotExamples')}</p>
-              <p className="text-sm text-gray-500 dark:text-gray-400">
+              <p className="font-medium text-theme-text-primary">{t('settings.fewShotExamples')}</p>
+              <p className="text-sm text-theme-text-muted">
                 {t('settings.fewShotDescription')}
               </p>
             </div>
-            <select className="px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white">
+            <select className="px-3 py-2 border border-theme-border-default rounded-lg bg-theme-input text-theme-text-primary">
               <option value="3">3 {t('settings.examples')}</option>
               <option value="5">5 {t('settings.examples')}</option>
               <option value="10">10 {t('settings.examples')}</option>

@@ -270,8 +270,8 @@ export function SettingsProfiles({ isAdmin }: Props) {
             className={clsx(
               'px-4 py-2 rounded-lg text-sm font-medium transition-colors',
               activeView === 'profiles'
-                ? 'bg-primary-100 dark:bg-primary-900/30 text-primary-700 dark:text-primary-300'
-                : 'text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700'
+                ? 'bg-accent-primary/10 text-accent-primary'
+                : 'text-theme-text-muted hover:bg-theme-hover'
             )}
           >
             <Layers className="h-4 w-4 inline mr-2" />
@@ -282,8 +282,8 @@ export function SettingsProfiles({ isAdmin }: Props) {
             className={clsx(
               'px-4 py-2 rounded-lg text-sm font-medium transition-colors',
               activeView === 'models'
-                ? 'bg-primary-100 dark:bg-primary-900/30 text-primary-700 dark:text-primary-300'
-                : 'text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700'
+                ? 'bg-accent-primary/10 text-accent-primary'
+                : 'text-theme-text-muted hover:bg-theme-hover'
             )}
           >
             <Cpu className="h-4 w-4 inline mr-2" />
@@ -295,19 +295,19 @@ export function SettingsProfiles({ isAdmin }: Props) {
           <div className="flex items-center gap-2">
             <button
               onClick={handleExport}
-              className="px-3 py-1.5 text-sm text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg flex items-center gap-1"
+              className="px-3 py-1.5 text-sm text-theme-text-muted hover:bg-theme-hover rounded-lg flex items-center gap-1"
             >
               <Download className="h-4 w-4" />
               Export
             </button>
-            <label className="px-3 py-1.5 text-sm text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg flex items-center gap-1 cursor-pointer">
+            <label className="px-3 py-1.5 text-sm text-theme-text-muted hover:bg-theme-hover rounded-lg flex items-center gap-1 cursor-pointer">
               <Upload className="h-4 w-4" />
               Import
               <input type="file" accept=".json" onChange={handleImport} className="hidden" />
             </label>
             <button
               onClick={handleResetToDefaults}
-              className="px-3 py-1.5 text-sm text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg flex items-center gap-1"
+              className="px-3 py-1.5 text-sm text-theme-text-muted hover:bg-theme-hover rounded-lg flex items-center gap-1"
             >
               <RotateCcw className="h-4 w-4" />
               Reset
@@ -321,20 +321,20 @@ export function SettingsProfiles({ isAdmin }: Props) {
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           {/* Left: Profile List */}
           <div className="lg:col-span-1">
-            <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700">
-              <div className="p-4 border-b border-gray-200 dark:border-gray-700 flex items-center justify-between">
-                <h3 className="font-semibold text-gray-900 dark:text-white">Profile</h3>
+            <div className="bg-theme-card rounded-lg border border-theme-border-default">
+              <div className="p-4 border-b border-theme-border-default flex items-center justify-between">
+                <h3 className="font-semibold text-theme-text-primary">Profile</h3>
                 {isAdmin && (
                   <button
                     onClick={handleCreateProfile}
-                    className="p-1.5 text-primary-600 hover:bg-primary-50 dark:hover:bg-primary-900/20 rounded-lg"
+                    className="p-1.5 text-accent-primary hover:bg-accent-primary/10 rounded-lg"
                     title="Neues Profil"
                   >
                     <Plus className="h-5 w-5" />
                   </button>
                 )}
               </div>
-              <div className="divide-y divide-gray-200 dark:divide-gray-700">
+              <div className="divide-y divide-theme-border-default">
                 {profiles.map((profile) => (
                   <button
                     key={profile.id}
@@ -347,31 +347,31 @@ export function SettingsProfiles({ isAdmin }: Props) {
                     className={clsx(
                       'w-full px-4 py-3 text-left flex items-center justify-between transition-colors',
                       selectedProfileId === profile.id
-                        ? 'bg-primary-50 dark:bg-primary-900/20'
-                        : 'hover:bg-gray-50 dark:hover:bg-gray-700'
+                        ? 'bg-accent-primary/10'
+                        : 'hover:bg-theme-hover'
                     )}
                   >
                     <div className="flex items-center gap-3">
-                      <Layers className="h-4 w-4 text-gray-400" />
+                      <Layers className="h-4 w-4 text-theme-text-muted" />
                       <div>
                         <p className={clsx(
                           'font-medium flex items-center gap-1',
                           selectedProfileId === profile.id
-                            ? 'text-primary-700 dark:text-primary-300'
-                            : 'text-gray-900 dark:text-white'
+                            ? 'text-accent-primary'
+                            : 'text-theme-text-primary'
                         )}>
                           {profile.name}
                           {profile.isDefault && (
-                            <Star className="h-3 w-3 text-amber-500 fill-current" />
+                            <Star className="h-3 w-3 text-status-warning fill-current" />
                           )}
                         </p>
-                        <span className="text-xs text-gray-400">
+                        <span className="text-xs text-theme-text-muted">
                           {profile.documentTypeId === 'all' ? 'Alle Dokumenttypen' :
                             documentTypes.find(dt => dt.id === profile.documentTypeId)?.name || profile.documentTypeId}
                         </span>
                       </div>
                     </div>
-                    <ChevronRight className="h-4 w-4 text-gray-400" />
+                    <ChevronRight className="h-4 w-4 text-theme-text-muted" />
                   </button>
                 ))}
               </div>
@@ -382,21 +382,21 @@ export function SettingsProfiles({ isAdmin }: Props) {
           <div className="lg:col-span-2">
             {isEditing && editForm ? (
               // Edit Form
-              <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-6">
+              <div className="bg-theme-card rounded-lg border border-theme-border-default p-6">
                 <div className="flex items-center justify-between mb-6">
-                  <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
+                  <h3 className="text-lg font-semibold text-theme-text-primary">
                     {isCreating ? 'Neues Profil' : 'Profil bearbeiten'}
                   </h3>
                   <div className="flex items-center gap-2">
                     <button
                       onClick={() => { setIsEditing(false); setIsCreating(false); setEditForm(null) }}
-                      className="px-3 py-1.5 text-gray-600 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg"
+                      className="px-3 py-1.5 text-theme-text-muted hover:bg-theme-hover rounded-lg"
                     >
                       <X className="h-4 w-4" />
                     </button>
                     <button
                       onClick={handleSaveProfile}
-                      className="px-3 py-1.5 bg-primary-600 text-white rounded-lg hover:bg-primary-700 flex items-center gap-1"
+                      className="px-3 py-1.5 bg-accent-primary text-white rounded-lg hover:bg-accent-primary-hover flex items-center gap-1"
                     >
                       <Save className="h-4 w-4" />
                       Speichern
@@ -408,24 +408,24 @@ export function SettingsProfiles({ isAdmin }: Props) {
                   {/* Basic Info */}
                   <div className="grid grid-cols-2 gap-4">
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                      <label className="block text-sm font-medium text-theme-text-secondary mb-1">
                         Name *
                       </label>
                       <input
                         type="text"
                         value={editForm.name || ''}
                         onChange={(e) => setEditForm({ ...editForm, name: e.target.value })}
-                        className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-primary-500"
+                        className="w-full px-3 py-2 border border-theme-border-default rounded-lg bg-theme-input text-theme-text-primary focus:ring-2 focus:ring-accent-primary"
                       />
                     </div>
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                      <label className="block text-sm font-medium text-theme-text-secondary mb-1">
                         Dokumenttyp
                       </label>
                       <select
                         value={editForm.documentTypeId || 'all'}
                         onChange={(e) => setEditForm({ ...editForm, documentTypeId: e.target.value })}
-                        className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-primary-500"
+                        className="w-full px-3 py-2 border border-theme-border-default rounded-lg bg-theme-input text-theme-text-primary focus:ring-2 focus:ring-accent-primary"
                       >
                         <option value="all">Alle Dokumenttypen</option>
                         {documentTypes.map(dt => (
@@ -436,26 +436,26 @@ export function SettingsProfiles({ isAdmin }: Props) {
                   </div>
 
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                    <label className="block text-sm font-medium text-theme-text-secondary mb-1">
                       Beschreibung
                     </label>
                     <textarea
                       value={editForm.description || ''}
                       onChange={(e) => setEditForm({ ...editForm, description: e.target.value })}
                       rows={2}
-                      className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-primary-500"
+                      className="w-full px-3 py-2 border border-theme-border-default rounded-lg bg-theme-input text-theme-text-primary focus:ring-2 focus:ring-accent-primary"
                     />
                   </div>
 
                   <div className="grid grid-cols-2 gap-4">
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                      <label className="block text-sm font-medium text-theme-text-secondary mb-1">
                         Modell
                       </label>
                       <select
                         value={editForm.modelId || ''}
                         onChange={(e) => setEditForm({ ...editForm, modelId: e.target.value })}
-                        className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-primary-500"
+                        className="w-full px-3 py-2 border border-theme-border-default rounded-lg bg-theme-input text-theme-text-primary focus:ring-2 focus:ring-accent-primary"
                       >
                         {activeModels.map(m => (
                           <option key={m.id} value={m.id}>{m.name}</option>
@@ -468,19 +468,19 @@ export function SettingsProfiles({ isAdmin }: Props) {
                           type="checkbox"
                           checked={editForm.isDefault || false}
                           onChange={(e) => setEditForm({ ...editForm, isDefault: e.target.checked })}
-                          className="w-4 h-4 text-primary-600 border-gray-300 rounded focus:ring-primary-500"
+                          className="w-4 h-4 text-accent-primary border-theme-border-default rounded focus:ring-accent-primary"
                         />
-                        <span className="text-sm text-gray-700 dark:text-gray-300">Standard-Profil</span>
+                        <span className="text-sm text-theme-text-secondary">Standard-Profil</span>
                       </label>
                     </div>
                   </div>
 
                   {/* Parameters */}
-                  <div className="pt-4 border-t border-gray-200 dark:border-gray-700">
-                    <h4 className="font-medium text-gray-900 dark:text-white mb-3">Parameter</h4>
+                  <div className="pt-4 border-t border-theme-border-default">
+                    <h4 className="font-medium text-theme-text-primary mb-3">Parameter</h4>
                     <div className="grid grid-cols-3 gap-4">
                       <div>
-                        <label className="block text-xs font-medium text-gray-500 mb-1">Temperature</label>
+                        <label className="block text-xs font-medium text-theme-text-muted mb-1">Temperature</label>
                         <input
                           type="number"
                           step="0.1"
@@ -491,11 +491,11 @@ export function SettingsProfiles({ isAdmin }: Props) {
                             ...editForm,
                             parameters: { ...editForm.parameters!, temperature: parseFloat(e.target.value) || 0.1 }
                           })}
-                          className="w-full px-2 py-1 text-sm border border-gray-300 dark:border-gray-600 rounded bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                          className="w-full px-2 py-1 text-sm border border-theme-border-default rounded bg-theme-input text-theme-text-primary"
                         />
                       </div>
                       <div>
-                        <label className="block text-xs font-medium text-gray-500 mb-1">Top P</label>
+                        <label className="block text-xs font-medium text-theme-text-muted mb-1">Top P</label>
                         <input
                           type="number"
                           step="0.1"
@@ -506,11 +506,11 @@ export function SettingsProfiles({ isAdmin }: Props) {
                             ...editForm,
                             parameters: { ...editForm.parameters!, topP: parseFloat(e.target.value) || 0.9 }
                           })}
-                          className="w-full px-2 py-1 text-sm border border-gray-300 dark:border-gray-600 rounded bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                          className="w-full px-2 py-1 text-sm border border-theme-border-default rounded bg-theme-input text-theme-text-primary"
                         />
                       </div>
                       <div>
-                        <label className="block text-xs font-medium text-gray-500 mb-1">Top K</label>
+                        <label className="block text-xs font-medium text-theme-text-muted mb-1">Top K</label>
                         <input
                           type="number"
                           min="0"
@@ -520,11 +520,11 @@ export function SettingsProfiles({ isAdmin }: Props) {
                             ...editForm,
                             parameters: { ...editForm.parameters!, topK: parseInt(e.target.value) || 40 }
                           })}
-                          className="w-full px-2 py-1 text-sm border border-gray-300 dark:border-gray-600 rounded bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                          className="w-full px-2 py-1 text-sm border border-theme-border-default rounded bg-theme-input text-theme-text-primary"
                         />
                       </div>
                       <div>
-                        <label className="block text-xs font-medium text-gray-500 mb-1">Repeat Penalty</label>
+                        <label className="block text-xs font-medium text-theme-text-muted mb-1">Repeat Penalty</label>
                         <input
                           type="number"
                           step="0.1"
@@ -535,11 +535,11 @@ export function SettingsProfiles({ isAdmin }: Props) {
                             ...editForm,
                             parameters: { ...editForm.parameters!, repeatPenalty: parseFloat(e.target.value) || 1.1 }
                           })}
-                          className="w-full px-2 py-1 text-sm border border-gray-300 dark:border-gray-600 rounded bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                          className="w-full px-2 py-1 text-sm border border-theme-border-default rounded bg-theme-input text-theme-text-primary"
                         />
                       </div>
                       <div>
-                        <label className="block text-xs font-medium text-gray-500 mb-1">Num Predict</label>
+                        <label className="block text-xs font-medium text-theme-text-muted mb-1">Num Predict</label>
                         <input
                           type="number"
                           min="256"
@@ -549,11 +549,11 @@ export function SettingsProfiles({ isAdmin }: Props) {
                             ...editForm,
                             parameters: { ...editForm.parameters!, numPredict: parseInt(e.target.value) || 1024 }
                           })}
-                          className="w-full px-2 py-1 text-sm border border-gray-300 dark:border-gray-600 rounded bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                          className="w-full px-2 py-1 text-sm border border-theme-border-default rounded bg-theme-input text-theme-text-primary"
                         />
                       </div>
                       <div>
-                        <label className="block text-xs font-medium text-gray-500 mb-1">Num Ctx</label>
+                        <label className="block text-xs font-medium text-theme-text-muted mb-1">Num Ctx</label>
                         <input
                           type="number"
                           min="2048"
@@ -564,7 +564,7 @@ export function SettingsProfiles({ isAdmin }: Props) {
                             ...editForm,
                             context: { numCtx: parseInt(e.target.value) || 8192 }
                           })}
-                          className="w-full px-2 py-1 text-sm border border-gray-300 dark:border-gray-600 rounded bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                          className="w-full px-2 py-1 text-sm border border-theme-border-default rounded bg-theme-input text-theme-text-primary"
                         />
                       </div>
                     </div>
@@ -573,16 +573,16 @@ export function SettingsProfiles({ isAdmin }: Props) {
               </div>
             ) : selectedProfile ? (
               // Profile Detail View
-              <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-6">
+              <div className="bg-theme-card rounded-lg border border-theme-border-default p-6">
                 <div className="flex items-center justify-between mb-6">
                   <div>
-                    <h3 className="text-lg font-semibold text-gray-900 dark:text-white flex items-center gap-2">
+                    <h3 className="text-lg font-semibold text-theme-text-primary flex items-center gap-2">
                       {selectedProfile.name}
                       {selectedProfile.isDefault && (
-                        <Star className="h-4 w-4 text-amber-500 fill-current" />
+                        <Star className="h-4 w-4 text-status-warning fill-current" />
                       )}
                     </h3>
-                    <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
+                    <p className="text-sm text-theme-text-muted mt-1">
                       {selectedProfile.description || 'Keine Beschreibung'}
                     </p>
                   </div>
@@ -590,14 +590,14 @@ export function SettingsProfiles({ isAdmin }: Props) {
                     <div className="flex items-center gap-2">
                       <button
                         onClick={() => handleDuplicateProfile(selectedProfile)}
-                        className="px-3 py-1.5 text-gray-600 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg flex items-center gap-1"
+                        className="px-3 py-1.5 text-theme-text-muted hover:bg-theme-hover rounded-lg flex items-center gap-1"
                         title="Duplizieren"
                       >
                         <Copy className="h-4 w-4" />
                       </button>
                       <button
                         onClick={() => handleEditProfile(selectedProfile)}
-                        className="px-3 py-1.5 text-gray-600 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg flex items-center gap-1"
+                        className="px-3 py-1.5 text-theme-text-muted hover:bg-theme-hover rounded-lg flex items-center gap-1"
                       >
                         <Pencil className="h-4 w-4" />
                         Bearbeiten
@@ -605,7 +605,7 @@ export function SettingsProfiles({ isAdmin }: Props) {
                       {!selectedProfile.isDefault && (
                         <button
                           onClick={() => setDeleteConfirm(selectedProfile.id)}
-                          className="px-3 py-1.5 text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg flex items-center gap-1"
+                          className="px-3 py-1.5 text-status-danger hover:bg-status-danger-bg rounded-lg flex items-center gap-1"
                         >
                           <Trash2 className="h-4 w-4" />
                         </button>
@@ -616,28 +616,28 @@ export function SettingsProfiles({ isAdmin }: Props) {
 
                 {/* Profile Info */}
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
-                  <div className="bg-gray-50 dark:bg-gray-700 p-3 rounded-lg">
-                    <p className="text-xs text-gray-500 dark:text-gray-400">Modell</p>
-                    <p className="font-medium text-gray-900 dark:text-white">
+                  <div className="bg-theme-hover p-3 rounded-lg">
+                    <p className="text-xs text-theme-text-muted">Modell</p>
+                    <p className="font-medium text-theme-text-primary">
                       {models.find(m => m.id === selectedProfile.modelId)?.name || selectedProfile.modelId}
                     </p>
                   </div>
-                  <div className="bg-gray-50 dark:bg-gray-700 p-3 rounded-lg">
-                    <p className="text-xs text-gray-500 dark:text-gray-400">Dokumenttyp</p>
-                    <p className="font-medium text-gray-900 dark:text-white">
+                  <div className="bg-theme-hover p-3 rounded-lg">
+                    <p className="text-xs text-theme-text-muted">Dokumenttyp</p>
+                    <p className="font-medium text-theme-text-primary">
                       {selectedProfile.documentTypeId === 'all' ? 'Alle' :
                         documentTypes.find(dt => dt.id === selectedProfile.documentTypeId)?.name || '-'}
                     </p>
                   </div>
-                  <div className="bg-gray-50 dark:bg-gray-700 p-3 rounded-lg">
-                    <p className="text-xs text-gray-500 dark:text-gray-400">Kontext</p>
-                    <p className="font-medium text-gray-900 dark:text-white">
+                  <div className="bg-theme-hover p-3 rounded-lg">
+                    <p className="text-xs text-theme-text-muted">Kontext</p>
+                    <p className="font-medium text-theme-text-primary">
                       {selectedProfile.context.numCtx} Tokens
                     </p>
                   </div>
-                  <div className="bg-gray-50 dark:bg-gray-700 p-3 rounded-lg">
-                    <p className="text-xs text-gray-500 dark:text-gray-400">Temperature</p>
-                    <p className="font-medium text-gray-900 dark:text-white">
+                  <div className="bg-theme-hover p-3 rounded-lg">
+                    <p className="text-xs text-theme-text-muted">Temperature</p>
+                    <p className="font-medium text-theme-text-primary">
                       {selectedProfile.parameters.temperature}
                     </p>
                   </div>
@@ -645,24 +645,24 @@ export function SettingsProfiles({ isAdmin }: Props) {
 
                 {/* Delete Confirmation */}
                 {deleteConfirm === selectedProfile.id && (
-                  <div className="p-4 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg">
+                  <div className="p-4 bg-status-danger-bg border border-status-danger-border rounded-lg">
                     <div className="flex items-start gap-3">
-                      <AlertCircle className="h-5 w-5 text-red-600 mt-0.5" />
+                      <AlertCircle className="h-5 w-5 text-status-danger mt-0.5" />
                       <div className="flex-1">
-                        <p className="font-medium text-red-800 dark:text-red-300">Profil löschen?</p>
-                        <p className="text-sm text-red-600 dark:text-red-400 mt-1">
+                        <p className="font-medium text-status-danger">Profil löschen?</p>
+                        <p className="text-sm text-status-danger mt-1">
                           Diese Aktion kann nicht rückgängig gemacht werden.
                         </p>
                         <div className="mt-3 flex gap-2">
                           <button
                             onClick={() => handleDeleteProfile(selectedProfile.id)}
-                            className="px-3 py-1.5 bg-red-600 text-white rounded-lg hover:bg-red-700 text-sm"
+                            className="px-3 py-1.5 bg-status-danger text-white rounded-lg hover:bg-status-danger/90 text-sm"
                           >
                             Ja, löschen
                           </button>
                           <button
                             onClick={() => setDeleteConfirm(null)}
-                            className="px-3 py-1.5 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 text-sm"
+                            className="px-3 py-1.5 bg-theme-hover text-theme-text-secondary rounded-lg hover:bg-theme-card border border-theme-border-default text-sm"
                           >
                             Abbrechen
                           </button>
@@ -673,12 +673,12 @@ export function SettingsProfiles({ isAdmin }: Props) {
                 )}
               </div>
             ) : (
-              <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-12 text-center">
-                <Layers className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-                <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-2">
+              <div className="bg-theme-card rounded-lg border border-theme-border-default p-12 text-center">
+                <Layers className="h-12 w-12 text-theme-text-muted mx-auto mb-4" />
+                <h3 className="text-lg font-medium text-theme-text-primary mb-2">
                   Profil auswählen
                 </h3>
-                <p className="text-gray-500 dark:text-gray-400">
+                <p className="text-theme-text-muted">
                   Wähle ein Profil aus der Liste, um Details anzuzeigen.
                 </p>
               </div>
@@ -687,40 +687,40 @@ export function SettingsProfiles({ isAdmin }: Props) {
         </div>
       ) : (
         // Models View
-        <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700">
-          <div className="p-4 border-b border-gray-200 dark:border-gray-700">
+        <div className="bg-theme-card rounded-lg border border-theme-border-default">
+          <div className="p-4 border-b border-theme-border-default">
             <div className="flex items-start gap-3">
-              <Info className="h-5 w-5 text-blue-600 mt-0.5" />
-              <div className="text-sm text-gray-600 dark:text-gray-400">
-                <p className="font-medium text-gray-900 dark:text-white mb-1">Modellkatalog</p>
+              <Info className="h-5 w-5 text-status-info mt-0.5" />
+              <div className="text-sm text-theme-text-muted">
+                <p className="font-medium text-theme-text-primary mb-1">Modellkatalog</p>
                 <p>Aktiviere/deaktiviere Modelle für die Verwendung in Profilen. Deaktivierte Modelle stehen bei der Profilerstellung nicht zur Auswahl.</p>
               </div>
             </div>
           </div>
-          <div className="divide-y divide-gray-200 dark:divide-gray-700">
+          <div className="divide-y divide-theme-border-default">
             {models.map((model) => (
               <div key={model.id} className="p-4 flex items-center justify-between">
                 <div className="flex items-center gap-4">
                   <Cpu className={clsx(
                     'h-8 w-8 p-1.5 rounded-lg',
                     model.isActive
-                      ? 'bg-green-100 dark:bg-green-900/30 text-green-600'
-                      : 'bg-gray-100 dark:bg-gray-700 text-gray-400'
+                      ? 'bg-status-success-bg text-status-success'
+                      : 'bg-theme-hover text-theme-text-muted'
                   )} />
                   <div>
-                    <p className="font-medium text-gray-900 dark:text-white">{model.name}</p>
-                    <p className="text-sm text-gray-500 dark:text-gray-400">{model.description}</p>
+                    <p className="font-medium text-theme-text-primary">{model.name}</p>
+                    <p className="text-sm text-theme-text-muted">{model.description}</p>
                     {model.hardwareHint && (
-                      <p className="text-xs text-gray-400 mt-1">{model.hardwareHint}</p>
+                      <p className="text-xs text-theme-text-muted mt-1">{model.hardwareHint}</p>
                     )}
                   </div>
                 </div>
                 <div className="flex items-center gap-4">
                   <span className={clsx(
                     'text-xs px-2 py-1 rounded',
-                    model.speedRating === 'fast' && 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400',
-                    model.speedRating === 'medium' && 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400',
-                    model.speedRating === 'slow' && 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400'
+                    model.speedRating === 'fast' && 'bg-status-success-bg text-status-success',
+                    model.speedRating === 'medium' && 'bg-status-warning-bg text-status-warning',
+                    model.speedRating === 'slow' && 'bg-status-danger-bg text-status-danger'
                   )}>
                     {model.speedRating === 'fast' && 'Schnell'}
                     {model.speedRating === 'medium' && 'Mittel'}
@@ -731,7 +731,7 @@ export function SettingsProfiles({ isAdmin }: Props) {
                       onClick={() => handleToggleModel(model.id)}
                       className={clsx(
                         'w-10 h-6 rounded-full relative transition-colors',
-                        model.isActive ? 'bg-green-500' : 'bg-gray-300 dark:bg-gray-600'
+                        model.isActive ? 'bg-status-success' : 'bg-theme-hover'
                       )}
                     >
                       <span className={clsx(

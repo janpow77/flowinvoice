@@ -130,44 +130,44 @@ export function SettingsSystem() {
   }
 
   const getStatusIcon = (healthy: boolean | undefined) => {
-    if (healthy === undefined) return <AlertTriangle className="h-4 w-4 text-yellow-500" />
+    if (healthy === undefined) return <AlertTriangle className="h-4 w-4 text-status-warning" />
     return healthy ? (
-      <CheckCircle className="h-4 w-4 text-green-500" />
+      <CheckCircle className="h-4 w-4 text-status-success" />
     ) : (
-      <XCircle className="h-4 w-4 text-red-500" />
+      <XCircle className="h-4 w-4 text-status-danger" />
     )
   }
 
   const getMetricColor = (percent: number): string => {
-    if (percent < 60) return 'bg-green-500'
-    if (percent < 80) return 'bg-yellow-500'
-    return 'bg-red-500'
+    if (percent < 60) return 'bg-status-success'
+    if (percent < 80) return 'bg-status-warning'
+    return 'bg-status-danger'
   }
 
   return (
     <div className="space-y-6">
       {/* Info Box */}
-      <div className="bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-lg p-4">
+      <div className="bg-status-warning-bg border border-status-warning-border rounded-lg p-4">
         <div className="flex items-start gap-2">
-          <AlertTriangle className="h-5 w-5 text-amber-600 mt-0.5" />
-          <p className="text-sm text-amber-700 dark:text-amber-300">
+          <AlertTriangle className="h-5 w-5 text-status-warning mt-0.5" />
+          <p className="text-sm text-status-warning">
             GPU- und Performance-Einstellungen erfordern einen Neustart der Container, um wirksam zu werden.
           </p>
         </div>
       </div>
 
       {/* System Metrics */}
-      <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-6">
+      <div className="bg-theme-card rounded-lg border border-theme-border-default p-6">
         <div className="flex items-center justify-between mb-4">
           <div className="flex items-center gap-2">
-            <Activity className="h-5 w-5 text-primary-600" />
-            <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
+            <Activity className="h-5 w-5 text-accent-primary" />
+            <h3 className="text-lg font-semibold text-theme-text-primary">
               System-Auslastung
             </h3>
           </div>
           <button
             onClick={() => refetchMetrics()}
-            className="p-2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition-colors"
+            className="p-2 text-theme-text-muted hover:text-theme-text-secondary transition-colors"
             title="Aktualisieren"
           >
             <RefreshCw className={clsx('h-4 w-4', metricsLoading && 'animate-spin')} />
@@ -176,20 +176,20 @@ export function SettingsSystem() {
 
         {metricsLoading ? (
           <div className="flex items-center justify-center py-8">
-            <RefreshCw className="h-6 w-6 animate-spin text-gray-400" />
+            <RefreshCw className="h-6 w-6 animate-spin text-theme-text-muted" />
           </div>
         ) : metrics ? (
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             {/* CPU */}
-            <div className="bg-gray-50 dark:bg-gray-900 rounded-lg p-4">
+            <div className="bg-theme-hover rounded-lg p-4">
               <div className="flex items-center gap-2 mb-2">
-                <Cpu className="h-4 w-4 text-blue-500" />
-                <span className="text-sm font-medium text-gray-700 dark:text-gray-300">CPU</span>
+                <Cpu className="h-4 w-4 text-status-info" />
+                <span className="text-sm font-medium text-theme-text-secondary">CPU</span>
               </div>
-              <div className="text-2xl font-bold text-gray-900 dark:text-white mb-2">
+              <div className="text-2xl font-bold text-theme-text-primary mb-2">
                 {(metrics as SystemMetrics).cpu_percent?.toFixed(1) ?? '0'}%
               </div>
-              <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2">
+              <div className="w-full bg-theme-hover rounded-full h-2">
                 <div
                   className={clsx('h-2 rounded-full transition-all', getMetricColor((metrics as SystemMetrics).cpu_percent ?? 0))}
                   style={{ width: `${(metrics as SystemMetrics).cpu_percent ?? 0}%` }}
@@ -198,18 +198,18 @@ export function SettingsSystem() {
             </div>
 
             {/* Memory */}
-            <div className="bg-gray-50 dark:bg-gray-900 rounded-lg p-4">
+            <div className="bg-theme-hover rounded-lg p-4">
               <div className="flex items-center gap-2 mb-2">
                 <HardDrive className="h-4 w-4 text-purple-500" />
-                <span className="text-sm font-medium text-gray-700 dark:text-gray-300">RAM</span>
+                <span className="text-sm font-medium text-theme-text-secondary">RAM</span>
               </div>
-              <div className="text-2xl font-bold text-gray-900 dark:text-white mb-2">
+              <div className="text-2xl font-bold text-theme-text-primary mb-2">
                 {(metrics as SystemMetrics).memory_percent?.toFixed(1) ?? '0'}%
               </div>
-              <div className="text-xs text-gray-500 dark:text-gray-400 mb-2">
+              <div className="text-xs text-theme-text-muted mb-2">
                 {((metrics as SystemMetrics).memory_used_gb ?? 0).toFixed(1)} / {((metrics as SystemMetrics).memory_total_gb ?? 0).toFixed(1)} GB
               </div>
-              <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2">
+              <div className="w-full bg-theme-hover rounded-full h-2">
                 <div
                   className={clsx('h-2 rounded-full transition-all', getMetricColor((metrics as SystemMetrics).memory_percent ?? 0))}
                   style={{ width: `${(metrics as SystemMetrics).memory_percent ?? 0}%` }}
@@ -218,18 +218,18 @@ export function SettingsSystem() {
             </div>
 
             {/* Disk */}
-            <div className="bg-gray-50 dark:bg-gray-900 rounded-lg p-4">
+            <div className="bg-theme-hover rounded-lg p-4">
               <div className="flex items-center gap-2 mb-2">
-                <Database className="h-4 w-4 text-green-500" />
-                <span className="text-sm font-medium text-gray-700 dark:text-gray-300">Festplatte</span>
+                <Database className="h-4 w-4 text-status-success" />
+                <span className="text-sm font-medium text-theme-text-secondary">Festplatte</span>
               </div>
-              <div className="text-2xl font-bold text-gray-900 dark:text-white mb-2">
+              <div className="text-2xl font-bold text-theme-text-primary mb-2">
                 {(metrics as SystemMetrics).disk_percent?.toFixed(1) ?? '0'}%
               </div>
-              <div className="text-xs text-gray-500 dark:text-gray-400 mb-2">
+              <div className="text-xs text-theme-text-muted mb-2">
                 {((metrics as SystemMetrics).disk_used_gb ?? 0).toFixed(1)} / {((metrics as SystemMetrics).disk_total_gb ?? 0).toFixed(1)} GB
               </div>
-              <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2">
+              <div className="w-full bg-theme-hover rounded-full h-2">
                 <div
                   className={clsx('h-2 rounded-full transition-all', getMetricColor((metrics as SystemMetrics).disk_percent ?? 0))}
                   style={{ width: `${(metrics as SystemMetrics).disk_percent ?? 0}%` }}
@@ -238,28 +238,28 @@ export function SettingsSystem() {
             </div>
           </div>
         ) : (
-          <div className="text-center py-4 text-gray-500">
+          <div className="text-center py-4 text-theme-text-muted">
             Keine Metriken verfügbar
           </div>
         )}
       </div>
 
       {/* GPU & Thermal Settings */}
-      <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-6">
+      <div className="bg-theme-card rounded-lg border border-theme-border-default p-6">
         <div className="flex items-center gap-2 mb-4">
-          <Zap className="h-5 w-5 text-primary-600" />
-          <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
+          <Zap className="h-5 w-5 text-accent-primary" />
+          <h3 className="text-lg font-semibold text-theme-text-primary">
             GPU & Performance
           </h3>
         </div>
-        <p className="text-sm text-gray-500 dark:text-gray-400 mb-6">
+        <p className="text-sm text-theme-text-muted mb-6">
           Diese Einstellungen beeinflussen die Ollama-Leistung und den Ressourcenverbrauch.
         </p>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           {/* GPU Memory Fraction */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+            <label className="block text-sm font-medium text-theme-text-secondary mb-2">
               GPU-Speicher (VRAM)
             </label>
             <div className="flex items-center gap-4">
@@ -272,18 +272,18 @@ export function SettingsSystem() {
                 onChange={(e) => handleGpuChange('gpu_memory_fraction', parseFloat(e.target.value))}
                 className="flex-1"
               />
-              <span className="w-16 text-right text-sm font-medium text-gray-900 dark:text-white">
+              <span className="w-16 text-right text-sm font-medium text-theme-text-primary">
                 {(gpuSettings.gpu_memory_fraction * 100).toFixed(0)}%
               </span>
             </div>
-            <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
+            <p className="mt-1 text-xs text-theme-text-muted">
               Anteil des GPU-Speichers für Ollama (höher = schneller, aber weniger Headroom)
             </p>
           </div>
 
           {/* Parallel Requests */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+            <label className="block text-sm font-medium text-theme-text-secondary mb-2">
               Parallele Anfragen
             </label>
             <div className="flex items-center gap-4">
@@ -296,24 +296,24 @@ export function SettingsSystem() {
                 onChange={(e) => handleGpuChange('num_parallel', parseInt(e.target.value))}
                 className="flex-1"
               />
-              <span className="w-16 text-right text-sm font-medium text-gray-900 dark:text-white">
+              <span className="w-16 text-right text-sm font-medium text-theme-text-primary">
                 {gpuSettings.num_parallel}
               </span>
             </div>
-            <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
+            <p className="mt-1 text-xs text-theme-text-muted">
               Anzahl gleichzeitiger LLM-Anfragen (höher = mehr Durchsatz, aber mehr VRAM)
             </p>
           </div>
 
           {/* Context Size */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+            <label className="block text-sm font-medium text-theme-text-secondary mb-2">
               Kontextgröße (Token)
             </label>
             <select
               value={gpuSettings.context_size}
               onChange={(e) => handleGpuChange('context_size', parseInt(e.target.value))}
-              className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-primary-500"
+              className="w-full px-3 py-2 border border-theme-border-default rounded-lg bg-theme-input text-theme-text-primary focus:ring-2 focus:ring-accent-primary"
             >
               <option value={2048}>2048 (minimal)</option>
               <option value={4096}>4096 (standard)</option>
@@ -321,16 +321,16 @@ export function SettingsSystem() {
               <option value={16384}>16384 (groß)</option>
               <option value={32768}>32768 (maximal)</option>
             </select>
-            <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
+            <p className="mt-1 text-xs text-theme-text-muted">
               Maximale Eingabelänge für das LLM (größer = mehr VRAM benötigt)
             </p>
           </div>
 
           {/* Thermal Throttle */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+            <label className="block text-sm font-medium text-theme-text-secondary mb-2">
               <div className="flex items-center gap-2">
-                <Thermometer className="h-4 w-4 text-red-500" />
+                <Thermometer className="h-4 w-4 text-status-danger" />
                 Thermische Drosselung
               </div>
             </label>
@@ -344,11 +344,11 @@ export function SettingsSystem() {
                 onChange={(e) => handleGpuChange('thermal_throttle_temp', parseInt(e.target.value))}
                 className="flex-1"
               />
-              <span className="w-16 text-right text-sm font-medium text-gray-900 dark:text-white">
+              <span className="w-16 text-right text-sm font-medium text-theme-text-primary">
                 {gpuSettings.thermal_throttle_temp}°C
               </span>
             </div>
-            <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
+            <p className="mt-1 text-xs text-theme-text-muted">
               Ab dieser Temperatur wird die Last reduziert (GPU-Schutz)
             </p>
           </div>
@@ -360,7 +360,7 @@ export function SettingsSystem() {
             <button
               onClick={saveGpuSettings}
               disabled={updateGpuMutation.isPending}
-              className="px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 disabled:opacity-50 transition-colors"
+              className="px-4 py-2 bg-accent-primary text-white rounded-lg hover:bg-accent-primary-hover disabled:opacity-50 transition-colors"
             >
               {updateGpuMutation.isPending ? 'Wird gespeichert...' : 'Einstellungen speichern'}
             </button>
@@ -368,8 +368,8 @@ export function SettingsSystem() {
         )}
 
         {updateGpuMutation.isSuccess && (
-          <div className="mt-4 p-3 bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-lg">
-            <div className="flex items-center gap-2 text-green-700 dark:text-green-300 text-sm">
+          <div className="mt-4 p-3 bg-status-success-bg border border-status-success-border rounded-lg">
+            <div className="flex items-center gap-2 text-status-success text-sm">
               <CheckCircle className="h-4 w-4" />
               Einstellungen gespeichert. Container-Neustart erforderlich für volle Wirkung.
             </div>
@@ -378,17 +378,17 @@ export function SettingsSystem() {
       </div>
 
       {/* Service Status */}
-      <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-6">
+      <div className="bg-theme-card rounded-lg border border-theme-border-default p-6">
         <div className="flex items-center justify-between mb-4">
           <div className="flex items-center gap-2">
-            <Server className="h-5 w-5 text-primary-600" />
-            <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
+            <Server className="h-5 w-5 text-accent-primary" />
+            <h3 className="text-lg font-semibold text-theme-text-primary">
               Service-Status
             </h3>
           </div>
           <button
             onClick={() => refetchHealth()}
-            className="p-2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition-colors"
+            className="p-2 text-theme-text-muted hover:text-theme-text-secondary transition-colors"
             title="Aktualisieren"
           >
             <RefreshCw className={clsx('h-4 w-4', healthLoading && 'animate-spin')} />
@@ -397,16 +397,16 @@ export function SettingsSystem() {
 
         {healthLoading ? (
           <div className="flex items-center justify-center py-8">
-            <RefreshCw className="h-6 w-6 animate-spin text-gray-400" />
+            <RefreshCw className="h-6 w-6 animate-spin text-theme-text-muted" />
           </div>
         ) : health ? (
           <div className="space-y-4">
             {/* Overall Status */}
-            <div className="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-900 rounded-lg">
+            <div className="flex items-center justify-between p-3 bg-theme-hover rounded-lg">
               <div>
-                <span className="font-medium text-gray-900 dark:text-white">Gesamtstatus</span>
+                <span className="font-medium text-theme-text-primary">Gesamtstatus</span>
                 {(health as DetailedHealth).uptime_seconds && (
-                  <span className="ml-2 text-sm text-gray-500">
+                  <span className="ml-2 text-sm text-theme-text-muted">
                     (Uptime: {formatUptime((health as DetailedHealth).uptime_seconds)})
                   </span>
                 )}
@@ -414,8 +414,8 @@ export function SettingsSystem() {
               <div className={clsx(
                 'px-3 py-1 rounded-full text-sm font-medium',
                 (health as DetailedHealth).status === 'healthy'
-                  ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400'
-                  : 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400'
+                  ? 'bg-status-success-bg text-status-success'
+                  : 'bg-status-danger-bg text-status-danger'
               )}>
                 {(health as DetailedHealth).status === 'healthy' ? 'Gesund' : 'Probleme'}
               </div>
@@ -423,52 +423,52 @@ export function SettingsSystem() {
 
             {/* Individual Services */}
             <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-              <div className="flex items-center gap-2 p-3 bg-gray-50 dark:bg-gray-900 rounded-lg">
+              <div className="flex items-center gap-2 p-3 bg-theme-hover rounded-lg">
                 {getStatusIcon((health as DetailedHealth).services?.database)}
-                <span className="text-sm text-gray-700 dark:text-gray-300">PostgreSQL</span>
+                <span className="text-sm text-theme-text-secondary">PostgreSQL</span>
               </div>
-              <div className="flex items-center gap-2 p-3 bg-gray-50 dark:bg-gray-900 rounded-lg">
+              <div className="flex items-center gap-2 p-3 bg-theme-hover rounded-lg">
                 {getStatusIcon((health as DetailedHealth).services?.redis)}
-                <span className="text-sm text-gray-700 dark:text-gray-300">Redis</span>
+                <span className="text-sm text-theme-text-secondary">Redis</span>
               </div>
-              <div className="flex items-center gap-2 p-3 bg-gray-50 dark:bg-gray-900 rounded-lg">
+              <div className="flex items-center gap-2 p-3 bg-theme-hover rounded-lg">
                 {getStatusIcon((health as DetailedHealth).services?.chromadb)}
-                <span className="text-sm text-gray-700 dark:text-gray-300">ChromaDB</span>
+                <span className="text-sm text-theme-text-secondary">ChromaDB</span>
               </div>
-              <div className="flex items-center gap-2 p-3 bg-gray-50 dark:bg-gray-900 rounded-lg">
+              <div className="flex items-center gap-2 p-3 bg-theme-hover rounded-lg">
                 {getStatusIcon((health as DetailedHealth).services?.ollama)}
-                <span className="text-sm text-gray-700 dark:text-gray-300">Ollama</span>
+                <span className="text-sm text-theme-text-secondary">Ollama</span>
               </div>
             </div>
 
             {/* Version Info */}
             {(health as DetailedHealth).version && (
-              <div className="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-900 rounded-lg">
-                <span className="text-sm text-gray-700 dark:text-gray-300">Version</span>
-                <span className="text-sm font-mono text-gray-900 dark:text-white">
+              <div className="flex items-center justify-between p-3 bg-theme-hover rounded-lg">
+                <span className="text-sm text-theme-text-secondary">Version</span>
+                <span className="text-sm font-mono text-theme-text-primary">
                   {(health as DetailedHealth).version}
                 </span>
               </div>
             )}
           </div>
         ) : (
-          <div className="text-center py-4 text-gray-500">
+          <div className="text-center py-4 text-theme-text-muted">
             Keine Health-Daten verfügbar
           </div>
         )}
       </div>
 
       {/* Contact & Info */}
-      <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-6">
+      <div className="bg-theme-card rounded-lg border border-theme-border-default p-6">
         <div className="flex items-center gap-2 mb-4">
-          <Info className="h-5 w-5 text-primary-600" />
-          <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
+          <Info className="h-5 w-5 text-accent-primary" />
+          <h3 className="text-lg font-semibold text-theme-text-primary">
             Über FlowAudit
           </h3>
         </div>
 
         <div className="space-y-4">
-          <p className="text-sm text-gray-600 dark:text-gray-400">
+          <p className="text-sm text-theme-text-muted">
             FlowAudit ist ein KI-gestütztes Rechnungsprüfungssystem für die automatisierte
             Analyse und Validierung von Belegen nach steuerlichen Regelwerken.
           </p>
@@ -478,31 +478,31 @@ export function SettingsSystem() {
               href="https://github.com/janpow77/flowinvoice"
               target="_blank"
               rel="noopener noreferrer"
-              className="flex items-center gap-3 p-3 bg-gray-50 dark:bg-gray-900 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
+              className="flex items-center gap-3 p-3 bg-theme-hover rounded-lg hover:bg-theme-hover transition-colors"
             >
-              <Github className="h-5 w-5 text-gray-700 dark:text-gray-300" />
+              <Github className="h-5 w-5 text-theme-text-secondary" />
               <div>
-                <div className="text-sm font-medium text-gray-900 dark:text-white">GitHub Repository</div>
-                <div className="text-xs text-gray-500">Quellcode und Issues</div>
+                <div className="text-sm font-medium text-theme-text-primary">GitHub Repository</div>
+                <div className="text-xs text-theme-text-muted">Quellcode und Issues</div>
               </div>
-              <ExternalLink className="h-4 w-4 text-gray-400 ml-auto" />
+              <ExternalLink className="h-4 w-4 text-theme-text-muted ml-auto" />
             </a>
 
             <a
               href="mailto:support@flowinvoice.de"
-              className="flex items-center gap-3 p-3 bg-gray-50 dark:bg-gray-900 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
+              className="flex items-center gap-3 p-3 bg-theme-hover rounded-lg hover:bg-theme-hover transition-colors"
             >
-              <Mail className="h-5 w-5 text-gray-700 dark:text-gray-300" />
+              <Mail className="h-5 w-5 text-theme-text-secondary" />
               <div>
-                <div className="text-sm font-medium text-gray-900 dark:text-white">Support</div>
-                <div className="text-xs text-gray-500">support@flowinvoice.de</div>
+                <div className="text-sm font-medium text-theme-text-primary">Support</div>
+                <div className="text-xs text-theme-text-muted">support@flowinvoice.de</div>
               </div>
-              <ExternalLink className="h-4 w-4 text-gray-400 ml-auto" />
+              <ExternalLink className="h-4 w-4 text-theme-text-muted ml-auto" />
             </a>
           </div>
 
-          <div className="pt-4 border-t border-gray-200 dark:border-gray-700">
-            <p className="text-xs text-gray-500 dark:text-gray-400 text-center">
+          <div className="pt-4 border-t border-theme-border-default">
+            <p className="text-xs text-theme-text-muted text-center">
               © 2024 FlowInvoice/FlowAudit • Alle Rechte vorbehalten
             </p>
           </div>

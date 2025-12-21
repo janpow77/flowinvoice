@@ -179,8 +179,8 @@ export function SettingsDocumentTypes({ isAdmin }: Props) {
   if (isLoading) {
     return (
       <div className="flex items-center justify-center py-12">
-        <Loader2 className="h-8 w-8 animate-spin text-primary-600" />
-        <span className="ml-2 text-gray-600 dark:text-gray-400">Lade Dokumenttypen...</span>
+        <Loader2 className="h-8 w-8 animate-spin text-accent-primary" />
+        <span className="ml-2 text-theme-text-muted">Lade Dokumenttypen...</span>
       </div>
     )
   }
@@ -188,14 +188,14 @@ export function SettingsDocumentTypes({ isAdmin }: Props) {
   // Error state
   if (error) {
     return (
-      <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg p-4">
+      <div className="bg-status-danger-bg border border-status-danger-border rounded-lg p-4">
         <div className="flex items-start gap-3">
-          <AlertTriangle className="h-5 w-5 text-red-600 mt-0.5" />
+          <AlertTriangle className="h-5 w-5 text-status-danger mt-0.5" />
           <div>
-            <p className="font-medium text-red-800 dark:text-red-300">
+            <p className="font-medium text-status-danger">
               Fehler beim Laden der Dokumenttypen
             </p>
-            <p className="text-sm text-red-600 dark:text-red-400 mt-1">
+            <p className="text-sm text-status-danger mt-1">
               {error instanceof Error ? error.message : 'Unbekannter Fehler'}
             </p>
           </div>
@@ -207,10 +207,10 @@ export function SettingsDocumentTypes({ isAdmin }: Props) {
   return (
     <div className="space-y-6">
       {/* Info Box */}
-      <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-4">
+      <div className="bg-status-info-bg border border-status-info-border rounded-lg p-4">
         <div className="flex items-start gap-3">
-          <Info className="h-5 w-5 text-blue-600 mt-0.5" />
-          <div className="text-sm text-blue-700 dark:text-blue-300">
+          <Info className="h-5 w-5 text-status-info mt-0.5" />
+          <div className="text-sm text-status-info">
             <p className="font-medium mb-1">Warum Dokumenttypen?</p>
             <p>
               Dokumenttypen ermöglichen optimierte Verarbeitungseinstellungen für verschiedene Belegarten.
@@ -224,20 +224,20 @@ export function SettingsDocumentTypes({ isAdmin }: Props) {
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Left: Document Type List */}
         <div className="lg:col-span-1">
-          <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700">
-            <div className="p-4 border-b border-gray-200 dark:border-gray-700 flex items-center justify-between">
-              <h3 className="font-semibold text-gray-900 dark:text-white">Dokumenttypen</h3>
+          <div className="bg-theme-card rounded-lg border border-theme-border-default">
+            <div className="p-4 border-b border-theme-border-default flex items-center justify-between">
+              <h3 className="font-semibold text-theme-text-primary">Dokumenttypen</h3>
               {isAdmin && (
                 <button
                   onClick={handleCreate}
-                  className="p-1.5 text-primary-600 hover:bg-primary-50 dark:hover:bg-primary-900/20 rounded-lg"
+                  className="p-1.5 text-accent-primary hover:bg-accent-primary/10 rounded-lg"
                   title="Neuer Dokumenttyp"
                 >
                   <Plus className="h-5 w-5" />
                 </button>
               )}
             </div>
-            <div className="divide-y divide-gray-200 dark:divide-gray-700">
+            <div className="divide-y divide-theme-border-default">
               {documentTypes.map((type: DocumentTypeConfig) => (
                 <button
                   key={type.id}
@@ -250,27 +250,27 @@ export function SettingsDocumentTypes({ isAdmin }: Props) {
                   className={clsx(
                     'w-full px-4 py-3 text-left flex items-center justify-between transition-colors',
                     selectedTypeId === type.id
-                      ? 'bg-primary-50 dark:bg-primary-900/20'
-                      : 'hover:bg-gray-50 dark:hover:bg-gray-700'
+                      ? 'bg-accent-primary/10'
+                      : 'hover:bg-theme-hover'
                   )}
                 >
                   <div className="flex items-center gap-3">
-                    <FileText className="h-4 w-4 text-gray-400" />
+                    <FileText className="h-4 w-4 text-theme-text-muted" />
                     <div>
                       <p className={clsx(
                         'font-medium',
                         selectedTypeId === type.id
-                          ? 'text-primary-700 dark:text-primary-300'
-                          : 'text-gray-900 dark:text-white'
+                          ? 'text-accent-primary'
+                          : 'text-theme-text-primary'
                       )}>
                         {type.name}
                       </p>
                       {type.isSystem && (
-                        <span className="text-xs text-gray-400">System</span>
+                        <span className="text-xs text-theme-text-muted">System</span>
                       )}
                     </div>
                   </div>
-                  <ChevronRight className="h-4 w-4 text-gray-400" />
+                  <ChevronRight className="h-4 w-4 text-theme-text-muted" />
                 </button>
               ))}
             </div>
@@ -281,23 +281,23 @@ export function SettingsDocumentTypes({ isAdmin }: Props) {
         <div className="lg:col-span-2">
           {isEditing && editForm ? (
             // Edit Form
-            <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-6">
+            <div className="bg-theme-card rounded-lg border border-theme-border-default p-6">
               <div className="flex items-center justify-between mb-6">
-                <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
+                <h3 className="text-lg font-semibold text-theme-text-primary">
                   {isCreating ? 'Neuer Dokumenttyp' : 'Dokumenttyp bearbeiten'}
                 </h3>
                 <div className="flex items-center gap-2">
                   <button
                     onClick={handleCancel}
                     disabled={isSaving}
-                    className="px-3 py-1.5 text-gray-600 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg disabled:opacity-50"
+                    className="px-3 py-1.5 text-theme-text-muted hover:bg-theme-hover rounded-lg disabled:opacity-50"
                   >
                     <X className="h-4 w-4" />
                   </button>
                   <button
                     onClick={handleSave}
                     disabled={isSaving}
-                    className="px-3 py-1.5 bg-primary-600 text-white rounded-lg hover:bg-primary-700 flex items-center gap-1 disabled:opacity-50"
+                    className="px-3 py-1.5 bg-accent-primary text-white rounded-lg hover:bg-accent-primary-hover flex items-center gap-1 disabled:opacity-50"
                   >
                     {isSaving ? (
                       <Loader2 className="h-4 w-4 animate-spin" />
@@ -311,43 +311,43 @@ export function SettingsDocumentTypes({ isAdmin }: Props) {
 
               <div className="space-y-4">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                  <label className="block text-sm font-medium text-theme-text-secondary mb-1">
                     Name *
                   </label>
                   <input
                     type="text"
                     value={editForm.name || ''}
                     onChange={(e) => setEditForm({ ...editForm, name: e.target.value })}
-                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-primary-500"
+                    className="w-full px-3 py-2 border border-theme-border-default rounded-lg bg-theme-input text-theme-text-primary focus:ring-2 focus:ring-accent-primary"
                     placeholder="z.B. Lieferschein"
                   />
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                  <label className="block text-sm font-medium text-theme-text-secondary mb-1">
                     Beschreibung
                   </label>
                   <textarea
                     value={editForm.description || ''}
                     onChange={(e) => setEditForm({ ...editForm, description: e.target.value })}
                     rows={2}
-                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-primary-500"
+                    className="w-full px-3 py-2 border border-theme-border-default rounded-lg bg-theme-input text-theme-text-primary focus:ring-2 focus:ring-accent-primary"
                     placeholder="Kurze Beschreibung des Dokumenttyps"
                   />
                 </div>
 
                 {/* Chunking Settings */}
-                <div className="pt-4 border-t border-gray-200 dark:border-gray-700">
-                  <h4 className="font-medium text-gray-900 dark:text-white mb-3">
+                <div className="pt-4 border-t border-theme-border-default">
+                  <h4 className="font-medium text-theme-text-primary mb-3">
                     Chunking-Einstellungen
                   </h4>
-                  <p className="text-xs text-gray-500 dark:text-gray-400 mb-4">
+                  <p className="text-xs text-theme-text-muted mb-4">
                     Chunking teilt lange Dokumente in Abschnitte, damit das Modell gezielt relevante Stellen verarbeitet.
                   </p>
 
                   <div className="grid grid-cols-2 gap-4">
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                      <label className="block text-sm font-medium text-theme-text-secondary mb-1">
                         Chunk-Größe (Tokens)
                       </label>
                       <input
@@ -364,12 +364,12 @@ export function SettingsDocumentTypes({ isAdmin }: Props) {
                         }
                         min={200}
                         max={2000}
-                        className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-primary-500"
+                        className="w-full px-3 py-2 border border-theme-border-default rounded-lg bg-theme-input text-theme-text-primary focus:ring-2 focus:ring-accent-primary"
                       />
                     </div>
 
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                      <label className="block text-sm font-medium text-theme-text-secondary mb-1">
                         Überlappung (Tokens)
                       </label>
                       <input
@@ -386,12 +386,12 @@ export function SettingsDocumentTypes({ isAdmin }: Props) {
                         }
                         min={0}
                         max={500}
-                        className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-primary-500"
+                        className="w-full px-3 py-2 border border-theme-border-default rounded-lg bg-theme-input text-theme-text-primary focus:ring-2 focus:ring-accent-primary"
                       />
                     </div>
 
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                      <label className="block text-sm font-medium text-theme-text-secondary mb-1">
                         Max. Chunks
                       </label>
                       <input
@@ -408,12 +408,12 @@ export function SettingsDocumentTypes({ isAdmin }: Props) {
                         }
                         min={1}
                         max={20}
-                        className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-primary-500"
+                        className="w-full px-3 py-2 border border-theme-border-default rounded-lg bg-theme-input text-theme-text-primary focus:ring-2 focus:ring-accent-primary"
                       />
                     </div>
 
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                      <label className="block text-sm font-medium text-theme-text-secondary mb-1">
                         Strategie
                       </label>
                       <select
@@ -427,7 +427,7 @@ export function SettingsDocumentTypes({ isAdmin }: Props) {
                             },
                           })
                         }
-                        className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-primary-500"
+                        className="w-full px-3 py-2 border border-theme-border-default rounded-lg bg-theme-input text-theme-text-primary focus:ring-2 focus:ring-accent-primary"
                       >
                         <option value="fixed">Feste Größe</option>
                         <option value="paragraph">Absätze</option>
@@ -440,14 +440,14 @@ export function SettingsDocumentTypes({ isAdmin }: Props) {
             </div>
           ) : selectedType ? (
             // Detail View
-            <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-6">
+            <div className="bg-theme-card rounded-lg border border-theme-border-default p-6">
               <div className="flex items-center justify-between mb-6">
                 <div>
-                  <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
+                  <h3 className="text-lg font-semibold text-theme-text-primary">
                     {selectedType.name}
                   </h3>
                   {selectedType.isSystem && (
-                    <span className="text-xs text-gray-400 flex items-center gap-1 mt-1">
+                    <span className="text-xs text-theme-text-muted flex items-center gap-1 mt-1">
                       <Lock className="h-3 w-3" />
                       System-Dokumenttyp (nicht löschbar)
                     </span>
@@ -457,7 +457,7 @@ export function SettingsDocumentTypes({ isAdmin }: Props) {
                   <div className="flex items-center gap-2">
                     <button
                       onClick={() => handleEdit(selectedType)}
-                      className="px-3 py-1.5 text-gray-600 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg flex items-center gap-1"
+                      className="px-3 py-1.5 text-theme-text-muted hover:bg-theme-hover rounded-lg flex items-center gap-1"
                     >
                       <Pencil className="h-4 w-4" />
                       Bearbeiten
@@ -465,7 +465,7 @@ export function SettingsDocumentTypes({ isAdmin }: Props) {
                     {!selectedType.isSystem && (
                       <button
                         onClick={() => setDeleteConfirm(selectedType.id)}
-                        className="px-3 py-1.5 text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg flex items-center gap-1"
+                        className="px-3 py-1.5 text-status-danger hover:bg-status-danger-bg rounded-lg flex items-center gap-1"
                       >
                         <Trash2 className="h-4 w-4" />
                         Löschen
@@ -475,39 +475,39 @@ export function SettingsDocumentTypes({ isAdmin }: Props) {
                 )}
               </div>
 
-              <p className="text-gray-600 dark:text-gray-400 mb-6">
+              <p className="text-theme-text-muted mb-6">
                 {selectedType.description || 'Keine Beschreibung'}
               </p>
 
               {/* Chunking Defaults */}
-              <div className="pt-4 border-t border-gray-200 dark:border-gray-700">
-                <h4 className="font-medium text-gray-900 dark:text-white mb-4">
+              <div className="pt-4 border-t border-theme-border-default">
+                <h4 className="font-medium text-theme-text-primary mb-4">
                   Chunking-Defaults
                 </h4>
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                  <div className="bg-gray-50 dark:bg-gray-700 p-3 rounded-lg">
-                    <p className="text-xs text-gray-500 dark:text-gray-400">Chunk-Größe</p>
-                    <p className="text-lg font-semibold text-gray-900 dark:text-white">
+                  <div className="bg-theme-hover p-3 rounded-lg">
+                    <p className="text-xs text-theme-text-muted">Chunk-Größe</p>
+                    <p className="text-lg font-semibold text-theme-text-primary">
                       {selectedType.chunkingDefaults.chunkSizeTokens}
                     </p>
-                    <p className="text-xs text-gray-400">Tokens</p>
+                    <p className="text-xs text-theme-text-muted">Tokens</p>
                   </div>
-                  <div className="bg-gray-50 dark:bg-gray-700 p-3 rounded-lg">
-                    <p className="text-xs text-gray-500 dark:text-gray-400">Überlappung</p>
-                    <p className="text-lg font-semibold text-gray-900 dark:text-white">
+                  <div className="bg-theme-hover p-3 rounded-lg">
+                    <p className="text-xs text-theme-text-muted">Überlappung</p>
+                    <p className="text-lg font-semibold text-theme-text-primary">
                       {selectedType.chunkingDefaults.chunkOverlapTokens}
                     </p>
-                    <p className="text-xs text-gray-400">Tokens</p>
+                    <p className="text-xs text-theme-text-muted">Tokens</p>
                   </div>
-                  <div className="bg-gray-50 dark:bg-gray-700 p-3 rounded-lg">
-                    <p className="text-xs text-gray-500 dark:text-gray-400">Max. Chunks</p>
-                    <p className="text-lg font-semibold text-gray-900 dark:text-white">
+                  <div className="bg-theme-hover p-3 rounded-lg">
+                    <p className="text-xs text-theme-text-muted">Max. Chunks</p>
+                    <p className="text-lg font-semibold text-theme-text-primary">
                       {selectedType.chunkingDefaults.maxChunks}
                     </p>
                   </div>
-                  <div className="bg-gray-50 dark:bg-gray-700 p-3 rounded-lg">
-                    <p className="text-xs text-gray-500 dark:text-gray-400">Strategie</p>
-                    <p className="text-lg font-semibold text-gray-900 dark:text-white capitalize">
+                  <div className="bg-theme-hover p-3 rounded-lg">
+                    <p className="text-xs text-theme-text-muted">Strategie</p>
+                    <p className="text-lg font-semibold text-theme-text-primary capitalize">
                       {selectedType.chunkingDefaults.chunkStrategy}
                     </p>
                   </div>
@@ -516,28 +516,28 @@ export function SettingsDocumentTypes({ isAdmin }: Props) {
 
               {/* Delete Confirmation */}
               {deleteConfirm === selectedType.id && (
-                <div className="mt-6 p-4 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg">
+                <div className="mt-6 p-4 bg-status-danger-bg border border-status-danger-border rounded-lg">
                   <div className="flex items-start gap-3">
-                    <AlertCircle className="h-5 w-5 text-red-600 mt-0.5" />
+                    <AlertCircle className="h-5 w-5 text-status-danger mt-0.5" />
                     <div className="flex-1">
-                      <p className="font-medium text-red-800 dark:text-red-300">
+                      <p className="font-medium text-status-danger">
                         Dokumenttyp löschen?
                       </p>
-                      <p className="text-sm text-red-600 dark:text-red-400 mt-1">
+                      <p className="text-sm text-status-danger mt-1">
                         Alle Profile, die diesen Dokumenttyp verwenden, werden auf "Alle" umgestellt.
                       </p>
                       <div className="mt-3 flex gap-2">
                         <button
                           onClick={() => handleDelete(selectedType.id)}
                           disabled={isDeleting}
-                          className="px-3 py-1.5 bg-red-600 text-white rounded-lg hover:bg-red-700 text-sm flex items-center gap-1 disabled:opacity-50"
+                          className="px-3 py-1.5 bg-status-danger text-white rounded-lg hover:bg-status-danger/90 text-sm flex items-center gap-1 disabled:opacity-50"
                         >
                           {isDeleting && <Loader2 className="h-4 w-4 animate-spin" />}
                           Ja, löschen
                         </button>
                         <button
                           onClick={() => setDeleteConfirm(null)}
-                          className="px-3 py-1.5 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 text-sm"
+                          className="px-3 py-1.5 bg-theme-hover text-theme-text-secondary rounded-lg hover:bg-theme-card border border-theme-border-default text-sm"
                         >
                           Abbrechen
                         </button>
@@ -549,12 +549,12 @@ export function SettingsDocumentTypes({ isAdmin }: Props) {
             </div>
           ) : (
             // Empty State
-            <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-12 text-center">
-              <FileText className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-              <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-2">
+            <div className="bg-theme-card rounded-lg border border-theme-border-default p-12 text-center">
+              <FileText className="h-12 w-12 text-theme-text-muted mx-auto mb-4" />
+              <h3 className="text-lg font-medium text-theme-text-primary mb-2">
                 Dokumenttyp auswählen
               </h3>
-              <p className="text-gray-500 dark:text-gray-400">
+              <p className="text-theme-text-muted">
                 Wähle einen Dokumenttyp aus der Liste, um Details anzuzeigen.
               </p>
             </div>
