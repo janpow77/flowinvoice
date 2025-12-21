@@ -21,6 +21,8 @@ import {
   PauseCircle,
   Trash2,
   FileCheck,
+  Plus,
+  Rocket,
 } from 'lucide-react'
 import clsx from 'clsx'
 import { api } from '@/lib/api'
@@ -122,6 +124,11 @@ export default function Generator() {
     project_number: '',
   })
 
+  // New batch job form state
+  const [newJobType, setNewJobType] = useState<string>('BATCH_ANALYZE')
+  const [newJobProjectId, setNewJobProjectId] = useState<string>('')
+  const [showNewJobForm, setShowNewJobForm] = useState(false)
+
   // Fetch templates
   const { data: templates, isLoading: templatesLoading } = useQuery({
     queryKey: ['generator-templates'],
@@ -218,6 +225,21 @@ export default function Generator() {
     },
   })
 
+  // Create batch job mutation
+  const createBatchJobMutation = useMutation({
+    mutationFn: (data: { job_type: string; project_id?: string }) =>
+      api.createBatchJob({
+        job_type: data.job_type,
+        project_id: data.project_id || undefined,
+      }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['batch-jobs'] })
+      setShowNewJobForm(false)
+      setNewJobType('BATCH_ANALYZE')
+      setNewJobProjectId('')
+    },
+  })
+
   const toggleTemplate = (templateId: string) => {
     setSelectedTemplates(prev =>
       prev.includes(templateId)
@@ -228,6 +250,13 @@ export default function Generator() {
 
   const handleRun = () => {
     runGeneratorMutation.mutate()
+  }
+
+  const handleCreateBatchJob = () => {
+    createBatchJobMutation.mutate({
+      job_type: newJobType,
+      project_id: newJobProjectId || undefined,
+    })
   }
 
   const isRunning = runGeneratorMutation.isPending || (jobStatus?.status === 'RUNNING' || jobStatus?.status === 'PENDING')
@@ -812,19 +841,127 @@ export default function Generator() {
 
       {activeTab === 'batch-jobs' && (
         <div className="space-y-6">
-          {/* Header with refresh */}
+          {/* Header with New Job and Refresh buttons */}
           <div className="flex items-center justify-between">
             <h2 className="text-lg font-semibold text-theme-text-primary">
               {t('generator.batchJobsList', 'Batch-Jobs')}
             </h2>
-            <button
-              onClick={() => queryClient.invalidateQueries({ queryKey: ['batch-jobs'] })}
-              className="flex items-center gap-2 px-3 py-1.5 text-sm text-theme-text-secondary hover:text-theme-text-primary border border-theme-border-default rounded-lg hover:bg-theme-hover"
-            >
-              <RefreshCw className="h-4 w-4" />
-              {t('common.refresh', 'Aktualisieren')}
-            </button>
+            <div className="flex items-center gap-2">
+              <button
+                onClick={() => setShowNewJobForm(!showNewJobForm)}
+                className={clsx(
+                  'flex items-center gap-2 px-3 py-1.5 text-sm rounded-lg transition-colors',
+                  showNewJobForm
+                    ? 'bg-accent-primary text-white'
+                    : 'bg-accent-primary text-white hover:bg-accent-primary-hover'
+                )}
+              >
+                <Plus className="h-4 w-4" />
+                {t('generator.newBatchJob', 'Neuer Job')}
+              </button>
+              <button
+                onClick={() => queryClient.invalidateQueries({ queryKey: ['batch-jobs'] })}
+                className="flex items-center gap-2 px-3 py-1.5 text-sm text-theme-text-secondary hover:text-theme-text-primary border border-theme-border-default rounded-lg hover:bg-theme-hover"
+              >
+                <RefreshCw className="h-4 w-4" />
+                {t('common.refresh', 'Aktualisieren')}
+              </button>
+            </div>
           </div>
+
+          {/* New Job Form */}
+          {showNewJobForm && (
+            <div className="bg-theme-card rounded-xl shadow-sm border border-theme-border-default p-6">
+              <h3 className="text-md font-semibold text-theme-text-primary mb-4 flex items-center gap-2">
+                <Rocket className="h-5 w-5 text-accent-primary" />
+                {t('generator.createBatchJob', 'Batch-Job erstellen')}
+              </h3>
+
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                {/* Job Type */}
+                <div>
+                  <label className="block text-sm font-medium text-theme-text-secondary mb-1">
+                    {t('generator.jobType', 'Job-Typ')}
+                  </label>
+                  <select
+                    value={newJobType}
+                    onChange={(e) => setNewJobType(e.target.value)}
+                    className="w-full px-3 py-2 border border-theme-border-default rounded-lg bg-theme-input text-theme-text-primary"
+                  >
+                    <option value="BATCH_ANALYZE">{t('generator.jobTypeAnalyze', 'Dokumente analysieren')}</option>
+                    <option value="BATCH_VALIDATE">{t('generator.jobTypeValidate', 'Dokumente validieren')}</option>
+                    <option value="BATCH_EXPORT">{t('generator.jobTypeExport', 'Ergebnisse exportieren')}</option>
+                    <option value="RAG_REBUILD">{t('generator.jobTypeRagRebuild', 'RAG-Index neu aufbauen')}</option>
+                  </select>
+                </div>
+
+                {/* Project Selection */}
+                <div>
+                  <label className="block text-sm font-medium text-theme-text-secondary mb-1">
+                    {t('generator.project', 'Projekt')} <span className="text-theme-text-muted">({t('common.optional', 'optional')})</span>
+                  </label>
+                  <select
+                    value={newJobProjectId}
+                    onChange={(e) => setNewJobProjectId(e.target.value)}
+                    className="w-full px-3 py-2 border border-theme-border-default rounded-lg bg-theme-input text-theme-text-primary"
+                  >
+                    <option value="">{t('generator.allProjects', 'Alle Projekte')}</option>
+                    {(projects || []).map((project: { id: string; title: string }) => (
+                      <option key={project.id} value={project.id}>
+                        {project.title}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                {/* Submit Button */}
+                <div className="flex items-end">
+                  <button
+                    onClick={handleCreateBatchJob}
+                    disabled={createBatchJobMutation.isPending}
+                    className={clsx(
+                      'flex items-center justify-center gap-2 px-4 py-2 rounded-lg font-medium transition-colors w-full',
+                      createBatchJobMutation.isPending
+                        ? 'bg-theme-hover text-theme-text-disabled cursor-not-allowed'
+                        : 'bg-green-600 text-white hover:bg-green-700'
+                    )}
+                  >
+                    {createBatchJobMutation.isPending ? (
+                      <>
+                        <Loader2 className="h-4 w-4 animate-spin" />
+                        {t('common.creating', 'Erstelle...')}
+                      </>
+                    ) : (
+                      <>
+                        <Play className="h-4 w-4" />
+                        {t('generator.startJob', 'Job starten')}
+                      </>
+                    )}
+                  </button>
+                </div>
+              </div>
+
+              {/* Job Type Description */}
+              <div className="mt-4 p-3 bg-theme-hover rounded-lg">
+                <p className="text-sm text-theme-text-muted">
+                  {newJobType === 'BATCH_ANALYZE' && t('generator.jobDescAnalyze', 'Analysiert alle validierten Dokumente des Projekts mit dem LLM.')}
+                  {newJobType === 'BATCH_VALIDATE' && t('generator.jobDescValidate', 'Validiert alle Dokumente gegen das konfigurierte Regelwerk.')}
+                  {newJobType === 'BATCH_EXPORT' && t('generator.jobDescExport', 'Exportiert alle Prüfergebnisse als CSV/Excel.')}
+                  {newJobType === 'RAG_REBUILD' && t('generator.jobDescRagRebuild', 'Baut den RAG-Vektorindex mit allen Beispielen neu auf.')}
+                </p>
+              </div>
+
+              {/* Error message */}
+              {createBatchJobMutation.isError && (
+                <div className="mt-4 p-3 bg-red-50 border border-red-200 rounded-lg">
+                  <p className="text-sm text-red-600 flex items-center gap-2">
+                    <AlertCircle className="h-4 w-4" />
+                    {t('generator.jobCreateError', 'Fehler beim Erstellen des Jobs')}
+                  </p>
+                </div>
+              )}
+            </div>
+          )}
 
           {/* Jobs Table */}
           <div className="bg-theme-card rounded-xl shadow-sm border border-theme-border-default overflow-hidden">
