@@ -21,6 +21,9 @@ Dieses Dokument beschreibt den erweiterten Workflow für das Training des LLM-Sy
 | Frontend Analyse-Ansicht | ⚠️ | Zeigt nur Gesamtbewertung |
 | Frontend Korrektur-Formular | ❌ | Nicht implementiert |
 | Lösungsdatei-Import | ❌ | Nicht implementiert |
+| Risk Checker GUI | ❌ | Keine Konfigurationsoberfläche |
+| Semantic Check GUI | ❌ | Keine Konfigurationsoberfläche |
+| Economic Check GUI | ❌ | Keine Konfigurationsoberfläche |
 
 ### Was fehlt
 
@@ -28,6 +31,9 @@ Dieses Dokument beschreibt den erweiterten Workflow für das Training des LLM-Sy
 2. **Korrektur-Formular** pro Merkmal
 3. **Lösungsdatei-Upload** (API + UI)
 4. **Merge-Logik** (manuell vs. Lösungsdatei)
+5. **Risk Checker GUI** - Konfiguration der Risiko-Prüfungsregeln
+6. **Semantic Check GUI** - Konfiguration der semantischen Prüfung (LLM)
+7. **Economic Check GUI** - Konfiguration der Wirtschaftlichkeitsprüfung
 
 ---
 
@@ -1173,8 +1179,8 @@ class Project:
     # Projektbeschreibung (für semantische Prüfung)
     project_description: str      # "Digitalisierung der Geschäftsprozesse..."
 
-    # Optional
-    project_location: str | None  # "Hamburg" (für Leistungsort-Prüfung)
+    # Projektstandort (Pflicht!)
+    project_location: str         # "Hamburg" (für Leistungsort-Prüfung)
 
     # Ruleset
     ruleset_id: str               # "DE_USTG"
@@ -1280,11 +1286,11 @@ class Project:
 9. **Selbstrechnungs-Prüfung**: `FRAUD_SELF_INVOICE` bei gleicher UST-ID
 10. **Projektdaten**: Erweitert um `execution_period`, `beneficiary_vat_id`, `project_description`
 
-## Offene Fragen
+## Geklärte Fragen (fortgesetzt)
 
-1. **E-Mail-Benachrichtigung**: Wer soll den Batch-Report erhalten?
-2. **Projektstandort**: Ist `project_location` immer definiert oder optional?
-3. **Förderquote**: Wird `funding_rate` und `max_funding_amount` benötigt?
+11. **E-Mail-Benachrichtigung**: Batch-Reports an jan.riener@vwvg.de
+12. **Projektstandort**: `project_location` ist **Pflicht** (nicht optional)
+13. **Förderquote**: `funding_rate` und `max_funding_amount` werden benötigt
 
 ---
 
@@ -1327,8 +1333,131 @@ class Project:
 4. [ ] Report-Generierung
 5. [ ] Batch-Job UI (optional)
 
-### Phase 6: Tests
+### Phase 6: Prüf-GUIs im Frontend (Regelwerk-Bereich)
+
+> **Hinweis**: Der Risk Checker, die Semantische Prüfung und die Wirtschaftlichkeitsprüfung haben aktuell **keine GUI**. Diese müssen im Frontend unter Rulesets/Settings implementiert werden.
+
+1. [ ] **Risk Checker GUI** (`/rulesets/{id}/risk-checker`)
+   - [ ] Schwellenwerte konfigurieren (z.B. Betrags-Grenze für Warnung)
+   - [ ] Aktivieren/Deaktivieren einzelner Regeln
+   - [ ] Lieferantenhäufungs-Schwelle einstellen
+   - [ ] Pauschalbetrags-Erkennung konfigurieren
+
+2. [ ] **Semantic Check GUI** (`/rulesets/{id}/semantic`)
+   - [ ] LLM-Provider auswählen (für semantische Prüfung)
+   - [ ] Red-Flag Keywords verwalten (z.B. "Bewirtung", "Luxus")
+   - [ ] Projektrelevanz-Schwellenwert einstellen
+   - [ ] Test-Funktion: Beispiel-Beschreibung prüfen
+
+3. [ ] **Economic Check GUI** (`/rulesets/{id}/economic`)
+   - [ ] Marktüblichkeits-Prüfung aktivieren
+   - [ ] Statistische Ausreißer-Erkennung (Standardabweichungen)
+   - [ ] Branchen-spezifische Richtwerte (optional)
+   - [ ] Preis-Benchmarks verwalten
+
+### UI-Mockup: Regelwerk-Erweiterung
+
+```
+┌─────────────────────────────────────────────────────────────────────────────────────┐
+│  REGELWERK: DE_USTG (§ 14 UStG)                                                     │
+├─────────────────────────────────────────────────────────────────────────────────────┤
+│                                                                                     │
+│  ┌─────────────┐ ┌─────────────┐ ┌─────────────┐ ┌─────────────┐ ┌─────────────┐    │
+│  │ 📜 Steuer-  │ │ 📋 Projekt- │ │ ⚠️ Risk     │ │ 🤖 Semantik │ │ 💰 Wirtsch. │    │
+│  │    recht    │ │    bezug    │ │   Checker   │ │             │ │             │    │
+│  └─────────────┘ └─────────────┘ └─────────────┘ └─────────────┘ └─────────────┘    │
+│        ▲              ▲              ▲                                              │
+│        │              │              │ (aktiv)                                      │
+│        │              │              │                                              │
+├─────────────────────────────────────────────────────────────────────────────────────┤
+│                                                                                     │
+│  ⚠️ RISK CHECKER KONFIGURATION                                                      │
+│  ═══════════════════════════════════════════════════════════════════════════════    │
+│                                                                                     │
+│  Aktiviert: [✓]                                                                     │
+│                                                                                     │
+│  ┌─────────────────────────────────────────────────────────────────────────────┐    │
+│  │  Regel                          │ Aktiv │ Schwellenwert │ Severity         │    │
+│  ├─────────────────────────────────────────────────────────────────────────────┤    │
+│  │  Hohe Beträge                   │  [✓]  │ [50.000] €    │ [MEDIUM ▼]       │    │
+│  │  Lieferantenhäufung             │  [✓]  │ [30] %        │ [LOW ▼]          │    │
+│  │  Fehlender Leistungszeitraum    │  [✓]  │ -             │ [MEDIUM ▼]       │    │
+│  │  Runde Pauschalbeträge          │  [✓]  │ [1.000] €     │ [LOW ▼]          │    │
+│  │  Außerhalb Projektzeitraum      │  [✓]  │ -             │ [HIGH ▼]         │    │
+│  │  Fehlender Projektbezug         │  [✓]  │ -             │ [MEDIUM ▼]       │    │
+│  │  Empfänger-Abweichung           │  [✓]  │ -             │ [MEDIUM ▼]       │    │
+│  └─────────────────────────────────────────────────────────────────────────────┘    │
+│                                                                                     │
+│  Statistische Ausreißer:                                                            │
+│  Median + [2] Standardabweichungen = Warnung                                        │
+│                                                                                     │
+│                                                         [Zurücksetzen] [Speichern]  │
+└─────────────────────────────────────────────────────────────────────────────────────┘
+```
+
+```
+┌─────────────────────────────────────────────────────────────────────────────────────┐
+│  🤖 SEMANTISCHE PRÜFUNG KONFIGURATION                                               │
+├─────────────────────────────────────────────────────────────────────────────────────┤
+│                                                                                     │
+│  Aktiviert: [✓]                                                                     │
+│                                                                                     │
+│  LLM-Provider: [Ollama (llama3.2) ▼]                                                │
+│                                                                                     │
+│  Projektrelevanz-Schwelle:                                                          │
+│  [═══════════════●═══] 70%                                                          │
+│  └─ Unter diesem Wert: SEMANTIC_LOW_PROJECT_RELEVANCE                               │
+│                                                                                     │
+│  Red-Flag Keywords (Warnung bei Erkennung):                                         │
+│  ┌─────────────────────────────────────────────────────────────────────────────┐    │
+│  │ Bewirtung  ×  │ Luxus  ×  │ Privatfahrzeug  ×  │ Alkohol  ×  │ + Hinzufügen│    │
+│  └─────────────────────────────────────────────────────────────────────────────┘    │
+│                                                                                     │
+│  Red-Flag Keywords (Ablehnung):                                                     │
+│  ┌─────────────────────────────────────────────────────────────────────────────┐    │
+│  │ Glücksspiel  ×  │ Parteispende  ×  │ + Hinzufügen                          │    │
+│  └─────────────────────────────────────────────────────────────────────────────┘    │
+│                                                                                     │
+│  Test-Funktion:                                                                     │
+│  ┌─────────────────────────────────────────────────────────────────────────────┐    │
+│  │ IT-Beratung für ERP-Einführung im Rahmen der Digitalisierungsinitiative    │    │
+│  └─────────────────────────────────────────────────────────────────────────────┘    │
+│  [Testen] → Ergebnis: ✓ 92% Projektrelevanz, keine Red-Flags                        │
+│                                                                                     │
+│                                                         [Zurücksetzen] [Speichern]  │
+└─────────────────────────────────────────────────────────────────────────────────────┘
+```
+
+```
+┌─────────────────────────────────────────────────────────────────────────────────────┐
+│  💰 WIRTSCHAFTLICHKEITSPRÜFUNG KONFIGURATION                                        │
+├─────────────────────────────────────────────────────────────────────────────────────┤
+│                                                                                     │
+│  Aktiviert: [✓]                                                                     │
+│                                                                                     │
+│  Statistische Ausreißer-Erkennung:                                                  │
+│  Warnung ab: Median + [2] Standardabweichungen                                      │
+│                                                                                     │
+│  Preis-Benchmarks (optional):                                                       │
+│  ┌─────────────────────────────────────────────────────────────────────────────┐    │
+│  │  Leistungsart          │ Einheit      │ Max. Preis │ Quelle                 │    │
+│  ├─────────────────────────────────────────────────────────────────────────────┤    │
+│  │  IT-Beratung           │ Stunde       │ 180,00 €   │ Marktüblich            │    │
+│  │  Softwareentwicklung   │ Stunde       │ 150,00 €   │ Marktüblich            │    │
+│  │  Büromaterial          │ Pauschale    │ 500,00 €   │ Erfahrungswert         │    │
+│  │  [+ Hinzufügen]                                                             │    │
+│  └─────────────────────────────────────────────────────────────────────────────┘    │
+│                                                                                     │
+│  Automatische Marktpreis-Prüfung:                                                   │
+│  [ ] Gegen öffentliche Preisdatenbanken prüfen (experimentell)                      │
+│                                                                                     │
+│                                                         [Zurücksetzen] [Speichern]  │
+└─────────────────────────────────────────────────────────────────────────────────────┘
+```
+
+### Phase 7: Tests
 1. [ ] Unit-Tests für Fehler-Codes
 2. [ ] Integration-Tests für Selbstrechnungs-Prüfung
 3. [ ] E2E-Tests mit generierten Rechnungen
 4. [ ] Performance-Tests (1000 Rechnungen)
+5. [ ] Tests für Prüf-GUIs (Risk Checker, Semantic, Economic)
