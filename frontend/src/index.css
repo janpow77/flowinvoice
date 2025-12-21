@@ -85,6 +85,10 @@
   --color-ui-divider: #E5E7EB;
   --color-ui-focus-ring: rgba(59, 130, 246, 0.5);
 
+  /* Code blocks */
+  --color-code-bg: #1f2937;
+  --color-code-text: #f3f4f6;
+
   /* -------------------------------------------------------------------------
      Shadows - Semantische Schatten
      ------------------------------------------------------------------------- */
@@ -160,6 +164,10 @@
   --color-ui-shadow: rgba(0, 0, 0, 0.4);
   --color-ui-divider: #374151;
   --color-ui-focus-ring: rgba(59, 130, 246, 0.6);
+
+  /* Code blocks - same dark bg in both modes for contrast */
+  --color-code-bg: #0f1419;
+  --color-code-text: #e5e7eb;
 
   /* Shadows */
   --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.3);

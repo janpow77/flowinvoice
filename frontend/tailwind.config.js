@@ -72,6 +72,11 @@ export default {
           'scrollbar-track': 'var(--color-ui-scrollbar-track)',
           'scrollbar-thumb': 'var(--color-ui-scrollbar-thumb)',
         },
+        // Code-Blöcke
+        'theme-code': {
+          DEFAULT: 'var(--color-code-bg)',
+          text: 'var(--color-code-text)',
+        },
 
         // =================================================================
         // Palette-Farben (Legacy, für Abwärtskompatibilität)

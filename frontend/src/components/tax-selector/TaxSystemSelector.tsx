@@ -46,10 +46,10 @@ export function TaxSystemSelector({
       {/* Header */}
       {!compact && (
         <div className="mb-4">
-          <h3 className="text-lg font-semibold text-gray-900">
+          <h3 className="text-lg font-semibold text-theme-text-primary">
             {t('taxSelector.title', 'Steuersystem auswählen')}
           </h3>
-          <p className="text-sm text-gray-500">
+          <p className="text-sm text-theme-text-muted">
             {t('taxSelector.description', 'Wählen Sie das Steuersystem für die Rechnungsprüfung')}
           </p>
         </div>
@@ -76,7 +76,7 @@ export function TaxSystemSelector({
 
       {/* Hinweis */}
       {!compact && (
-        <p className="mt-4 text-xs text-gray-400 text-center">
+        <p className="mt-4 text-xs text-theme-text-muted text-center">
           {t(
             'taxSelector.hint',
             'Die Sprachwahl (DE/EN) der Benutzeroberfläche ist unabhängig vom Steuersystem'

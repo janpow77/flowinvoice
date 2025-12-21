@@ -103,7 +103,7 @@ export function LogoSpinner({
           fill="none"
           stroke="currentColor"
           strokeWidth="1"
-          className="text-gray-200 dark:text-gray-700"
+          className="text-theme-border-default"
         />
 
         {/* Minutenmarkierungen */}
@@ -118,8 +118,8 @@ export function LogoSpinner({
             strokeLinecap="round"
             className={`transition-all duration-150 ${
               tick.isActive
-                ? 'stroke-blue-600 dark:stroke-blue-400'
-                : 'stroke-gray-300 dark:stroke-gray-600'
+                ? 'stroke-accent-primary dark:stroke-accent-primary'
+                : 'stroke-theme-border-default dark:stroke-theme-border-default'
             }`}
             style={{
               opacity: tick.isActive ? 1 : 0.4,
@@ -139,7 +139,7 @@ export function LogoSpinner({
             strokeLinecap="round"
             strokeDasharray={`${2 * Math.PI * (radius - 12)}`}
             strokeDashoffset={`${2 * Math.PI * (radius - 12) * (1 - progress / 100)}`}
-            className="text-blue-600 dark:text-blue-400 transition-all duration-300"
+            className="text-accent-primary transition-all duration-300"
             transform={`rotate(-90 ${center} ${center})`}
           />
         )}
@@ -168,7 +168,7 @@ export function LogoSpinner({
       {progress !== undefined && !isStatic && (
         <div
           className="absolute bottom-0 left-1/2 transform -translate-x-1/2 translate-y-2
-                     text-xs font-medium text-gray-600 dark:text-gray-400"
+                     text-xs font-medium text-theme-text-muted dark:text-theme-text-muted"
         >
           {Math.round(progress)}%
         </div>
@@ -189,9 +189,9 @@ interface LoadingScreenProps {
 
 export function LoadingScreen({ message = 'Wird geladen...', progress }: LoadingScreenProps) {
   return (
-    <div className="fixed inset-0 bg-white dark:bg-gray-900 flex flex-col items-center justify-center z-50">
+    <div className="fixed inset-0 bg-theme-bg flex flex-col items-center justify-center z-50">
       <LogoSpinner size={160} progress={progress} />
-      <p className="mt-6 text-lg text-gray-600 dark:text-gray-400 animate-pulse">
+      <p className="mt-6 text-lg text-theme-text-muted dark:text-theme-text-muted animate-pulse">
         {message}
       </p>
     </div>

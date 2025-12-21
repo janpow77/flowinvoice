@@ -59,8 +59,8 @@ export function CardHeader({ title, subtitle, action, className, children, ...pr
       ) : (
         <div className="flex items-center justify-between">
           <div>
-            {title && <h3 className="text-lg font-semibold text-gray-900">{title}</h3>}
-            {subtitle && <p className="text-sm text-gray-500 mt-0.5">{subtitle}</p>}
+            {title && <h3 className="text-lg font-semibold text-theme-text-primary">{title}</h3>}
+            {subtitle && <p className="text-sm text-theme-text-muted mt-0.5">{subtitle}</p>}
           </div>
           {action && <div>{action}</div>}
         </div>
@@ -133,8 +133,8 @@ export function StatCard({
       <CardBody>
         <div className="flex items-start justify-between">
           <div>
-            <p className="text-sm font-medium text-gray-500">{label}</p>
-            <p className="text-2xl font-bold text-gray-900 mt-1">{value}</p>
+            <p className="text-sm font-medium text-theme-text-muted">{label}</p>
+            <p className="text-2xl font-bold text-theme-text-primary mt-1">{value}</p>
             {change && (
               <p
                 className={clsx(
@@ -156,7 +156,7 @@ export function StatCard({
             )}
           </div>
           {icon && (
-            <div className="p-3 bg-primary-50 rounded-xl text-primary-600">
+            <div className="p-3 bg-accent-primary/10 rounded-xl text-accent-primary">
               {icon}
             </div>
           )}

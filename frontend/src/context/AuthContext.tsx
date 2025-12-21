@@ -290,7 +290,7 @@ export function ProtectedRoute({
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary-600"></div>
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-accent-primary"></div>
       </div>
     );
   }
@@ -305,11 +305,11 @@ export function ProtectedRoute({
     return (
       <div className="min-h-screen flex items-center justify-center">
         <div className="text-center">
-          <h1 className="text-2xl font-bold text-red-600">Zugriff verweigert</h1>
-          <p className="mt-2 text-gray-600">
+          <h1 className="text-2xl font-bold text-status-danger">Zugriff verweigert</h1>
+          <p className="mt-2 text-theme-text-muted">
             Sie haben keine Berechtigung für diese Seite.
           </p>
-          <p className="mt-1 text-sm text-gray-500">
+          <p className="mt-1 text-sm text-theme-text-muted">
             Ihre Rolle: {user?.role}
           </p>
         </div>
@@ -322,8 +322,8 @@ export function ProtectedRoute({
     return (
       <div className="min-h-screen flex items-center justify-center">
         <div className="text-center">
-          <h1 className="text-2xl font-bold text-red-600">Zugriff verweigert</h1>
-          <p className="mt-2 text-gray-600">
+          <h1 className="text-2xl font-bold text-status-danger">Zugriff verweigert</h1>
+          <p className="mt-2 text-theme-text-muted">
             Fehlende Berechtigung: {requiredPermission}
           </p>
         </div>

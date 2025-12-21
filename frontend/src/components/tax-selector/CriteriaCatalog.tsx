@@ -50,7 +50,7 @@ function FeatureItem({
     <div
       className={clsx(
         'flex items-start gap-3 p-3 rounded-lg',
-        isRequired ? 'bg-gray-50' : 'bg-yellow-50'
+        isRequired ? 'bg-theme-hover' : 'bg-status-warning-bg'
       )}
     >
       <div className="flex-shrink-0 mt-0.5">
@@ -63,7 +63,7 @@ function FeatureItem({
       <div className="flex-1 min-w-0">
         <div className="flex items-center gap-2">
           <span className="text-sm">{categoryIcons[feature.category]}</span>
-          <span className="font-medium text-gray-900">
+          <span className="font-medium text-theme-text-primary">
             {lang === 'de' ? feature.name_de : feature.name_en}
           </span>
           {isConditional && (
@@ -72,10 +72,10 @@ function FeatureItem({
             </span>
           )}
         </div>
-        <p className="text-sm text-gray-600 mt-1">
+        <p className="text-sm text-theme-text-muted mt-1">
           {lang === 'de' ? feature.explanation_de : feature.explanation_en}
         </p>
-        <p className="text-xs text-gray-400 mt-1">
+        <p className="text-xs text-theme-text-muted mt-1">
           {feature.legal_basis}
         </p>
       </div>
@@ -119,24 +119,24 @@ export function CriteriaCatalog({
       <div className="relative min-h-screen flex items-center justify-center p-4">
         <div className="relative bg-white rounded-2xl shadow-2xl max-w-3xl w-full max-h-[90vh] overflow-hidden">
           {/* Header */}
-          <div className="sticky top-0 bg-white border-b border-gray-200 px-6 py-4 flex items-center justify-between z-10">
+          <div className="sticky top-0 bg-white border-b border-theme-border-default px-6 py-4 flex items-center justify-between z-10">
             <div className="flex items-center gap-3">
               <span className="text-3xl">{ruleset.flag}</span>
               <div>
-                <h2 className="text-xl font-bold text-gray-900">
+                <h2 className="text-xl font-bold text-theme-text-primary">
                   {lang === 'de' ? ruleset.title_de : ruleset.title_en}
                 </h2>
-                <p className="text-sm text-gray-500">
+                <p className="text-sm text-theme-text-muted">
                   {lang === 'de' ? ruleset.subtitle_de : ruleset.subtitle_en}
                 </p>
               </div>
             </div>
             <button
               onClick={onClose}
-              className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
+              className="p-2 hover:bg-theme-hover rounded-lg transition-colors"
               aria-label={t('common.close')}
             >
-              <X className="w-5 h-5 text-gray-500" />
+              <X className="w-5 h-5 text-theme-text-muted" />
             </button>
           </div>
 
@@ -173,12 +173,12 @@ export function CriteriaCatalog({
             </div>
 
             {/* Rechtsgrundlagen */}
-            <div className="mb-6 p-4 bg-gray-50 rounded-lg">
-              <h3 className="font-semibold text-gray-900 mb-2 flex items-center gap-2">
+            <div className="mb-6 p-4 bg-theme-hover rounded-lg">
+              <h3 className="font-semibold text-theme-text-primary mb-2 flex items-center gap-2">
                 <Info className="w-4 h-4" />
                 {lang === 'de' ? 'Rechtsgrundlagen' : 'Legal References'}
               </h3>
-              <ul className="text-sm text-gray-600 space-y-1">
+              <ul className="text-sm text-theme-text-muted space-y-1">
                 {ruleset.legal_references.map((ref, idx) => (
                   <li key={idx}>
                     <span className="font-medium">{ref.law} {ref.section}</span>
@@ -192,12 +192,12 @@ export function CriteriaCatalog({
             {/* Features nach Kategorie */}
             {Object.entries(groupedFeatures).map(([category, features]) => (
               <div key={category} className="mb-6">
-                <h3 className="font-semibold text-gray-900 mb-3 flex items-center gap-2">
+                <h3 className="font-semibold text-theme-text-primary mb-3 flex items-center gap-2">
                   <span>{categoryIcons[category]}</span>
                   {lang === 'de'
                     ? categoryNames[category]?.de
                     : categoryNames[category]?.en}
-                  <span className="text-sm font-normal text-gray-400">
+                  <span className="text-sm font-normal text-theme-text-muted">
                     ({features.length})
                   </span>
                 </h3>
@@ -231,7 +231,7 @@ export function CriteriaCatalog({
           </div>
 
           {/* Footer */}
-          <div className="sticky bottom-0 bg-white border-t border-gray-200 px-6 py-4 flex justify-end gap-3">
+          <div className="sticky bottom-0 bg-white border-t border-theme-border-default px-6 py-4 flex justify-end gap-3">
             <Button variant="ghost" onClick={onClose}>
               {t('common.cancel', 'Abbrechen')}
             </Button>

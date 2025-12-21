@@ -41,8 +41,8 @@ const sizeClasses: Record<BadgeSize, string> = {
 };
 
 const dotClasses: Record<BadgeVariant, string> = {
-  default: 'bg-gray-500',
-  primary: 'bg-primary-500',
+  default: 'bg-theme-hover0',
+  primary: 'bg-accent-primary/100',
   success: 'bg-success-500',
   warning: 'bg-warning-500',
   error: 'bg-error-500',
@@ -146,25 +146,25 @@ export function TrafficLight({ status, size = 'md', label, className }: TrafficL
           className={clsx(
             sizeClass,
             'rounded-full',
-            status === 'green' ? 'traffic-light-green' : 'bg-gray-200'
+            status === 'green' ? 'traffic-light-green' : 'bg-theme-hover'
           )}
         />
         <span
           className={clsx(
             sizeClass,
             'rounded-full',
-            status === 'yellow' ? 'traffic-light-yellow' : 'bg-gray-200'
+            status === 'yellow' ? 'traffic-light-yellow' : 'bg-theme-hover'
           )}
         />
         <span
           className={clsx(
             sizeClass,
             'rounded-full',
-            status === 'red' ? 'traffic-light-red' : 'bg-gray-200'
+            status === 'red' ? 'traffic-light-red' : 'bg-theme-hover'
           )}
         />
       </div>
-      {label && <span className="text-sm text-gray-600">{label}</span>}
+      {label && <span className="text-sm text-theme-text-muted">{label}</span>}
     </div>
   );
 }

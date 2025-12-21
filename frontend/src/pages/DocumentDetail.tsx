@@ -50,8 +50,8 @@ export default function DocumentDetail() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h2 className="text-xl font-semibold text-gray-900">{document.original_filename}</h2>
-          <p className="text-sm text-gray-500">
+          <h2 className="text-xl font-semibold text-theme-text-primary">{document.original_filename}</h2>
+          <p className="text-sm text-theme-text-muted">
             Hochgeladen: {new Date(document.created_at).toLocaleDateString('de-DE')}
           </p>
         </div>
@@ -61,7 +61,7 @@ export default function DocumentDetail() {
             <button
               onClick={() => analyzeMutation.mutate()}
               disabled={analyzeMutation.isPending}
-              className="flex items-center px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 disabled:opacity-50"
+              className="flex items-center px-4 py-2 bg-accent-primary text-white rounded-lg hover:bg-accent-primary-hover disabled:opacity-50"
             >
               <Play className="h-4 w-4 mr-2" />
               {analyzeMutation.isPending ? 'Analysiere...' : 'KI-Analyse starten'}
@@ -72,28 +72,28 @@ export default function DocumentDetail() {
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Extracted Data */}
-        <div className="bg-white rounded-lg border border-gray-200 p-6">
-          <h3 className="text-lg font-semibold text-gray-900 mb-4">Extrahierte Daten</h3>
+        <div className="bg-theme-card rounded-lg border border-theme-border-default p-6">
+          <h3 className="text-lg font-semibold text-theme-text-primary mb-4">Extrahierte Daten</h3>
 
           {document.extracted_data ? (
             <div className="space-y-3">
               {Object.entries(document.extracted_data).map(([key, val]) => (
                 <div key={key} className="flex justify-between">
-                  <span className="text-sm text-gray-500">{key}</span>
-                  <span className="text-sm font-medium text-gray-900">
+                  <span className="text-sm text-theme-text-muted">{key}</span>
+                  <span className="text-sm font-medium text-theme-text-primary">
                     {(val as { value?: string })?.value || '-'}
                   </span>
                 </div>
               ))}
             </div>
           ) : (
-            <p className="text-sm text-gray-500">Keine Daten extrahiert</p>
+            <p className="text-sm text-theme-text-muted">Keine Daten extrahiert</p>
           )}
         </div>
 
         {/* Precheck Errors */}
-        <div className="bg-white rounded-lg border border-gray-200 p-6">
-          <h3 className="text-lg font-semibold text-gray-900 mb-4">Vorprüfung</h3>
+        <div className="bg-theme-card rounded-lg border border-theme-border-default p-6">
+          <h3 className="text-lg font-semibold text-theme-text-primary mb-4">Vorprüfung</h3>
 
           {document.precheck_errors && document.precheck_errors.length > 0 ? (
             <div className="space-y-2">
@@ -102,55 +102,55 @@ export default function DocumentDetail() {
                   key={i}
                   className={clsx(
                     'p-3 rounded-lg flex items-start',
-                    error.severity === 'HIGH' ? 'bg-red-50' :
-                    error.severity === 'MEDIUM' ? 'bg-yellow-50' : 'bg-gray-50'
+                    error.severity === 'HIGH' ? 'bg-status-danger-bg' :
+                    error.severity === 'MEDIUM' ? 'bg-status-warning-bg' : 'bg-theme-hover'
                   )}
                 >
                   {error.severity === 'HIGH' ? (
-                    <XCircle className="h-5 w-5 text-red-500 mr-2 flex-shrink-0" />
+                    <XCircle className="h-5 w-5 text-status-danger mr-2 flex-shrink-0" />
                   ) : error.severity === 'MEDIUM' ? (
-                    <AlertTriangle className="h-5 w-5 text-yellow-500 mr-2 flex-shrink-0" />
+                    <AlertTriangle className="h-5 w-5 text-status-warning mr-2 flex-shrink-0" />
                   ) : (
-                    <AlertTriangle className="h-5 w-5 text-gray-400 mr-2 flex-shrink-0" />
+                    <AlertTriangle className="h-5 w-5 text-theme-text-muted mr-2 flex-shrink-0" />
                   )}
                   <div>
-                    <p className="text-sm font-medium text-gray-900">{error.feature_id}</p>
-                    <p className="text-sm text-gray-500">{error.message}</p>
+                    <p className="text-sm font-medium text-theme-text-primary">{error.feature_id}</p>
+                    <p className="text-sm text-theme-text-muted">{error.message}</p>
                   </div>
                 </div>
               ))}
             </div>
           ) : document.precheck_passed ? (
-            <div className="flex items-center text-green-600">
+            <div className="flex items-center text-status-success">
               <CheckCircle className="h-5 w-5 mr-2" />
               <span>Alle Vorprüfungen bestanden</span>
             </div>
           ) : (
-            <p className="text-sm text-gray-500">Keine Vorprüfung durchgeführt</p>
+            <p className="text-sm text-theme-text-muted">Keine Vorprüfung durchgeführt</p>
           )}
         </div>
 
         {/* Analysis Result */}
         {document.analysis_result && (
-          <div className="lg:col-span-2 bg-white rounded-lg border border-gray-200 p-6">
-            <h3 className="text-lg font-semibold text-gray-900 mb-4">KI-Analyse</h3>
+          <div className="lg:col-span-2 bg-theme-card rounded-lg border border-theme-border-default p-6">
+            <h3 className="text-lg font-semibold text-theme-text-primary mb-4">KI-Analyse</h3>
 
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               {/* Overall Assessment */}
               <div className={clsx(
                 'p-4 rounded-lg',
-                document.analysis_result.overall_assessment === 'ok' ? 'bg-green-50' :
-                document.analysis_result.overall_assessment === 'review_needed' ? 'bg-yellow-50' :
-                document.analysis_result.overall_assessment === 'rejected' ? 'bg-red-50' :
-                'bg-gray-50'
+                document.analysis_result.overall_assessment === 'ok' ? 'bg-status-success-bg' :
+                document.analysis_result.overall_assessment === 'review_needed' ? 'bg-status-warning-bg' :
+                document.analysis_result.overall_assessment === 'rejected' ? 'bg-status-danger-bg' :
+                'bg-theme-hover'
               )}>
-                <p className="text-sm font-medium text-gray-500">Gesamtbewertung</p>
+                <p className="text-sm font-medium text-theme-text-muted">Gesamtbewertung</p>
                 <p className={clsx(
                   'text-lg font-semibold',
-                  document.analysis_result.overall_assessment === 'ok' ? 'text-green-700' :
-                  document.analysis_result.overall_assessment === 'review_needed' ? 'text-yellow-700' :
-                  document.analysis_result.overall_assessment === 'rejected' ? 'text-red-700' :
-                  'text-gray-700'
+                  document.analysis_result.overall_assessment === 'ok' ? 'text-status-success' :
+                  document.analysis_result.overall_assessment === 'review_needed' ? 'text-status-warning' :
+                  document.analysis_result.overall_assessment === 'rejected' ? 'text-status-danger' :
+                  'text-theme-text-secondary'
                 )}>
                   {document.analysis_result.overall_assessment === 'ok' ? 'In Ordnung' :
                    document.analysis_result.overall_assessment === 'review_needed' ? 'Prüfung erforderlich' :
@@ -160,9 +160,9 @@ export default function DocumentDetail() {
               </div>
 
               {/* Confidence */}
-              <div className="p-4 rounded-lg bg-gray-50">
-                <p className="text-sm font-medium text-gray-500">Konfidenz</p>
-                <p className="text-lg font-semibold text-gray-900">
+              <div className="p-4 rounded-lg bg-theme-hover">
+                <p className="text-sm font-medium text-theme-text-muted">Konfidenz</p>
+                <p className="text-lg font-semibold text-theme-text-primary">
                   {document.analysis_result.confidence != null
                     ? `${Math.round(document.analysis_result.confidence * 100)}%`
                     : '-'}
@@ -170,9 +170,9 @@ export default function DocumentDetail() {
               </div>
 
               {/* Provider */}
-              <div className="p-4 rounded-lg bg-gray-50">
-                <p className="text-sm font-medium text-gray-500">Provider</p>
-                <p className="text-lg font-semibold text-gray-900">
+              <div className="p-4 rounded-lg bg-theme-hover">
+                <p className="text-sm font-medium text-theme-text-muted">Provider</p>
+                <p className="text-lg font-semibold text-theme-text-primary">
                   {document.analysis_result.provider || 'Unbekannt'}
                 </p>
               </div>
@@ -180,11 +180,11 @@ export default function DocumentDetail() {
 
             {/* Feedback Buttons */}
             <div className="mt-6 flex items-center space-x-4">
-              <span className="text-sm text-gray-500">War diese Analyse korrekt?</span>
+              <span className="text-sm text-theme-text-muted">War diese Analyse korrekt?</span>
               {feedbackSubmitted ? (
                 <span className={clsx(
                   'flex items-center px-3 py-1 text-sm rounded-lg',
-                  feedbackSubmitted === 'CORRECT' ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'
+                  feedbackSubmitted === 'CORRECT' ? 'bg-status-success-bg text-status-success' : 'bg-status-danger-bg text-status-danger'
                 )}>
                   <CheckCircle className="h-4 w-4 mr-1" />
                   Feedback gesendet
@@ -194,7 +194,7 @@ export default function DocumentDetail() {
                   <button
                     onClick={() => feedbackMutation.mutate('CORRECT')}
                     disabled={feedbackMutation.isPending}
-                    className="flex items-center px-3 py-1 text-sm text-green-600 border border-green-200 rounded-lg hover:bg-green-50 disabled:opacity-50"
+                    className="flex items-center px-3 py-1 text-sm text-status-success border border-status-success-border rounded-lg hover:bg-status-success-bg disabled:opacity-50"
                   >
                     {feedbackMutation.isPending ? (
                       <Loader2 className="h-4 w-4 mr-1 animate-spin" />
@@ -206,7 +206,7 @@ export default function DocumentDetail() {
                   <button
                     onClick={() => feedbackMutation.mutate('INCORRECT')}
                     disabled={feedbackMutation.isPending}
-                    className="flex items-center px-3 py-1 text-sm text-red-600 border border-red-200 rounded-lg hover:bg-red-50 disabled:opacity-50"
+                    className="flex items-center px-3 py-1 text-sm text-status-danger border border-status-danger-border rounded-lg hover:bg-status-danger-bg disabled:opacity-50"
                   >
                     {feedbackMutation.isPending ? (
                       <Loader2 className="h-4 w-4 mr-1 animate-spin" />

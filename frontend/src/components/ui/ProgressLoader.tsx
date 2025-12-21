@@ -45,13 +45,13 @@ export function ProgressLoader({
       <LogoSpinner size={spinnerSize} progress={progress} />
 
       {title && (
-        <h3 className="mt-6 text-lg font-semibold text-gray-900 dark:text-white">
+        <h3 className="mt-6 text-lg font-semibold text-theme-text-primary dark:text-white">
           {title}
         </h3>
       )}
 
       {message && (
-        <p className="mt-2 text-sm text-gray-600 dark:text-gray-400">
+        <p className="mt-2 text-sm text-theme-text-muted dark:text-theme-text-muted">
           {message}
         </p>
       )}
@@ -66,18 +66,18 @@ export function ProgressLoader({
             >
               <div className="mr-3">
                 {step.status === 'completed' && (
-                  <svg className="w-5 h-5 text-green-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <svg className="w-5 h-5 text-status-success" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
                   </svg>
                 )}
                 {step.status === 'running' && (
-                  <div className="w-5 h-5 border-2 border-blue-500 border-t-transparent rounded-full animate-spin" />
+                  <div className="w-5 h-5 border-2 border-status-info border-t-transparent rounded-full animate-spin" />
                 )}
                 {step.status === 'pending' && (
-                  <div className="w-5 h-5 border-2 border-gray-300 rounded-full" />
+                  <div className="w-5 h-5 border-2 border-theme-border-default rounded-full" />
                 )}
                 {step.status === 'error' && (
-                  <svg className="w-5 h-5 text-red-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <svg className="w-5 h-5 text-status-danger" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
                   </svg>
                 )}
@@ -85,12 +85,12 @@ export function ProgressLoader({
               <span
                 className={`${
                   step.status === 'completed'
-                    ? 'text-green-600 dark:text-green-400'
+                    ? 'text-status-success'
                     : step.status === 'running'
-                    ? 'text-blue-600 dark:text-blue-400 font-medium'
+                    ? 'text-status-info font-medium'
                     : step.status === 'error'
-                    ? 'text-red-600 dark:text-red-400'
-                    : 'text-gray-400 dark:text-gray-500'
+                    ? 'text-status-danger'
+                    : 'text-theme-text-muted'
                 }`}
               >
                 {step.label}
@@ -131,7 +131,7 @@ export function DocumentProcessingOverlay({
 
   return (
     <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50">
-      <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl p-8 max-w-md w-full mx-4">
+      <div className="bg-theme-card rounded-2xl shadow-2xl p-8 max-w-md w-full mx-4">
         <ProgressLoader
           title={documentName ? `Verarbeite: ${documentName}` : 'Dokument wird verarbeitet'}
           message={currentStep}

@@ -733,7 +733,7 @@ export default function Rulesets() {
                           {t('common.copy')}
                         </button>
                       </div>
-                      <pre className="bg-gray-900 text-gray-100 p-4 rounded-lg text-xs overflow-x-auto whitespace-pre-wrap font-mono">
+                      <pre className="bg-theme-code text-theme-code-text p-4 rounded-lg text-xs overflow-x-auto whitespace-pre-wrap font-mono">
                         {llmSchema.llm_schema.system_prompt}
                       </pre>
                     </div>
@@ -754,7 +754,7 @@ export default function Rulesets() {
                           {t('common.copy')}
                         </button>
                       </div>
-                      <pre className="bg-gray-900 text-gray-100 p-4 rounded-lg text-xs overflow-x-auto whitespace-pre-wrap font-mono">
+                      <pre className="bg-theme-code text-theme-code-text p-4 rounded-lg text-xs overflow-x-auto whitespace-pre-wrap font-mono">
                         {llmSchema.llm_schema.user_prompt_structure}
                       </pre>
                     </div>
@@ -775,7 +775,7 @@ export default function Rulesets() {
                           {t('common.copy')}
                         </button>
                       </div>
-                      <pre className="bg-gray-900 text-gray-100 p-4 rounded-lg text-xs overflow-x-auto font-mono">
+                      <pre className="bg-theme-code text-theme-code-text p-4 rounded-lg text-xs overflow-x-auto font-mono">
                         {JSON.stringify(llmSchema.llm_schema.response_json_schema, null, 2)}
                       </pre>
                     </div>
@@ -798,7 +798,7 @@ export default function Rulesets() {
                           {t('common.copy')}
                         </button>
                       </div>
-                      <pre className="bg-gray-900 text-gray-100 p-4 rounded-lg text-xs overflow-x-auto font-mono">
+                      <pre className="bg-theme-code text-theme-code-text p-4 rounded-lg text-xs overflow-x-auto font-mono">
                         {JSON.stringify(llmSchema.llm_schema.features_json_schema, null, 2)}
                       </pre>
                     </div>

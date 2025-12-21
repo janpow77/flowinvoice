@@ -53,7 +53,7 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(
         )}
         <div className="relative">
           {leftIcon && (
-            <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400">
+            <span className="absolute left-3 top-1/2 -translate-y-1/2 text-theme-text-muted">
               {leftIcon}
             </span>
           )}
@@ -72,7 +72,7 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(
             {...props}
           />
           {rightIcon && (
-            <span className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400">
+            <span className="absolute right-3 top-1/2 -translate-y-1/2 text-theme-text-muted">
               {rightIcon}
             </span>
           )}
@@ -268,7 +268,7 @@ export const Checkbox = forwardRef<HTMLInputElement, CheckboxProps>(
             {...props}
           />
           <div>
-            <span className="text-sm font-medium text-gray-700">{label}</span>
+            <span className="text-sm font-medium text-theme-text-secondary">{label}</span>
             {helperText && <p className="helper-text mt-0.5">{helperText}</p>}
             {error && <p className="error-text mt-0.5">{error}</p>}
           </div>
@@ -337,7 +337,7 @@ export function RadioGroup({
               disabled={option.disabled}
               className="radio"
             />
-            <span className="text-sm text-gray-700">{option.label}</span>
+            <span className="text-sm text-theme-text-secondary">{option.label}</span>
           </label>
         ))}
       </div>

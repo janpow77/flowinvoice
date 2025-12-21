@@ -29,17 +29,17 @@ export function TaxSystemCard({
       onClick={onClick}
       className={clsx(
         'relative flex flex-col items-center p-6 rounded-xl border-2 transition-all duration-200',
-        'hover:shadow-lg hover:scale-[1.02] focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2',
+        'hover:shadow-lg hover:scale-[1.02] focus:outline-none focus:ring-2 focus:ring-accent-primary focus:ring-offset-2',
         isSelected
-          ? 'border-primary-500 bg-primary-50 shadow-md'
-          : 'border-gray-200 bg-white hover:border-primary-300'
+          ? 'border-accent-primary bg-accent-primary/10 shadow-md'
+          : 'border-theme-border-default bg-white hover:border-accent-primary/30'
       )}
     >
       {/* Ausgewählt-Indikator */}
       {isSelected && (
         <div className="absolute top-2 right-2">
           <svg
-            className="w-6 h-6 text-primary-600"
+            className="w-6 h-6 text-accent-primary"
             fill="currentColor"
             viewBox="0 0 20 20"
           >
@@ -61,22 +61,22 @@ export function TaxSystemCard({
       <h3
         className={clsx(
           'text-lg font-semibold text-center',
-          isSelected ? 'text-primary-700' : 'text-gray-900'
+          isSelected ? 'text-accent-primary' : 'text-theme-text-primary'
         )}
       >
         {title}
       </h3>
 
       {/* Untertitel */}
-      <p className="text-sm text-gray-500 text-center mt-1">{subtitle}</p>
+      <p className="text-sm text-theme-text-muted text-center mt-1">{subtitle}</p>
 
       {/* Feature-Count Badge */}
       <div
         className={clsx(
           'mt-3 px-3 py-1 rounded-full text-xs font-medium',
           isSelected
-            ? 'bg-primary-100 text-primary-700'
-            : 'bg-gray-100 text-gray-600'
+            ? 'bg-accent-primary/10 text-accent-primary'
+            : 'bg-theme-hover text-theme-text-muted'
         )}
       >
         {featureCount} Pflichtmerkmale
