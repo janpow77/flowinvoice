@@ -965,9 +965,193 @@ class ErrorSourceCategory(Enum):
 
 ---
 
+## Fehler-Codes (Schnittstelle Generator ↔ System)
+
+### Übersicht
+
+Die Fehler-Codes werden sowohl vom **Rechnungsgenerator** (in der Lösungsdatei) als auch vom **Prüfsystem** verwendet. Dies ermöglicht:
+- Automatisches Training mit generierten Rechnungen
+- Konsistente Fehler-Klassifizierung
+- Vergleich: "Was sollte erkannt werden?" vs. "Was wurde erkannt?"
+
+### Fehler-Code Struktur
+
+```
+ERROR_CODE = {KATEGORIE}_{MERKMAL}_{TYP}
+
+Beispiele:
+- TAX_SUPPLIER_NAME_MISSING     → Lieferantenname fehlt
+- TAX_VAT_RATE_WRONG            → Falscher Steuersatz
+- PROJECT_PERIOD_OUTSIDE        → Leistung außerhalb Projektzeitraum
+- FRAUD_SELF_INVOICE            → Selbstrechnung (gleiche UST-ID)
+```
+
+### Kategorie: TAX (Steuerrecht §14 UStG)
+
+| Code | Feature-ID | Beschreibung | Severity |
+|------|------------|--------------|----------|
+| `TAX_SUPPLIER_NAME_MISSING` | `supplier_name` | Lieferantenname fehlt | HIGH |
+| `TAX_SUPPLIER_NAME_INCOMPLETE` | `supplier_name` | Lieferantenname unvollständig | MEDIUM |
+| `TAX_SUPPLIER_ADDRESS_MISSING` | `supplier_address` | Lieferantenadresse fehlt | HIGH |
+| `TAX_SUPPLIER_ADDRESS_INCOMPLETE` | `supplier_address` | Adresse unvollständig (PLZ/Ort fehlt) | MEDIUM |
+| `TAX_CUSTOMER_NAME_MISSING` | `customer_name` | Empfängername fehlt | HIGH |
+| `TAX_CUSTOMER_ADDRESS_MISSING` | `customer_address` | Empfängeradresse fehlt | HIGH |
+| `TAX_ID_MISSING` | `tax_id` | Steuernummer/UST-ID fehlt | HIGH |
+| `TAX_ID_INVALID_FORMAT` | `tax_id` | Ungültiges Format der Steuernummer | MEDIUM |
+| `TAX_INVOICE_DATE_MISSING` | `invoice_date` | Rechnungsdatum fehlt | HIGH |
+| `TAX_INVOICE_DATE_INVALID` | `invoice_date` | Ungültiges Datumsformat | MEDIUM |
+| `TAX_INVOICE_DATE_FUTURE` | `invoice_date` | Rechnungsdatum in der Zukunft | HIGH |
+| `TAX_INVOICE_NUMBER_MISSING` | `invoice_number` | Rechnungsnummer fehlt | HIGH |
+| `TAX_INVOICE_NUMBER_DUPLICATE` | `invoice_number` | Rechnungsnummer bereits verwendet | HIGH |
+| `TAX_SERVICE_DESCRIPTION_MISSING` | `service_description` | Leistungsbeschreibung fehlt | HIGH |
+| `TAX_SERVICE_DESCRIPTION_VAGUE` | `service_description` | Leistungsbeschreibung zu ungenau | MEDIUM |
+| `TAX_SUPPLY_DATE_MISSING` | `supply_date_or_period` | Leistungsdatum/-zeitraum fehlt | HIGH |
+| `TAX_NET_AMOUNT_MISSING` | `net_amount` | Nettobetrag fehlt | HIGH |
+| `TAX_NET_AMOUNT_INVALID` | `net_amount` | Ungültiger Nettobetrag | MEDIUM |
+| `TAX_VAT_RATE_MISSING` | `vat_rate` | Steuersatz fehlt | HIGH |
+| `TAX_VAT_RATE_WRONG` | `vat_rate` | Falscher Steuersatz (z.B. 7% statt 19%) | HIGH |
+| `TAX_VAT_RATE_INVALID` | `vat_rate` | Ungültiger Steuersatz (nicht 0/7/19%) | HIGH |
+| `TAX_VAT_AMOUNT_MISSING` | `vat_amount` | Steuerbetrag fehlt | HIGH |
+| `TAX_VAT_AMOUNT_WRONG` | `vat_amount` | Steuerbetrag falsch berechnet | HIGH |
+| `TAX_GROSS_AMOUNT_MISSING` | `gross_amount` | Bruttobetrag fehlt | HIGH |
+| `TAX_GROSS_AMOUNT_WRONG` | `gross_amount` | Bruttobetrag stimmt nicht (Netto+USt) | HIGH |
+
+### Kategorie: PROJECT (Projektbezug)
+
+| Code | Feature-ID | Beschreibung | Severity |
+|------|------------|--------------|----------|
+| `PROJECT_PERIOD_BEFORE_START` | `supply_in_project_period` | Leistung vor Projektbeginn | HIGH |
+| `PROJECT_PERIOD_AFTER_END` | `supply_in_project_period` | Leistung nach Projektende | HIGH |
+| `PROJECT_PERIOD_OUTSIDE` | `supply_in_project_period` | Leistung außerhalb Durchführungszeitraum | HIGH |
+| `PROJECT_RECIPIENT_MISMATCH` | `recipient_is_beneficiary` | Empfänger ≠ Begünstigter | MEDIUM |
+| `PROJECT_LOCATION_MISMATCH` | `service_location_match` | Leistungsort ≠ Projektstandort | LOW |
+| `PROJECT_REFERENCE_MISSING` | `project_reference` | Kein Projektbezug erkennbar | MEDIUM |
+| `PROJECT_REFERENCE_VAGUE` | `project_reference` | Projektbezug unklar | LOW |
+
+### Kategorie: FRAUD (Betrugsindikatoren)
+
+| Code | Feature-ID | Beschreibung | Severity |
+|------|------------|--------------|----------|
+| `FRAUD_SELF_INVOICE` | `self_invoice_check` | **Selbstrechnung: Lieferant-UST-ID = Empfänger-UST-ID** | CRITICAL |
+| `FRAUD_CIRCULAR_INVOICE` | `circular_invoice_check` | Zirkelrechnung vermutet | CRITICAL |
+| `FRAUD_DUPLICATE_INVOICE` | `duplicate_check` | Rechnung bereits eingereicht | CRITICAL |
+| `FRAUD_ROUND_AMOUNT_PATTERN` | `round_amount_check` | Verdächtige runde Beträge | MEDIUM |
+| `FRAUD_VENDOR_CLUSTERING` | `vendor_clustering` | Ungewöhnliche Lieferantenhäufung | MEDIUM |
+
+### Kategorie: SEMANTIC (KI-Prüfung)
+
+| Code | Feature-ID | Beschreibung | Severity |
+|------|------------|--------------|----------|
+| `SEMANTIC_NO_PROJECT_RELEVANCE` | `semantic_project_relevance` | Leistung passt nicht zum Projekt | MEDIUM |
+| `SEMANTIC_LOW_PROJECT_RELEVANCE` | `semantic_project_relevance` | Projektbezug fraglich | LOW |
+| `SEMANTIC_RED_FLAG_LUXURY` | `no_red_flags` | Luxusgüter erkannt | HIGH |
+| `SEMANTIC_RED_FLAG_ENTERTAINMENT` | `no_red_flags` | Bewirtung/Unterhaltung erkannt | MEDIUM |
+| `SEMANTIC_RED_FLAG_PRIVATE` | `no_red_flags` | Privatnutzung vermutet | HIGH |
+
+### Kategorie: ECONOMIC (Wirtschaftlichkeit)
+
+| Code | Feature-ID | Beschreibung | Severity |
+|------|------------|--------------|----------|
+| `ECONOMIC_HIGH_AMOUNT` | `economic_plausibility` | Ungewöhnlich hoher Betrag | MEDIUM |
+| `ECONOMIC_ABOVE_MARKET` | `economic_plausibility` | Preis über Marktüblichkeit | MEDIUM |
+| `ECONOMIC_STATISTICAL_OUTLIER` | `no_statistical_anomalies` | Statistischer Ausreißer | LOW |
+
+### Lösungsdatei mit Fehler-Codes
+
+```json
+{
+  "generator_version": "1.0.0",
+  "generated_at": "2025-03-20T10:00:00Z",
+  "invoices": [
+    {
+      "position": 1,
+      "filename": "rechnung_001.pdf",
+      "is_valid": true,
+      "errors": [],
+      "fields": {
+        "invoice_number": "RE-2025-001",
+        "invoice_date": "2025-03-15",
+        "supplier_name": "Mustermann GmbH",
+        "supplier_vat_id": "DE123456789",
+        "customer_name": "Förderprojekt GmbH",
+        "customer_vat_id": "DE987654321",
+        "net_amount": 1000.00,
+        "vat_rate": 19,
+        "vat_amount": 190.00,
+        "gross_amount": 1190.00,
+        "service_description": "IT-Beratung März 2025",
+        "supply_date": "2025-03-15"
+      }
+    },
+    {
+      "position": 2,
+      "filename": "rechnung_002.pdf",
+      "is_valid": false,
+      "errors": [
+        {
+          "code": "TAX_VAT_RATE_WRONG",
+          "feature_id": "vat_rate",
+          "severity": "HIGH",
+          "expected": 19,
+          "actual": 7,
+          "message": "Falscher Steuersatz: 7% statt 19% für Dienstleistung"
+        },
+        {
+          "code": "PROJECT_PERIOD_BEFORE_START",
+          "feature_id": "supply_in_project_period",
+          "severity": "HIGH",
+          "expected": "2025-04-01 bis 2025-12-31",
+          "actual": "2025-03-15",
+          "message": "Leistungsdatum vor Projektbeginn"
+        }
+      ],
+      "fields": {
+        "invoice_number": "RE-2025-002",
+        "invoice_date": "2025-03-16",
+        "supplier_name": "Test AG",
+        "supplier_vat_id": "DE111222333",
+        "customer_name": "Förderprojekt GmbH",
+        "customer_vat_id": "DE987654321",
+        "net_amount": 500.00,
+        "vat_rate": 7,
+        "vat_amount": 35.00,
+        "gross_amount": 535.00,
+        "service_description": "Beratung",
+        "supply_date": "2025-03-15"
+      }
+    },
+    {
+      "position": 3,
+      "filename": "rechnung_003.pdf",
+      "is_valid": false,
+      "errors": [
+        {
+          "code": "FRAUD_SELF_INVOICE",
+          "feature_id": "self_invoice_check",
+          "severity": "CRITICAL",
+          "expected": "Verschiedene UST-IDs",
+          "actual": "DE987654321 = DE987654321",
+          "message": "Selbstrechnung: Lieferant und Empfänger haben gleiche UST-ID"
+        }
+      ],
+      "fields": {
+        "invoice_number": "RE-2025-003",
+        "supplier_name": "Förderprojekt GmbH",
+        "supplier_vat_id": "DE987654321",
+        "customer_name": "Förderprojekt GmbH",
+        "customer_vat_id": "DE987654321",
+        "net_amount": 5000.00
+      }
+    }
+  ]
+}
+```
+
+---
+
 ## Projektdaten-Integration
 
-### Projektmodell (vereinfacht)
+### Projektmodell (vollständig)
 
 ```python
 class Project:
@@ -975,20 +1159,41 @@ class Project:
     title: str                    # "Förderprojekt Digitalisierung 2025"
     project_number: str           # "FKZ-2025-12345"
 
-    # Zeitraum
+    # Projektzeitraum (Bewilligungszeitraum)
     project_period: dict          # {"start": "2025-01-01", "end": "2025-12-31"}
 
-    # Begünstigter
+    # Durchführungszeitraum (für Leistungsprüfung)
+    execution_period: dict        # {"start": "2025-04-01", "end": "2025-11-30"}
+
+    # Begünstigter (Zuwendungsempfänger)
     beneficiary_name: str         # "Muster GmbH"
     beneficiary_address: str      # "Musterstr. 1, 12345 Berlin"
+    beneficiary_vat_id: str       # "DE987654321" ← NEU: Für Selbstrechnungs-Prüfung
+
+    # Projektbeschreibung (für semantische Prüfung)
+    project_description: str      # "Digitalisierung der Geschäftsprozesse..."
 
     # Optional
     project_location: str | None  # "Hamburg" (für Leistungsort-Prüfung)
-    project_description: str      # Für semantische Prüfung
 
     # Ruleset
     ruleset_id: str               # "DE_USTG"
+
+    # Weitere Metadaten
+    funding_rate: float           # 0.7 (70% Förderquote)
+    max_funding_amount: float     # 100000.00 (max. Fördersumme)
 ```
+
+### Prüf-Felder Mapping
+
+| Projektfeld | Prüfung gegen | Fehler-Code bei Abweichung |
+|-------------|---------------|----------------------------|
+| `execution_period.start` | `supply_date` | `PROJECT_PERIOD_BEFORE_START` |
+| `execution_period.end` | `supply_date` | `PROJECT_PERIOD_AFTER_END` |
+| `beneficiary_name` | `customer_name` | `PROJECT_RECIPIENT_MISMATCH` |
+| `beneficiary_vat_id` | `supplier_vat_id` | `FRAUD_SELF_INVOICE` |
+| `project_location` | `service_location` | `PROJECT_LOCATION_MISMATCH` |
+| `project_description` | `service_description` | `SEMANTIC_*` |
 
 ### Datenfluss: Projekt → Prüfung
 
@@ -996,11 +1201,15 @@ class Project:
 ┌─────────────────────────────────────────────────────────────────────────────────────┐
 │  PROJEKT                                                                            │
 │  ════════                                                                           │
-│  Title: Förderprojekt Digitalisierung 2025                                          │
-│  Nummer: FKZ-2025-12345                                                             │
-│  Zeitraum: 01.01.2025 - 31.12.2025                                                  │
-│  Begünstigter: Muster GmbH, Musterstr. 1, 12345 Berlin                              │
-│  Standort: Hamburg                                                                  │
+│  Title:               Förderprojekt Digitalisierung 2025                            │
+│  Nummer:              FKZ-2025-12345                                                │
+│  Projektzeitraum:     01.01.2025 - 31.12.2025 (Bewilligung)                         │
+│  Durchführung:        01.04.2025 - 30.11.2025 (für Leistungsprüfung)                │
+│  Begünstigter:        Muster GmbH                                                   │
+│  Begünstigter-UST-ID: DE987654321                                                   │
+│  Standort:            Hamburg                                                       │
+│  Beschreibung:        Digitalisierung der Geschäftsprozesse durch Einführung        │
+│                       eines ERP-Systems und Cloud-Migration...                      │
 └─────────────────────────────────────────────────────────────────────────────────────┘
                                         │
                                         ▼
@@ -1009,16 +1218,49 @@ class Project:
 │  ════════                                                                           │
 │                                                                                     │
 │  Rule Engine:                                                                       │
-│  ├── Leistungsdatum "15.03.2025" ∈ [01.01.2025, 31.12.2025]? → ✓                    │
+│  ├── Leistungsdatum "15.05.2025" ∈ [01.04.2025, 30.11.2025]? → ✓                    │
 │  └── supply_in_project_period = VALID                                              │
+│                                                                                     │
+│  Selbstrechnungs-Prüfung:                                                           │
+│  ├── supplier_vat_id "DE123456789" ≠ beneficiary_vat_id "DE987654321"? → ✓          │
+│  └── self_invoice_check = VALID                                                    │
 │                                                                                     │
 │  Risk Checker:                                                                      │
 │  ├── customer_name "Muster GmbH" ≈ beneficiary_name "Muster GmbH"? → ✓              │
 │  └── recipient_is_beneficiary = VALID                                              │
 │                                                                                     │
 │  LLM:                                                                               │
-│  ├── Leistung "IT-Beratung" passt zu Projekt "Digitalisierung"? → ✓                 │
+│  ├── Leistung "ERP-Beratung" passt zu "Digitalisierung...ERP-System"? → ✓           │
 │  └── semantic_project_relevance = HIGH                                             │
+│                                                                                     │
+└─────────────────────────────────────────────────────────────────────────────────────┘
+```
+
+### Selbstrechnungs-Prüfung (NEU)
+
+```
+┌─────────────────────────────────────────────────────────────────────────────────────┐
+│  SELBSTRECHNUNGS-CHECK                                                              │
+│  ═════════════════════                                                              │
+│                                                                                     │
+│  Prüflogik:                                                                         │
+│  ├── supplier_vat_id aus Rechnung extrahieren                                       │
+│  ├── Mit beneficiary_vat_id aus Projekt vergleichen                                 │
+│  └── Bei Übereinstimmung: FRAUD_SELF_INVOICE (CRITICAL)                             │
+│                                                                                     │
+│  Beispiel VALIDE Rechnung:                                                          │
+│  ├── Lieferant:    Extern GmbH (DE123456789)                                        │
+│  ├── Empfänger:    Muster GmbH (DE987654321)                                        │
+│  └── Ergebnis:     ✓ OK                                                             │
+│                                                                                     │
+│  Beispiel SELBSTRECHNUNG:                                                           │
+│  ├── Lieferant:    Muster GmbH (DE987654321)  ← Gleiche UST-ID!                     │
+│  ├── Empfänger:    Muster GmbH (DE987654321)  ← Gleiche UST-ID!                     │
+│  └── Ergebnis:     ✗ FRAUD_SELF_INVOICE (CRITICAL)                                  │
+│                                                                                     │
+│  Implementierung:                                                                   │
+│  if normalize(supplier_vat_id) == normalize(beneficiary_vat_id):                    │
+│      return Error(FRAUD_SELF_INVOICE, severity=CRITICAL)                            │
 │                                                                                     │
 └─────────────────────────────────────────────────────────────────────────────────────┘
 ```
@@ -1027,28 +1269,66 @@ class Project:
 
 ## Geklärte Fragen
 
-1. **Lösungsdatei-Format**: PDF-Dateien werden generiert, Lösungsdatei separat (CSV/JSON)
+1. **Lösungsdatei-Format**: PDF-Dateien werden generiert, Lösungsdatei separat (JSON)
 2. **Matching**: Dateiname + Position in der Upload-Liste
 3. **Feedback → RAG**: Bereits implementiert! Jede Korrektur wird als RAG-Beispiel gespeichert.
 4. **Ruleset**: DE_USTG (§ 14 UStG Pflichtangaben)
-5. **Prüfumfang**: Steuerrecht + Förderfähigkeit + Semantik + Wirtschaftlichkeit
+5. **Prüfumfang**: Steuerrecht + Förderfähigkeit + Semantik + Wirtschaftlichkeit + Betrug
 6. **Batch-Job**: Celery Beat, täglich 02:00 Uhr
+7. **Fehler-Codes**: Definiert in 5 Kategorien (TAX, PROJECT, FRAUD, SEMANTIC, ECONOMIC)
+8. **Merge-Default**: Manuelle Eingaben haben Vorrang vor Lösungsdatei
+9. **Selbstrechnungs-Prüfung**: `FRAUD_SELF_INVOICE` bei gleicher UST-ID
+10. **Projektdaten**: Erweitert um `execution_period`, `beneficiary_vat_id`, `project_description`
 
 ## Offene Fragen
 
-1. **Fehler-Codes Generator**: Welche Fehler-Codes erzeugt der Rechnungsgenerator?
-2. **Merge-Default**: Sollen manuelle Eingaben standardmäßig Vorrang haben?
-3. **E-Mail-Benachrichtigung**: Wer soll den Batch-Report erhalten?
-4. **Projektstandort**: Ist `project_location` immer definiert?
+1. **E-Mail-Benachrichtigung**: Wer soll den Batch-Report erhalten?
+2. **Projektstandort**: Ist `project_location` immer definiert oder optional?
+3. **Förderquote**: Wird `funding_rate` und `max_funding_amount` benötigt?
 
 ---
 
-## Nächste Schritte
+## Implementierungs-Plan
 
-Nach Freigabe dieser Spezifikation:
+### Phase 0: Vorbereitung (Backend)
+1. [ ] Fehler-Codes als Enum definieren (`backend/app/models/enums.py`)
+2. [ ] Projektmodell erweitern (`execution_period`, `beneficiary_vat_id`)
+3. [ ] Selbstrechnungs-Prüfung in Risk Checker einbauen
+4. [ ] Lösungsdatei-Parser implementieren
 
-1. [ ] Lösungsdatei-Format finalisieren
-2. [ ] Phase 1 implementieren (Merkmals-Ansicht)
-3. [ ] Phase 2 implementieren (Korrektur-Formular)
-4. [ ] Phase 3-5 implementieren (Lösungsdatei-Import)
-5. [ ] End-to-End Tests mit generierten Rechnungen
+### Phase 1: Belegliste (Frontend)
+1. [ ] Tabellen-Layout mit Pagination
+2. [ ] Status-Spalte mit Icons (✓/⚠/✗/⏳)
+3. [ ] Suche und Filter
+4. [ ] Zusammenfassungs-Leiste
+
+### Phase 2: Split-View (Frontend)
+1. [ ] PDF-Viewer Komponente (react-pdf)
+2. [ ] Kriterienkatalog nach Kategorien
+3. [ ] Navigation (Prev/Next)
+
+### Phase 3: Korrektur-Formular (Frontend + Backend)
+1. [ ] Inline-Korrektur pro Merkmal
+2. [ ] Begründungs-Feld
+3. [ ] Feedback-API Anbindung
+4. [ ] RAG-Learning Trigger
+
+### Phase 4: Lösungsdatei-Import
+1. [ ] Upload-Endpunkt (Backend)
+2. [ ] Parser für JSON-Format
+3. [ ] Matching-Logik (Dateiname + Position)
+4. [ ] Upload-UI (Frontend)
+5. [ ] Merge-Dialog (manuell hat Vorrang)
+
+### Phase 5: Batch-Job
+1. [ ] Celery Beat Konfiguration
+2. [ ] `process_training_batch` Task
+3. [ ] Auto-Feedback aus Lösungsdatei
+4. [ ] Report-Generierung
+5. [ ] Batch-Job UI (optional)
+
+### Phase 6: Tests
+1. [ ] Unit-Tests für Fehler-Codes
+2. [ ] Integration-Tests für Selbstrechnungs-Prüfung
+3. [ ] E2E-Tests mit generierten Rechnungen
+4. [ ] Performance-Tests (1000 Rechnungen)
