@@ -11,6 +11,7 @@ from datetime import UTC, datetime
 from typing import TYPE_CHECKING
 
 from sqlalchemy import DateTime, ForeignKey, String
+from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.database import Base
@@ -36,14 +37,14 @@ class ProjectShare(Base):
     __tablename__ = "project_shares"
 
     id: Mapped[str] = mapped_column(
-        String(36),
+        UUID(as_uuid=False),
         primary_key=True,
         default=lambda: str(uuid.uuid4()),
     )
 
     # Projekt, das freigegeben wird
     project_id: Mapped[str] = mapped_column(
-        String(36),
+        UUID(as_uuid=False),
         ForeignKey("projects.id", ondelete="CASCADE"),
         nullable=False,
         index=True,
