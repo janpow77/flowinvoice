@@ -409,6 +409,7 @@ class BatchJobStatus(str, Enum):
     """Status eines Batch-Jobs."""
 
     PENDING = "PENDING"  # Wartet auf Ausführung
+    QUEUED = "QUEUED"  # In Celery-Queue eingereiht
     SCHEDULED = "SCHEDULED"  # Geplant (Celery Beat)
     RUNNING = "RUNNING"  # Läuft gerade
     PAUSED = "PAUSED"  # Pausiert
