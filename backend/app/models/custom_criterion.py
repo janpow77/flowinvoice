@@ -64,7 +64,7 @@ class CustomCriterion(Base):
     # Logik-Typ
     logic_type: Mapped[str] = mapped_column(
         String(30),
-        default=CriterionLogicType.SIMPLE_COMPARISON.value,
+        default=CriterionLogicType.COMPARISON.value,
     )
 
     # Regelkonfiguration als JSON

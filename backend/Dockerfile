@@ -37,6 +37,10 @@ RUN pip install --upgrade pip && \
 # Copy application code
 COPY --chown=flowaudit:flowaudit app/ ./app/
 
+# Copy Alembic migrations
+COPY --chown=flowaudit:flowaudit alembic.ini ./
+COPY --chown=flowaudit:flowaudit alembic/ ./alembic/
+
 # Create data directories
 RUN mkdir -p /data/uploads /data/exports /data/logs && \
     chown -R flowaudit:flowaudit /data

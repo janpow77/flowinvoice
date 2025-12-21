@@ -15,7 +15,9 @@ from alembic import context
 
 # Import the application's models and config
 from app.database import Base
-from app.core.config import settings
+from app.config import get_settings
+
+settings = get_settings()
 
 # Import all models to ensure they're registered with Base.metadata
 from app.models import user, project, document, ruleset, project_share  # noqa: F401
