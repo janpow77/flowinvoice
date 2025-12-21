@@ -9,15 +9,12 @@ Gemäß Nutzerkonzept Abschnitt 4.3.
 from datetime import UTC, datetime, timedelta
 from typing import Any
 
+import bcrypt
 from jose import jwt
-from passlib.context import CryptContext
 
 from app.config import get_settings
 
 settings = get_settings()
-
-# Passwort-Hashing mit bcrypt
-pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
 # JWT Konfiguration
 ALGORITHM = "HS256"
@@ -68,8 +65,10 @@ def verify_password(plain_password: str, hashed_password: str) -> bool:
     Returns:
         True wenn das Passwort korrekt ist
     """
-    result: bool = pwd_context.verify(plain_password, hashed_password)
-    return result
+    return bcrypt.checkpw(
+        plain_password.encode("utf-8"),
+        hashed_password.encode("utf-8")
+    )
 
 
 def get_password_hash(password: str) -> str:
@@ -82,5 +81,7 @@ def get_password_hash(password: str) -> str:
     Returns:
         bcrypt-Hash des Passworts
     """
-    hashed: str = pwd_context.hash(password)
-    return hashed
+    return bcrypt.hashpw(
+        password.encode("utf-8"),
+        bcrypt.gensalt()
+    ).decode("utf-8")
