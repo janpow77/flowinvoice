@@ -45,13 +45,13 @@ export function ProgressLoader({
       <LogoSpinner size={spinnerSize} progress={progress} />
 
       {title && (
-        <h3 className="mt-6 text-lg font-semibold text-theme-text-primary dark:text-white">
+        <h3 className="mt-6 text-lg font-semibold text-theme-text-primary">
           {title}
         </h3>
       )}
 
       {message && (
-        <p className="mt-2 text-sm text-theme-text-muted dark:text-theme-text-muted">
+        <p className="mt-2 text-sm text-theme-text-muted">
           {message}
         </p>
       )}

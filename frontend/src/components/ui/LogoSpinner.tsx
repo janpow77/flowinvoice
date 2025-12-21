@@ -118,8 +118,8 @@ export function LogoSpinner({
             strokeLinecap="round"
             className={`transition-all duration-150 ${
               tick.isActive
-                ? 'stroke-accent-primary dark:stroke-accent-primary'
-                : 'stroke-theme-border-default dark:stroke-theme-border-default'
+                ? 'stroke-accent-primary'
+                : 'stroke-theme-border-default'
             }`}
             style={{
               opacity: tick.isActive ? 1 : 0.4,
@@ -168,7 +168,7 @@ export function LogoSpinner({
       {progress !== undefined && !isStatic && (
         <div
           className="absolute bottom-0 left-1/2 transform -translate-x-1/2 translate-y-2
-                     text-xs font-medium text-theme-text-muted dark:text-theme-text-muted"
+                     text-xs font-medium text-theme-text-muted"
         >
           {Math.round(progress)}%
         </div>
@@ -189,9 +189,9 @@ interface LoadingScreenProps {
 
 export function LoadingScreen({ message = 'Wird geladen...', progress }: LoadingScreenProps) {
   return (
-    <div className="fixed inset-0 bg-theme-bg flex flex-col items-center justify-center z-50">
+    <div className="fixed inset-0 bg-theme-app flex flex-col items-center justify-center z-50">
       <LogoSpinner size={160} progress={progress} />
-      <p className="mt-6 text-lg text-theme-text-muted dark:text-theme-text-muted animate-pulse">
+      <p className="mt-6 text-lg text-theme-text-muted animate-pulse">
         {message}
       </p>
     </div>

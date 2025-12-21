@@ -117,9 +117,9 @@ export function CriteriaCatalog({
 
       {/* Modal */}
       <div className="relative min-h-screen flex items-center justify-center p-4">
-        <div className="relative bg-white rounded-2xl shadow-2xl max-w-3xl w-full max-h-[90vh] overflow-hidden">
+        <div className="relative bg-theme-card rounded-2xl shadow-2xl max-w-3xl w-full max-h-[90vh] overflow-hidden">
           {/* Header */}
-          <div className="sticky top-0 bg-white border-b border-theme-border-default px-6 py-4 flex items-center justify-between z-10">
+          <div className="sticky top-0 bg-theme-card border-b border-theme-border-default px-6 py-4 flex items-center justify-between z-10">
             <div className="flex items-center gap-3">
               <span className="text-3xl">{ruleset.flag}</span>
               <div>
@@ -231,7 +231,7 @@ export function CriteriaCatalog({
           </div>
 
           {/* Footer */}
-          <div className="sticky bottom-0 bg-white border-t border-theme-border-default px-6 py-4 flex justify-end gap-3">
+          <div className="sticky bottom-0 bg-theme-card border-t border-theme-border-default px-6 py-4 flex justify-end gap-3">
             <Button variant="ghost" onClick={onClose}>
               {t('common.cancel', 'Abbrechen')}
             </Button>

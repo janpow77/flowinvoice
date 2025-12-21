@@ -32,7 +32,7 @@ export function TaxSystemCard({
         'hover:shadow-lg hover:scale-[1.02] focus:outline-none focus:ring-2 focus:ring-accent-primary focus:ring-offset-2',
         isSelected
           ? 'border-accent-primary bg-accent-primary/10 shadow-md'
-          : 'border-theme-border-default bg-white hover:border-accent-primary/30'
+          : 'border-theme-border-default bg-theme-card hover:border-accent-primary/30'
       )}
     >
       {/* Ausgewählt-Indikator */}
