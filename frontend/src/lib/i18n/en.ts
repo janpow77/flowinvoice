@@ -11,7 +11,9 @@ export const en = {
     rulesets: 'Rulesets',
     generator: 'Generator',
     statistics: 'Statistics',
+    users: 'Users',
     settings: 'Settings',
+    logout: 'Logout',
   },
 
   // Document Types

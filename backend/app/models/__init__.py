@@ -11,6 +11,7 @@ from app.models.export import ExportJob, GeneratorJob
 from app.models.feedback import Feedback, RagExample
 from app.models.llm import LlmRun, LlmRunLog, PreparePayload
 from app.models.project import Project
+from app.models.project_share import ProjectShare
 from app.models.result import AnalysisResult, FinalResult
 from app.models.ruleset import Ruleset
 from app.models.ruleset_sample import RulesetSample
@@ -24,6 +25,7 @@ __all__ = [
     "Ruleset",
     "RulesetSample",
     "Project",
+    "ProjectShare",
     "Document",
     # Parsing
     "ParseRun",

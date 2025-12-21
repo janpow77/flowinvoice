@@ -4,6 +4,13 @@
 
 Dieses Dokument beschreibt das geplante Nutzerverwaltungs- und Berechtigungssystem für FlowAudit/FlowInvoice.
 
+### Entscheidungen (festgelegt)
+
+- **Schüler sehen NUR ihr eigenes Projekt** (keine anderen Projekte lesbar)
+- **Externe sehen vollständige Dokument-Ansicht** (nicht nur Ergebnisse)
+- **Admin weist Projekte manuell zu** (Schüler wählt nicht selbst)
+- **Keine Gruppen/Klassen-Struktur** (flache Hierarchie)
+
 ---
 
 ## 1. Rollenmodell
@@ -36,8 +43,8 @@ Dieses Dokument beschreibt das geplante Nutzerverwaltungs- und Berechtigungssyst
   - Testfälle mit dem Generator erstellen
   - Eigene Einstellungen anpassen (Sprache, Theme)
 - **Einschränkungen:**
-  - Kann nur eigenes Projekt bearbeiten
-  - Sieht andere Projekte nur lesend (optional konfigurierbar)
+  - Kann nur eigenes Projekt sehen und bearbeiten
+  - Sieht KEINE anderen Projekte
   - Keine Nutzerverwaltung
   - Keine System-Konfiguration
 - **Authentifizierung:** Username/Passwort mit JWT
@@ -72,7 +79,7 @@ Dieses Dokument beschreibt das geplante Nutzerverwaltungs- und Berechtigungssyst
 | Eigenes Profil bearbeiten | ✅ | ✅ | ✅ |
 | Eigenes Passwort ändern | ✅ | ✅ | ✅ |
 | **Projekte** |
-| Alle Projekte sehen | ✅ | 👁️ (nur lesen) | ❌ |
+| Alle Projekte sehen | ✅ | ❌ | ❌ |
 | Eigenes Projekt sehen | ✅ | ✅ | ✅ (nur freigegebene) |
 | Projekt erstellen | ✅ | ❌ | ❌ |
 | Eigenes Projekt bearbeiten | ✅ | ✅ | ❌ |
@@ -681,23 +688,19 @@ def upgrade() -> None:
 
 ---
 
-## 10. Offene Fragen
+## 10. Entschiedene Fragen
 
 1. **Sollen Schüler andere Projekte lesen können?**
-   - Option A: Nur eigenes Projekt sichtbar
-   - Option B: Alle Projekte lesbar, nur eigenes bearbeitbar
+   - ✅ **Entscheidung: Option A** - Nur eigenes Projekt sichtbar
 
 2. **Sollen Externe direkt Dokumente sehen oder nur Ergebnisse?**
-   - Option A: Vollständige Dokument-Ansicht
-   - Option B: Nur Analyse-Ergebnisse
+   - ✅ **Entscheidung: Option A** - Vollständige Dokument-Ansicht
 
 3. **Wie soll die Projekt-Zuweisung erfolgen?**
-   - Option A: Admin weist manuell zu
-   - Option B: Schüler wählt aus Liste
-   - Option C: Automatisch bei Registrierung
+   - ✅ **Entscheidung: Option A** - Admin weist manuell zu
 
 4. **Brauchen wir Gruppen/Klassen?**
-   - Für Schulumgebung könnte Klassenstruktur sinnvoll sein
+   - ✅ **Entscheidung: Nein** - Keine Gruppen/Klassen nötig
 
 ---
 

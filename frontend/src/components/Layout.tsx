@@ -1,5 +1,5 @@
-import { ReactNode } from 'react'
-import { Link, useLocation } from 'react-router-dom'
+import { ReactNode, useMemo } from 'react'
+import { Link, useLocation, useNavigate } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import {
   LayoutDashboard,
@@ -9,27 +9,73 @@ import {
   FileOutput,
   BarChart3,
   Settings,
+  Users,
+  LogOut,
 } from 'lucide-react'
 import clsx from 'clsx'
+import { useAuth } from '../context/AuthContext'
+import type { UserRole } from '../lib/types'
 
 interface LayoutProps {
   children: ReactNode
 }
 
-// Navigation items with translation keys
-const navigation = [
-  { key: 'dashboard', href: '/', icon: LayoutDashboard },
+interface NavItem {
+  key: string
+  href: string
+  icon: typeof LayoutDashboard
+  /** Welche Rollen dürfen diesen Menüpunkt sehen? Leer = alle */
+  allowedRoles?: UserRole[]
+}
+
+// Navigation items with translation keys and role restrictions
+const navigationItems: NavItem[] = [
+  { key: 'dashboard', href: '/', icon: LayoutDashboard, allowedRoles: ['admin', 'schueler'] },
   { key: 'projects', href: '/projects', icon: FolderOpen },
-  { key: 'documents', href: '/documents', icon: FileText },
-  { key: 'rulesets', href: '/rulesets', icon: Book },
+  { key: 'documents', href: '/documents', icon: FileText, allowedRoles: ['admin', 'schueler'] },
+  { key: 'rulesets', href: '/rulesets', icon: Book, allowedRoles: ['admin', 'schueler'] },
   { key: 'generator', href: '/generator', icon: FileOutput },
-  { key: 'statistics', href: '/statistics', icon: BarChart3 },
+  { key: 'statistics', href: '/statistics', icon: BarChart3, allowedRoles: ['admin'] },
+  { key: 'users', href: '/users', icon: Users, allowedRoles: ['admin'] },
   { key: 'settings', href: '/settings', icon: Settings },
 ]
 
 export default function Layout({ children }: LayoutProps) {
   const location = useLocation()
+  const navigate = useNavigate()
   const { t } = useTranslation()
+  const { user, logout, hasRole } = useAuth()
+
+  // Filter navigation based on user role
+  const navigation = useMemo(() => {
+    return navigationItems.filter((item) => {
+      // Wenn keine Rollen-Einschränkung, für alle sichtbar
+      if (!item.allowedRoles || item.allowedRoles.length === 0) {
+        return true
+      }
+      // Prüfe ob Benutzer eine der erlaubten Rollen hat
+      return hasRole(item.allowedRoles)
+    })
+  }, [hasRole])
+
+  const handleLogout = () => {
+    logout()
+    navigate('/login')
+  }
+
+  // Rollen-Label für Anzeige
+  const getRoleLabel = (role: string) => {
+    switch (role) {
+      case 'admin':
+        return 'Administrator'
+      case 'schueler':
+        return 'Schüler'
+      case 'extern':
+        return 'Externer Zugang'
+      default:
+        return role
+    }
+  }
 
   return (
     <div className="min-h-screen flex bg-theme-app">
@@ -50,6 +96,18 @@ export default function Layout({ children }: LayoutProps) {
             FlowAudit
           </span>
         </Link>
+
+        {/* User Info */}
+        {user && (
+          <div className="px-4 py-3 border-b border-theme-border-default">
+            <div className="text-sm font-medium text-theme-text-primary">
+              {user.username}
+            </div>
+            <div className="text-xs text-theme-text-muted">
+              {getRoleLabel(user.role)}
+            </div>
+          </div>
+        )}
 
         {/* Navigation */}
         <nav className="flex-1 px-4 py-4 space-y-1">
@@ -76,6 +134,15 @@ export default function Layout({ children }: LayoutProps) {
               </Link>
             )
           })}
+
+          {/* Logout Button */}
+          <button
+            onClick={handleLogout}
+            className="w-full flex items-center px-3 py-2 rounded-lg text-sm font-medium transition-colors text-theme-text-secondary hover:bg-theme-hover hover:text-theme-text-primary"
+          >
+            <LogOut className="h-5 w-5 mr-3 text-theme-text-muted" />
+            {t('nav.logout', 'Abmelden')}
+          </button>
         </nav>
 
         {/* Footer */}

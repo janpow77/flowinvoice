@@ -17,6 +17,7 @@ from app.api import (
     rulesets,
     settings,
     stats,
+    users,
 )
 
 __all__ = [
@@ -31,4 +32,5 @@ __all__ = [
     "rulesets",
     "settings",
     "stats",
+    "users",
 ]

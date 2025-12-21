@@ -5,11 +5,12 @@ FlowAudit Project Model
 Vorhaben/Projekt mit Begünstigtem und Durchführungsort.
 """
 
+import secrets
 from datetime import datetime
 from typing import TYPE_CHECKING, Any
 from uuid import uuid4
 
-from sqlalchemy import Boolean, DateTime, String
+from sqlalchemy import Boolean, DateTime, ForeignKey, String
 from sqlalchemy.dialects.postgresql import JSONB, UUID
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
@@ -17,6 +18,7 @@ from app.database import Base
 
 if TYPE_CHECKING:
     from app.models.document import Document
+    from app.models.user import User
 
 
 class Project(Base):
@@ -27,6 +29,7 @@ class Project(Base):
     - Begünstigten (beneficiary) mit Adresse und Aliases
     - Projekt-Details mit Durchführungsort (implementation)
     - Zeitraum und Budget
+    - Besitzer und Nutzer-Zuweisungen
     """
 
     __tablename__ = "projects"
@@ -48,6 +51,36 @@ class Project(Base):
     # Status
     is_active: Mapped[bool] = mapped_column(Boolean, default=False)
 
+    # Besitzer (Admin, der das Projekt erstellt hat)
+    owner_id: Mapped[str | None] = mapped_column(
+        String(36),
+        ForeignKey("users.id", ondelete="SET NULL"),
+        nullable=True,
+    )
+    owner: Mapped["User | None"] = relationship(
+        "User",
+        foreign_keys=[owner_id],
+    )
+
+    # Nutzer, die diesem Projekt zugewiesen sind (Schüler)
+    assigned_users: Mapped[list["User"]] = relationship(
+        "User",
+        back_populates="assigned_project",
+        foreign_keys="User.assigned_project_id",
+    )
+
+    # Externe Freigabe
+    is_shared_externally: Mapped[bool] = mapped_column(
+        Boolean,
+        default=False,
+        nullable=False,
+    )
+    share_token: Mapped[str | None] = mapped_column(
+        String(64),
+        unique=True,
+        nullable=True,
+    )
+
     # Zeitstempel
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), default=datetime.utcnow
@@ -60,6 +93,17 @@ class Project(Base):
     documents: Mapped[list["Document"]] = relationship(
         "Document", back_populates="project", cascade="all, delete-orphan"
     )
+
+    def generate_share_token(self) -> str:
+        """Generiert ein neues Share-Token für externe Freigabe."""
+        self.share_token = secrets.token_urlsafe(48)
+        self.is_shared_externally = True
+        return self.share_token
+
+    def revoke_share_token(self) -> None:
+        """Widerruft das Share-Token."""
+        self.share_token = None
+        self.is_shared_externally = False
 
     def __repr__(self) -> str:
         """String-Repräsentation."""
