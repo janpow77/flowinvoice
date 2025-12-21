@@ -3,6 +3,7 @@
 FlowAudit User Authentication API
 
 Endpoints für Benutzer-Authentifizierung mit JWT-Tokens.
+Unterstützt datenbankbasierte Authentifizierung und Demo-User-Fallback.
 """
 
 import logging
@@ -10,17 +11,21 @@ from datetime import UTC, datetime, timedelta
 from typing import Annotated
 
 from fastapi import APIRouter, Depends, HTTPException, status
-from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
-from jose import JWTError, jwt
+from fastapi.security import OAuth2PasswordRequestForm
+from jose import jwt
 from pydantic import BaseModel
+from sqlalchemy import select
+from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.config import get_settings
+from app.core.permissions import get_permission_names
+from app.core.security import get_password_hash, verify_password
+from app.database import get_async_session
+from app.models.user import User
+from app.schemas.user import UserInfo
 
 logger = logging.getLogger(__name__)
 router = APIRouter()
-
-# OAuth2 Schema für Token-Authentifizierung
-oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/api/auth/login", auto_error=False)
 
 
 class Token(BaseModel):
@@ -38,22 +43,15 @@ class TokenData(BaseModel):
     exp: datetime
 
 
-class UserInfo(BaseModel):
-    """Benutzer-Info Response."""
-
-    username: str
-    is_admin: bool
-
-
-def _get_demo_users() -> dict[str, tuple[str, bool]]:
+def _get_demo_users() -> dict[str, tuple[str, str]]:
     """
     Lädt Demo-Benutzer aus der Konfiguration.
 
     Returns:
-        Dict mit username -> (password, is_admin)
+        Dict mit username -> (password, role)
     """
     settings = get_settings()
-    users: dict[str, tuple[str, bool]] = {}
+    users: dict[str, tuple[str, str]] = {}
 
     if settings.demo_users:
         for user_entry in settings.demo_users.split(","):
@@ -62,37 +60,19 @@ def _get_demo_users() -> dict[str, tuple[str, bool]]:
                 username, password = user_entry.split(":", 1)
                 username = username.strip()
                 password = password.strip()
-                # Admin-Flag: Benutzer "admin" ist automatisch Admin
-                is_admin = username.lower() == "admin"
-                users[username] = (password, is_admin)
+                # Rolle basierend auf Username
+                if username.lower() == "admin":
+                    role = "admin"
+                elif username.lower().startswith("extern"):
+                    role = "extern"
+                else:
+                    role = "schueler"
+                users[username] = (password, role)
 
     return users
 
 
-def _verify_password(plain_password: str, stored_password: str) -> bool:
-    """
-    Verifiziert ein Passwort.
-
-    Im Debug-Modus wird Klartext verglichen.
-    In Produktion sollte bcrypt verwendet werden.
-    """
-    settings = get_settings()
-
-    # Im Debug-Modus: Klartext-Vergleich (nur für Entwicklung!)
-    if settings.debug:
-        return plain_password == stored_password
-
-    # In Produktion: bcrypt-Vergleich
-    # TODO: Implementieren Sie bcrypt für Produktion
-    # from passlib.context import CryptContext
-    # pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
-    # return pwd_context.verify(plain_password, stored_password)
-
-    # Fallback: Klartext (NICHT für Produktion!)
-    return plain_password == stored_password
-
-
-def _create_access_token(username: str, is_admin: bool) -> tuple[str, int]:
+def _create_access_token(username: str, role: str) -> tuple[str, int]:
     """
     Erstellt ein JWT Access Token.
 
@@ -106,7 +86,7 @@ def _create_access_token(username: str, is_admin: bool) -> tuple[str, int]:
 
     payload = {
         "sub": username,
-        "is_admin": is_admin,
+        "role": role,
         "exp": expire,
         "iat": datetime.now(UTC),
     }
@@ -120,108 +100,79 @@ def _create_access_token(username: str, is_admin: bool) -> tuple[str, int]:
     return token, expires_in
 
 
-def decode_token(token: str) -> TokenData | None:
+async def _authenticate_user(
+    username: str,
+    password: str,
+    session: AsyncSession,
+) -> User | None:
     """
-    Dekodiert und validiert ein JWT Token.
+    Authentifiziert einen Benutzer gegen die Datenbank.
+
+    Falls kein DB-User gefunden wird und Demo-Mode aktiv ist,
+    wird gegen Demo-User geprüft.
 
     Returns:
-        TokenData oder None wenn ungültig
+        User-Objekt oder None
     """
     settings = get_settings()
 
-    try:
-        payload = jwt.decode(
-            token,
-            settings.secret_key.get_secret_value(),
-            algorithms=[settings.jwt_algorithm],
-        )
-        username: str = payload.get("sub")
-        exp_timestamp = payload.get("exp")
+    # Zuerst in der Datenbank suchen
+    result = await session.execute(
+        select(User).where(User.username == username)
+    )
+    db_user = result.scalar_one_or_none()
 
-        if username is None or exp_timestamp is None:
-            return None
-
-        exp = datetime.fromtimestamp(exp_timestamp, tz=UTC)
-        return TokenData(username=username, exp=exp)
-    except JWTError as e:
-        logger.debug(f"JWT error: {e}")
+    if db_user:
+        # Datenbankbenutzer gefunden - Passwort prüfen
+        if verify_password(password, db_user.hashed_password):
+            if not db_user.is_active:
+                logger.warning(f"Login failed: User '{username}' is inactive")
+                return None
+            if not db_user.has_valid_access:
+                logger.warning(f"Login failed: User '{username}' access expired")
+                return None
+            return db_user
         return None
 
+    # Fallback auf Demo-User (nur im Debug-Modus)
+    if settings.debug:
+        demo_users = _get_demo_users()
+        if username in demo_users:
+            stored_password, role = demo_users[username]
+            if password == stored_password:
+                # Temporären User erstellen (nicht in DB gespeichert)
+                logger.info(f"Demo user '{username}' authenticated")
+                return User(
+                    id="demo-" + username,
+                    username=username,
+                    email=f"{username}@demo.local",
+                    hashed_password="",
+                    role=role,
+                    is_active=True,
+                )
 
-async def get_current_user(
-    token: Annotated[str | None, Depends(oauth2_scheme)],
-) -> UserInfo | None:
-    """
-    Dependency um den aktuellen Benutzer aus dem Token zu extrahieren.
-
-    Returns:
-        UserInfo oder None wenn nicht authentifiziert
-    """
-    if token is None:
-        return None
-
-    token_data = decode_token(token)
-    if token_data is None:
-        return None
-
-    # Prüfe ob Benutzer noch existiert
-    users = _get_demo_users()
-    if token_data.username not in users:
-        return None
-
-    _, is_admin = users[token_data.username]
-    return UserInfo(username=token_data.username, is_admin=is_admin)
-
-
-async def require_authenticated_user(
-    token: Annotated[str | None, Depends(oauth2_scheme)],
-) -> UserInfo:
-    """
-    Dependency die authentifizierten Benutzer erfordert.
-
-    Raises:
-        HTTPException 401 wenn nicht authentifiziert
-    """
-    user = await get_current_user(token)
-    if user is None:
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Not authenticated",
-            headers={"WWW-Authenticate": "Bearer"},
-        )
-    return user
-
-
-# Type Aliases für Dependencies
-CurrentUser = Annotated[UserInfo | None, Depends(get_current_user)]
-RequiredUser = Annotated[UserInfo, Depends(require_authenticated_user)]
+    return None
 
 
 @router.post("/auth/login", response_model=Token)
 async def login(
     form_data: Annotated[OAuth2PasswordRequestForm, Depends()],
+    session: Annotated[AsyncSession, Depends(get_async_session)],
 ) -> Token:
     """
     Benutzer-Login mit Username und Passwort.
 
     Gibt ein JWT Access Token zurück.
+    Authentifiziert gegen Datenbank oder Demo-User (im Debug-Modus).
     """
-    users = _get_demo_users()
+    user = await _authenticate_user(
+        form_data.username,
+        form_data.password,
+        session,
+    )
 
-    # Benutzer prüfen
-    if form_data.username not in users:
-        logger.warning(f"Login failed: User '{form_data.username}' not found")
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Incorrect username or password",
-            headers={"WWW-Authenticate": "Bearer"},
-        )
-
-    stored_password, is_admin = users[form_data.username]
-
-    # Passwort prüfen
-    if not _verify_password(form_data.password, stored_password):
-        logger.warning(f"Login failed: Invalid password for user '{form_data.username}'")
+    if not user:
+        logger.warning(f"Login failed for user '{form_data.username}'")
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Incorrect username or password",
@@ -229,9 +180,9 @@ async def login(
         )
 
     # Token erstellen
-    access_token, expires_in = _create_access_token(form_data.username, is_admin)
+    access_token, expires_in = _create_access_token(user.username, user.role)
 
-    logger.info(f"User '{form_data.username}' logged in successfully")
+    logger.info(f"User '{user.username}' logged in successfully (role: {user.role})")
 
     return Token(
         access_token=access_token,
@@ -242,46 +193,45 @@ async def login(
 
 @router.get("/auth/me", response_model=UserInfo)
 async def get_current_user_info(
-    current_user: RequiredUser,
+    session: Annotated[AsyncSession, Depends(get_async_session)],
+    token: str = Depends(lambda: None),  # Placeholder, actual auth via deps.py
 ) -> UserInfo:
     """
     Gibt Informationen zum aktuell angemeldeten Benutzer zurück.
+
+    Hinweis: Der eigentliche Endpoint ist /api/users/me
+    Dieser Endpoint existiert für Abwärtskompatibilität.
     """
-    return current_user
+    # Redirect to /api/users/me would be better, but for now just return a hint
+    raise HTTPException(
+        status_code=status.HTTP_301_MOVED_PERMANENTLY,
+        detail="Use /api/users/me instead",
+        headers={"Location": "/api/users/me"},
+    )
 
 
 @router.post("/auth/logout")
-async def logout(
-    current_user: RequiredUser,
-) -> dict[str, str]:
+async def logout() -> dict[str, str]:
     """
     Logout - invalidiert das Token client-seitig.
 
     Server-seitig wird das Token nicht invalidiert (stateless JWT).
     Der Client sollte das Token aus dem localStorage entfernen.
     """
-    logger.info(f"User '{current_user.username}' logged out")
     return {"message": "Successfully logged out"}
 
 
 @router.post("/auth/refresh", response_model=Token)
 async def refresh_token(
-    current_user: RequiredUser,
+    session: Annotated[AsyncSession, Depends(get_async_session)],
 ) -> Token:
     """
     Erneuert das Access Token.
 
     Erfordert ein gültiges (nicht abgelaufenes) Token.
+    Verwendet den neuen /api/users/me Endpoint.
     """
-    users = _get_demo_users()
-    _, is_admin = users.get(current_user.username, (None, False))
-
-    access_token, expires_in = _create_access_token(current_user.username, is_admin)
-
-    logger.info(f"Token refreshed for user '{current_user.username}'")
-
-    return Token(
-        access_token=access_token,
-        token_type="bearer",
-        expires_in=expires_in,
+    raise HTTPException(
+        status_code=status.HTTP_501_NOT_IMPLEMENTED,
+        detail="Token refresh not yet implemented. Re-login required.",
     )

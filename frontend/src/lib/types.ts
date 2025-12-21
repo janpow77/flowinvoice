@@ -1,5 +1,62 @@
 // API Response Types for FlowAudit
 
+// ============================================================================
+// User & Auth Types
+// ============================================================================
+
+export type UserRole = 'admin' | 'schueler' | 'extern';
+export type ThemePreference = 'light' | 'dark' | 'system';
+export type LanguageCode = 'de' | 'en';
+
+export interface UserInfo {
+  id: string;
+  username: string;
+  role: UserRole;
+  is_admin: boolean;
+  assigned_project_id: string | null;
+  language: LanguageCode;
+  theme: ThemePreference;
+  permissions: string[];
+}
+
+export interface UserProfile {
+  id: string;
+  username: string;
+  email: string;
+  full_name: string | null;
+  organization: string | null;
+  contact_info: string | null;
+  language: LanguageCode;
+  theme: ThemePreference;
+  role: UserRole;
+  is_active: boolean;
+  assigned_project_id: string | null;
+  access_expires_at: string | null;
+  invited_by_id: string | null;
+  created_at: string;
+  last_active_at: string | null;
+}
+
+export interface UserListItem {
+  id: string;
+  username: string;
+  email: string;
+  full_name: string | null;
+  role: UserRole;
+  is_active: boolean;
+  assigned_project_id: string | null;
+  last_active_at: string | null;
+}
+
+export interface UserListResponse {
+  users: UserListItem[];
+  total: number;
+}
+
+// ============================================================================
+// Document Types
+// ============================================================================
+
 export type DocumentStatus =
   | 'UPLOADED'
   | 'PARSING'

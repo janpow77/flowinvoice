@@ -2,23 +2,31 @@
 """
 FlowAudit API Dependencies
 
-Authentifizierungs-Dependencies mit Throttled Activity Tracking.
-Gemäß Nutzerkonzept Abschnitt 4.4.
+Authentifizierungs- und Autorisierungs-Dependencies.
+Implementiert rollenbasierte Zugriffskontrolle (RBAC).
+
+Rollen:
+- admin: Vollzugriff
+- schueler: Nur eigenes Projekt
+- extern: Eingeschränkter Gastzugang
 """
 
 import logging
 from datetime import UTC, datetime, timedelta
 from typing import Annotated
 
-from fastapi import Depends, HTTPException, status
+from fastapi import Depends, HTTPException, Path, status
 from fastapi.security import OAuth2PasswordBearer
 from jose import JWTError, jwt
-from sqlalchemy import select
+from sqlalchemy import or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.config import get_settings
+from app.core.permissions import Permission, has_permission
 from app.core.security import ALGORITHM
 from app.database import get_async_session
+from app.models.project import Project
+from app.models.project_share import ProjectShare
 from app.models.user import User
 
 logger = logging.getLogger(__name__)
@@ -153,3 +161,169 @@ async def get_current_admin(
 CurrentUser = Annotated[User, Depends(get_current_user)]
 CurrentUserOptional = Annotated[User | None, Depends(get_current_user_optional)]
 CurrentAdmin = Annotated[User, Depends(get_current_admin)]
+
+
+class RequirePermission:
+    """
+    Dependency-Klasse, die eine bestimmte Berechtigung erfordert.
+
+    Verwendung:
+        @router.get("/admin/stats")
+        async def get_stats(
+            user: Annotated[User, Depends(RequirePermission(Permission.STATS_VIEW_ALL))]
+        ):
+            ...
+    """
+
+    def __init__(self, permission: Permission):
+        self.permission = permission
+
+    async def __call__(
+        self,
+        current_user: Annotated[User, Depends(get_current_user)],
+    ) -> User:
+        if not has_permission(current_user.role, self.permission):
+            logger.warning(
+                f"User '{current_user.username}' lacks permission '{self.permission.value}'"
+            )
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail=f"Berechtigung '{self.permission.value}' erforderlich",
+            )
+        return current_user
+
+
+class RequireProjectAccess:
+    """
+    Dependency-Klasse, die Zugriff auf ein bestimmtes Projekt erfordert.
+
+    Prüft je nach Rolle:
+    - Admin: Immer Zugriff
+    - Schüler: Nur wenn Projekt zugewiesen ist
+    - Extern: Nur wenn Projekt freigegeben ist
+
+    Verwendung:
+        @router.get("/projects/{project_id}")
+        async def get_project(
+            project_id: str = Path(...),
+            user: Annotated[User, Depends(RequireProjectAccess())]
+        ):
+            ...
+
+        # Mit Schreibzugriff:
+        @router.put("/projects/{project_id}")
+        async def update_project(
+            project_id: str = Path(...),
+            user: Annotated[User, Depends(RequireProjectAccess(require_write=True))]
+        ):
+            ...
+    """
+
+    def __init__(self, require_write: bool = False):
+        self.require_write = require_write
+
+    async def __call__(
+        self,
+        project_id: Annotated[str, Path()],
+        current_user: Annotated[User, Depends(get_current_user)],
+        session: Annotated[AsyncSession, Depends(get_async_session)],
+    ) -> User:
+        # Prüfen ob Zugang noch gültig ist (relevant für Externe)
+        if not current_user.has_valid_access:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="Zugang abgelaufen",
+            )
+
+        # Admin hat immer Zugriff
+        if current_user.is_admin:
+            return current_user
+
+        # Schüler: Nur Zugriff auf zugewiesenes Projekt
+        if current_user.is_schueler:
+            if current_user.assigned_project_id == project_id:
+                return current_user
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="Kein Zugriff auf dieses Projekt",
+            )
+
+        # Extern: Prüfen ob Projekt freigegeben ist
+        if current_user.is_extern:
+            # Prüfen ob direkt dem Nutzer zugewiesen
+            if current_user.assigned_project_id == project_id:
+                if self.require_write:
+                    raise HTTPException(
+                        status_code=status.HTTP_403_FORBIDDEN,
+                        detail="Schreibzugriff nicht erlaubt",
+                    )
+                return current_user
+
+            # Prüfen ob Projekt explizit freigegeben wurde
+            share_query = select(ProjectShare).where(
+                ProjectShare.project_id == project_id,
+                ProjectShare.user_id == current_user.id,
+                or_(
+                    ProjectShare.expires_at.is_(None),
+                    ProjectShare.expires_at > datetime.now(UTC),
+                ),
+            )
+            result = await session.execute(share_query)
+            share = result.scalar_one_or_none()
+
+            if share:
+                if self.require_write and share.permissions != "write":
+                    raise HTTPException(
+                        status_code=status.HTTP_403_FORBIDDEN,
+                        detail="Schreibzugriff nicht erlaubt",
+                    )
+                return current_user
+
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="Kein Zugriff auf dieses Projekt",
+            )
+
+        # Unbekannte Rolle
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Kein Zugriff auf dieses Projekt",
+        )
+
+
+async def get_accessible_project_ids(
+    current_user: User,
+    session: AsyncSession,
+) -> list[str]:
+    """
+    Gibt die IDs aller Projekte zurück, auf die der Nutzer Zugriff hat.
+
+    Returns:
+        Liste von Projekt-IDs
+    """
+    # Admin: Alle Projekte
+    if current_user.is_admin:
+        result = await session.execute(select(Project.id))
+        return [row[0] for row in result.fetchall()]
+
+    project_ids: list[str] = []
+
+    # Zugewiesenes Projekt
+    if current_user.assigned_project_id:
+        project_ids.append(current_user.assigned_project_id)
+
+    # Für Externe: Zusätzlich freigegebene Projekte
+    if current_user.is_extern:
+        share_query = select(ProjectShare.project_id).where(
+            ProjectShare.user_id == current_user.id,
+            or_(
+                ProjectShare.expires_at.is_(None),
+                ProjectShare.expires_at > datetime.now(UTC),
+            ),
+        )
+        result = await session.execute(share_query)
+        for row in result.fetchall():
+            if row[0] not in project_ids:
+                project_ids.append(row[0])
+
+    return project_ids
