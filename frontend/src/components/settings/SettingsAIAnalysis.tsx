@@ -164,7 +164,7 @@ export function SettingsAIAnalysis({ isAdmin }: Props) {
   return (
     <div className="space-y-6">
       {/* KI-Status Card */}
-      <div className="bg-gradient-to-r from-primary-50 to-blue-50 dark:from-primary-900/20 dark:to-blue-900/20 rounded-lg border border-accent-primary/30 p-4">
+      <div className="bg-theme-selected rounded-lg border border-accent-primary/30 p-4">
         <div className="flex items-center justify-between mb-3">
           <h3 className="text-sm font-semibold text-accent-primary flex items-center gap-2">
             <Zap className="h-4 w-4" />
