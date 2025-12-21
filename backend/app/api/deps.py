@@ -25,6 +25,9 @@ from app.config import get_settings
 from app.core.permissions import Permission, has_permission
 from app.core.security import ALGORITHM
 from app.database import get_async_session
+
+# Alias for compatibility
+get_db = get_async_session
 from app.models.project import Project
 from app.models.project_share import ProjectShare
 from app.models.user import User
