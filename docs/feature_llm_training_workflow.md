@@ -1604,25 +1604,37 @@ Der Batch-Job filtert automatisch auf den Dokumenttyp:
 
 ---
 
-### Generator-Modi und Lösungsdatei
+### Generator und Lösungsdatei
 
-Der Generator hat zwei Modi, die **beide** eine Lösungsdatei erzeugen:
+Der Generator erzeugt **immer** eine Mischung aus gültigen und fehlerhaften Rechnungen:
 
-| Modus | Zweck | Fehler | Lösungsdatei |
-|-------|-------|--------|--------------|
-| **Training** | LLM-Schulung | Absichtliche Fehler (konfigurierbar) | Mit Fehlern |
-| **Normal** | Produktive Nutzung | Keine Fehler | Alle `is_valid: true` |
+- **Fehlerquote** ist konfigurierbar (z.B. 25%)
+- **Fehlertypen** sind auswählbar (TAX, PROJECT, FRAUD, etc.)
+- Jede generierte Rechnung wird in der **Lösungsdatei** dokumentiert
+- Die Lösungsdatei enthält sowohl gültige als auch fehlerhafte Rechnungen
 
-#### Lösungsdatei im Normal-Modus
-
-Auch im Normal-Modus wird eine Lösungsdatei erzeugt:
-- Alle Rechnungen haben `is_valid: true`
-- Alle `fields` sind korrekt extrahiert
-- Dient als **Referenz** für spätere Prüfung
+#### Lösungsdatei-Format
 
 ```json
 {
-  "generator_mode": "normal",
+  "generator_version": "1.0.0",
+  "generated_at": "2025-03-21T14:30:22Z",
+  "project_id": "proj-123",
+  "settings": {
+    "total_invoices": 500,
+    "error_rate": 0.25,
+    "error_distribution": {
+      "TAX": 0.40,
+      "PROJECT": 0.25,
+      "FRAUD": 0.15,
+      "SEMANTIC": 0.10,
+      "ECONOMIC": 0.10
+    }
+  },
+  "statistics": {
+    "valid": 373,
+    "invalid": 127
+  },
   "invoices": [
     {
       "position": 1,
@@ -1632,28 +1644,9 @@ Auch im Normal-Modus wird eine Lösungsdatei erzeugt:
       "fields": {
         "invoice_number": "RE-2025-001",
         "supplier_vat_id": "DE123456789",
+        "vat_rate": 19,
         ...
       }
-    }
-  ]
-}
-```
-
-#### Lösungsdatei im Training-Modus
-
-Im Training-Modus werden absichtliche Fehler generiert:
-
-```json
-{
-  "generator_mode": "training",
-  "error_rate": 0.25,
-  "invoices": [
-    {
-      "position": 1,
-      "filename": "rechnung_001.pdf",
-      "is_valid": true,
-      "errors": [],
-      "fields": { ... }
     },
     {
       "position": 2,
@@ -1663,13 +1656,17 @@ Im Training-Modus werden absichtliche Fehler generiert:
         {
           "code": "TAX_VAT_RATE_WRONG",
           "feature_id": "vat_rate",
+          "severity": "HIGH",
           "expected": 19,
           "actual": 7,
-          "injected": true,
-          "message": "Absichtlich falscher Steuersatz für Training"
+          "message": "Falscher Steuersatz: 7% statt 19%"
         }
       ],
-      "fields": { ... }
+      "fields": {
+        "invoice_number": "RE-2025-002",
+        "vat_rate": 7,
+        ...
+      }
     }
   ]
 }
@@ -1677,11 +1674,11 @@ Im Training-Modus werden absichtliche Fehler generiert:
 
 #### Abweichungen pro Datei sichtbar (Generator-GUI)
 
-Im Generator sind die generierten Abweichungen direkt sichtbar:
+Im Generator sind die generierten Abweichungen **direkt sichtbar**:
 
 ```
 ┌─────────────────────────────────────────────────────────────────────────────────────┐
-│  GENERIERTE RECHNUNGEN                                              [Training-Modus]│
+│  GENERIERTE RECHNUNGEN                                    Fehlerquote: 25% (127/500)│
 ├─────────────────────────────────────────────────────────────────────────────────────┤
 │                                                                                     │
 │  Generiert: 500 Rechnungen │ Gültig: 373 (75%) │ Mit Fehlern: 127 (25%)             │
@@ -1721,24 +1718,23 @@ Im Generator sind die generierten Abweichungen direkt sichtbar:
 │  │  │ └─────┘ 12345 Berlin    │  │  │  supplier_name:    Test AG                │   │
 │  │  │                         │  │  │  supplier_vat_id:  DE111222333            │   │
 │  │  │   RECHNUNG              │  │  │  net_amount:       500.00 €               │   │
-│  │  │   RE-2025-002           │  │  │  vat_rate:         7%  ⚠️ INJIZIERT       │   │
+│  │  │   RE-2025-002           │  │  │  vat_rate:         7%  ⚠️ FEHLER          │   │
 │  │  │                         │  │  │  vat_amount:       35.00 €                │   │
 │  │  │   Netto:    500,00 €    │  │  │  gross_amount:     535.00 €               │   │
 │  │  │   USt 7%:    35,00 €    │  │  │                                           │   │
 │  │  │   Brutto:   535,00 €    │  │  │  ─────────────────────────────────────    │   │
 │  │  │                         │  │  │                                           │   │
-│  │  └─────────────────────────┘  │  │  🔴 INJIZIERTE FEHLER (1)                 │   │
+│  │  └─────────────────────────┘  │  │  🔴 GENERIERTE FEHLER (1)                 │   │
 │  │                               │  │  ┌───────────────────────────────────┐    │   │
 │  │                               │  │  │ TAX_VAT_RATE_WRONG               │    │   │
 │  │                               │  │  │ ─────────────────────────────────│    │   │
 │  │                               │  │  │ Feld:      vat_rate               │    │   │
-│  │                               │  │  │ Korrekt:   19%                    │    │   │
+│  │                               │  │  │ Erwartet:  19%                    │    │   │
 │  │                               │  │  │ Generiert: 7%                     │    │   │
+│  │                               │  │  │ Severity:  HIGH                   │    │   │
 │  │                               │  │  │                                   │    │   │
-│  │                               │  │  │ Absicht: Falscher Steuersatz     │    │   │
-│  │                               │  │  │ für Dienstleistungen, um LLM     │    │   │
-│  │                               │  │  │ auf diesen Fehlertyp zu          │    │   │
-│  │                               │  │  │ trainieren.                       │    │   │
+│  │                               │  │  │ Dieser Fehler ist in der          │    │   │
+│  │                               │  │  │ Lösungsdatei dokumentiert.        │    │   │
 │  │                               │  │  └───────────────────────────────────┘    │   │
 │  │                               │  │                                           │   │
 │  └───────────────────────────────┘  └───────────────────────────────────────────┘   │
