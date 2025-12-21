@@ -183,39 +183,53 @@ INV-002,RE-2025-002,2025-03-16,Test AG,"Testweg 5, 54321 München",Lieferung Bü
 
 ---
 
-## Matching-Strategien
+## Matching-Strategie
 
 Wie wird eine Rechnung der Lösungsdatei zugeordnet?
 
-### Strategie 1: Dateiname (empfohlen)
+### Primär: Dateiname + Position (gewählt)
 
 ```
-Hochgeladene PDF: rechnung_001.pdf
-Lösungsdatei:     { "filename": "rechnung_001.pdf", ... }
-→ Match!
+Upload-Reihenfolge:
+  1. rechnung_001.pdf
+  2. rechnung_002.pdf
+  3. rechnung_003.pdf
+
+Lösungsdatei (gleiche Reihenfolge):
+  [
+    { "position": 1, "filename": "rechnung_001.pdf", ... },
+    { "position": 2, "filename": "rechnung_002.pdf", ... },
+    { "position": 3, "filename": "rechnung_003.pdf", ... }
+  ]
+
+Matching:
+  Position 1 + "rechnung_001.pdf" → Match mit Dokument 1
+  Position 2 + "rechnung_002.pdf" → Match mit Dokument 2
+  ...
 ```
 
-### Strategie 2: Rechnungsnummer
+### Warum Position + Dateiname?
 
-```
-Extrahiert aus PDF: RE-2025-001
-Lösungsdatei:       { "invoice_number": "RE-2025-001", ... }
-→ Match!
+1. **Position allein**: Risiko bei Fehlern in der Reihenfolge
+2. **Dateiname allein**: Risiko bei Duplikaten
+3. **Beides zusammen**: Doppelte Sicherheit
+
+### Lösungsdatei-Format (empfohlen)
+
+```json
+{
+  "invoices": [
+    { "position": 1, "filename": "rechnung_001.pdf", "fields": {...} },
+    { "position": 2, "filename": "rechnung_002.pdf", "fields": {...} }
+  ]
+}
 ```
 
-### Strategie 3: Hash/ID aus Generator
-
-```
-Generator erzeugt: invoice_id = "abc123"
-PDF-Metadaten:     XMP:invoice_id = "abc123"
-→ Match!
-```
-
-### Strategie 4: Kombination
-
-```
-Dateiname + Rechnungsnummer müssen übereinstimmen
-→ Höhere Sicherheit bei Duplikaten
+Oder CSV:
+```csv
+position,filename,invoice_number,invoice_date,...
+1,rechnung_001.pdf,RE-2025-001,2025-03-15,...
+2,rechnung_002.pdf,RE-2025-002,2025-03-16,...
 ```
 
 ---
@@ -458,13 +472,17 @@ CREATE TABLE solution_matches (
 
 ---
 
+## Geklärte Fragen
+
+1. **Lösungsdatei-Format**: PDF-Dateien werden generiert, Lösungsdatei separat (CSV/JSON)
+2. **Matching**: Dateiname + Position in der Upload-Liste
+3. **Feedback → RAG**: Bereits implementiert! Jede Korrektur wird als RAG-Beispiel gespeichert.
+
 ## Offene Fragen
 
-1. **Lösungsdatei-Format**: Welches Format verwendet der Rechnungsgenerator aktuell?
-2. **Matching**: Haben die generierten Rechnungen eine eindeutige ID?
-3. **Fehler-Codes**: Gibt es eine definierte Liste von Fehler-Codes im Generator?
-4. **Merge-Default**: Sollen manuelle Eingaben standardmäßig Vorrang haben?
-5. **Bulk-Limit**: Wie viele Rechnungen sollen maximal gleichzeitig verarbeitet werden?
+1. **Fehler-Codes**: Gibt es eine definierte Liste von Fehler-Codes im Generator?
+2. **Merge-Default**: Sollen manuelle Eingaben standardmäßig Vorrang haben?
+3. **Bulk-Limit**: Wie viele Rechnungen sollen maximal gleichzeitig verarbeitet werden?
 
 ---
 
