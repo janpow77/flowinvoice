@@ -19,6 +19,7 @@ from app.database import Base
 if TYPE_CHECKING:
     from app.models.document import Document
     from app.models.user import User
+    from app.models.batch_job import BatchJob
 
 
 class Project(Base):
@@ -93,6 +94,9 @@ class Project(Base):
     documents: Mapped[list["Document"]] = relationship(
         "Document", back_populates="project", cascade="all, delete-orphan"
     )
+    batch_jobs: Mapped[list["BatchJob"]] = relationship(
+        "BatchJob", back_populates="project", cascade="all, delete-orphan"
+    )
 
     def generate_share_token(self) -> str:
         """Generiert ein neues Share-Token für externe Freigabe."""
@@ -140,8 +144,37 @@ class Project(Base):
 
     @property
     def project_period(self) -> dict[str, Any] | None:
-        """Projektzeitraum."""
+        """Projektzeitraum (Bewilligungszeitraum)."""
         return self.project.get("project_period")
+
+    @property
+    def execution_period(self) -> dict[str, Any] | None:
+        """
+        Durchführungszeitraum für Leistungsprüfung.
+
+        Falls nicht explizit gesetzt, wird project_period verwendet.
+        """
+        return self.project.get("execution_period") or self.project.get("project_period")
+
+    @property
+    def project_description(self) -> str | None:
+        """Projektbeschreibung für semantische Prüfung."""
+        return self.project.get("project_description")
+
+    @property
+    def beneficiary_vat_id(self) -> str | None:
+        """USt-IdNr. des Begünstigten für Selbstrechnungs-Prüfung."""
+        return self.beneficiary.get("vat_id")
+
+    @property
+    def max_funding_amount(self) -> dict[str, Any] | None:
+        """Maximale Fördersumme."""
+        return self.project.get("max_funding_amount")
+
+    @property
+    def funding_rate_percent(self) -> float | None:
+        """Fördersatz in Prozent."""
+        return self.project.get("funding_rate_percent")
 
     def get_beneficiary_full_address(self) -> str:
         """

@@ -25,11 +25,13 @@ import {
   Eye,
   List,
   FolderOpen,
+  FileJson,
 } from 'lucide-react'
 import { api } from '@/lib/api'
 import { TaxSystemSelector } from '@/components/tax-selector'
 import { RulesetId, getRuleset, isDocumentTypeSupported } from '@/lib/rulesets'
 import { useTranslation } from 'react-i18next'
+import { SolutionFileUpload } from '@/components/documents'
 
 interface ProjectData {
   id: string
@@ -135,7 +137,7 @@ interface LlmRunItem {
   completed_at?: string
 }
 
-type TabType = 'overview' | 'documents' | 'upload'
+type TabType = 'overview' | 'documents' | 'upload' | 'solutions'
 
 type DocumentType = 'INVOICE' | 'BANK_STATEMENT' | 'PROCUREMENT' | 'CONTRACT' | 'OTHER'
 
@@ -842,6 +844,17 @@ export default function ProjectDetail() {
               </span>
             )}
           </button>
+          <button
+            onClick={() => setActiveTab('solutions')}
+            className={`flex items-center gap-2 px-4 py-3 text-sm font-medium border-b-2 transition-colors ${
+              activeTab === 'solutions'
+                ? 'border-accent-primary text-accent-primary'
+                : 'border-transparent text-theme-text-muted hover:text-theme-text-secondary hover:border-theme-border-default'
+            }`}
+          >
+            <FileJson className="h-4 w-4" />
+            {t('projectDetail.tabSolutions', 'Lösungsdateien')}
+          </button>
         </div>
       </div>
 
@@ -1466,6 +1479,93 @@ export default function ProjectDetail() {
                 <div className="flex justify-between">
                   <span className="text-theme-text-muted">{t('projectDetail.errors', 'Fehler')}</span>
                   <span className="font-medium text-status-danger">{uploadQueue.filter(f => f.status === 'error').length}</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Solutions Tab */}
+      {activeTab === 'solutions' && id && (
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          {/* Left Column - Solution File Upload */}
+          <div className="lg:col-span-2">
+            <div className="bg-theme-card rounded-lg border border-theme-border-default p-6">
+              <h3 className="font-semibold text-theme-text-primary mb-4">
+                {t('projectDetail.solutionFiles', 'Lösungsdateien')}
+              </h3>
+              <p className="text-sm text-theme-text-muted mb-4">
+                {t(
+                  'projectDetail.solutionFilesDescription',
+                  'Laden Sie eine Lösungsdatei hoch, um erwartete Ergebnisse mit Dokumenten abzugleichen. Unterstützte Formate: JSON, JSONL, CSV.'
+                )}
+              </p>
+              <SolutionFileUpload
+                projectId={id}
+                onApplied={() => {
+                  refetchDocuments()
+                  queryClient.invalidateQueries({ queryKey: ['documents', id] })
+                }}
+              />
+            </div>
+          </div>
+
+          {/* Right Column - Instructions */}
+          <div className="space-y-4">
+            <div className="bg-theme-card rounded-lg border border-theme-border-default p-4">
+              <h4 className="font-semibold text-theme-text-primary mb-3">
+                {t('projectDetail.solutionFileFormat', 'Dateiformat')}
+              </h4>
+              <div className="space-y-3 text-sm text-theme-text-muted">
+                <div>
+                  <p className="font-medium text-theme-text-primary">JSON</p>
+                  <p>Array von Objekten mit Feldern wie is_valid, errors, filename</p>
+                </div>
+                <div>
+                  <p className="font-medium text-theme-text-primary">JSONL</p>
+                  <p>Ein JSON-Objekt pro Zeile</p>
+                </div>
+                <div>
+                  <p className="font-medium text-theme-text-primary">CSV</p>
+                  <p>Spalten: position, filename, is_valid, errors (JSON-String)</p>
+                </div>
+              </div>
+            </div>
+
+            <div className="bg-theme-card rounded-lg border border-theme-border-default p-4">
+              <h4 className="font-semibold text-theme-text-primary mb-3">
+                {t('projectDetail.matchingStrategies', 'Matching-Strategien')}
+              </h4>
+              <div className="space-y-2 text-sm text-theme-text-muted">
+                <div className="flex items-start gap-2">
+                  <CheckCircle className="h-4 w-4 text-status-success mt-0.5" />
+                  <p>Dateiname (exakt oder ähnlich)</p>
+                </div>
+                <div className="flex items-start gap-2">
+                  <CheckCircle className="h-4 w-4 text-status-success mt-0.5" />
+                  <p>Dateiname + Position kombiniert</p>
+                </div>
+                <div className="flex items-start gap-2">
+                  <CheckCircle className="h-4 w-4 text-status-success mt-0.5" />
+                  <p>Nur Position (für sortierte Listen)</p>
+                </div>
+              </div>
+            </div>
+
+            <div className="bg-status-info-bg border border-status-info-border rounded-lg p-4">
+              <div className="flex items-start gap-2">
+                <AlertCircle className="h-5 w-5 text-status-info mt-0.5" />
+                <div>
+                  <p className="font-medium text-status-info">
+                    {t('projectDetail.solutionFileTip', 'Tipp')}
+                  </p>
+                  <p className="text-sm text-status-info mt-1">
+                    {t(
+                      'projectDetail.solutionFileTipText',
+                      'Verwenden Sie die Vorschau-Funktion, um Zuordnungen vor dem Anwenden zu überprüfen.'
+                    )}
+                  </p>
                 </div>
               </div>
             </div>

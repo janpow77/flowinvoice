@@ -16,9 +16,12 @@ from app.models.result import AnalysisResult, FinalResult
 from app.models.ruleset import Ruleset
 from app.models.ruleset_sample import RulesetSample
 from app.models.settings import ApiKey, Setting
+from app.models.solution import SolutionFile, SolutionMatch
 from app.models.document_type import DocumentTypeSettings
 from app.models.training import ModelRegistry, TrainingDataset, TrainingExample, TrainingRun
 from app.models.user import User
+from app.models.batch_job import BatchJob
+from app.models.custom_criterion import CustomCriterion
 
 __all__ = [
     # Core
@@ -51,8 +54,15 @@ __all__ = [
     # Export
     "ExportJob",
     "GeneratorJob",
+    # Solution Files
+    "SolutionFile",
+    "SolutionMatch",
     # Audit
     "AuditEvent",
     # User
     "User",
+    # Batch Jobs
+    "BatchJob",
+    # Custom Criteria
+    "CustomCriterion",
 ]

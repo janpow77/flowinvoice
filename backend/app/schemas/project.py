@@ -64,6 +64,9 @@ class ProjectSchema(BaseModel):
     funding_rate_percent: float | None = Field(
         default=None, description="Fördersatz in %"
     )
+    max_funding_amount: Money | None = Field(
+        default=None, description="Maximale Fördersumme"
+    )
     funding_fixed_amount: Money | None = Field(
         default=None, description="Fester Förderbetrag"
     )
@@ -71,7 +74,12 @@ class ProjectSchema(BaseModel):
         default_factory=list, description="Förderfähige Kostenarten"
     )
     project_period: DateRange | None = Field(
-        default=None, description="Projektzeitraum"
+        default=None, description="Bewilligungszeitraum (Projektzeitraum)"
+    )
+    execution_period: DateRange | None = Field(
+        default=None,
+        description="Durchführungszeitraum (für Leistungsprüfung). "
+        "Wenn nicht gesetzt, wird project_period verwendet."
     )
     approval_date: str | None = Field(default=None, description="Bewilligungsdatum")
     approving_authority: str | None = Field(

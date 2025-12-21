@@ -16,6 +16,8 @@ from fastapi.responses import JSONResponse
 
 from app import __description__, __version__
 from app.api import (
+    batch_jobs,
+    custom_criteria,
     document_types,
     documents,
     export,
@@ -28,6 +30,7 @@ from app.api import (
     rulesets,
     ruleset_samples,
     settings,
+    solutions,
     stats,
     system,
     user_auth,
@@ -152,6 +155,9 @@ app.include_router(rag.router, prefix="/api", tags=["RAG"])
 app.include_router(stats.router, prefix="/api", tags=["Statistics"])
 app.include_router(export.router, prefix="/api", tags=["Export"])
 app.include_router(generator.router, prefix="/api", tags=["Generator"])
+app.include_router(solutions.router, prefix="/api", tags=["Solutions"])
+app.include_router(batch_jobs.router, prefix="/api", tags=["Batch Jobs"])
+app.include_router(custom_criteria.router, prefix="/api", tags=["Custom Criteria"])
 app.include_router(system.router, prefix="/api", tags=["System"])
 
 

@@ -1578,3 +1578,391 @@ def process_and_analyze_task(
     except Exception as e:
         logger.exception(f"Pipeline error for {document_id}: {e}")
         self.retry(exc=e, countdown=180)
+
+
+# =============================================================================
+# Batch Job Tasks
+# =============================================================================
+
+@celery_app.task(bind=True, max_retries=3)
+def batch_analyze_task(self, job_id: str) -> dict[str, Any]:
+    """
+    Batch-Analyse mehrerer Dokumente.
+
+    Args:
+        job_id: BatchJob-ID
+
+    Returns:
+        Dict mit Ergebnis der Batch-Verarbeitung
+    """
+    logger.info(f"Starting batch analyze job: {job_id}")
+
+    try:
+        result = run_async(_batch_analyze_async(job_id))
+        return result
+
+    except Exception as e:
+        logger.exception(f"Batch analyze error for job {job_id}: {e}")
+        run_async(_mark_job_failed(job_id, str(e)))
+        self.retry(exc=e, countdown=120)
+
+
+async def _batch_analyze_async(job_id: str) -> dict[str, Any]:
+    """
+    Asynchrone Batch-Analyse.
+    """
+    from app.models.batch_job import BatchJob
+    from app.models.enums import BatchJobStatus
+
+    session_maker = get_celery_session_maker()
+
+    async with session_maker() as session:
+        # Job laden
+        result = await session.execute(
+            select(BatchJob).where(BatchJob.id == job_id)
+        )
+        job = result.scalar_one_or_none()
+
+        if not job:
+            return {"status": "error", "message": "Job nicht gefunden"}
+
+        # Job starten
+        job.mark_started()
+        await session.commit()
+
+        try:
+            # Parameter extrahieren
+            params = job.parameters or {}
+            document_ids = params.get("document_ids")
+            status_filter = params.get("status_filter", [DocumentStatus.VALIDATED.value])
+            provider = params.get("provider")
+            model = params.get("model")
+            max_concurrent = params.get("max_concurrent", 5)
+
+            # Dokumente laden
+            query = select(Document)
+            if job.project_id:
+                query = query.where(Document.project_id == job.project_id)
+            if document_ids:
+                query = query.where(Document.id.in_(document_ids))
+            elif status_filter:
+                query = query.where(Document.status.in_(status_filter))
+
+            doc_result = await session.execute(query)
+            documents = doc_result.scalars().all()
+
+            job.total_items = len(documents)
+            await session.commit()
+
+            # Dokumente analysieren
+            successful = 0
+            failed = 0
+            errors = []
+
+            for i, doc in enumerate(documents):
+                try:
+                    # Analyse durchführen
+                    analyze_result = await _analyze_document_async(
+                        doc.id, provider, model
+                    )
+
+                    if analyze_result.get("status") == "success":
+                        successful += 1
+                    else:
+                        failed += 1
+                        errors.append({
+                            "document_id": doc.id,
+                            "filename": doc.original_filename,
+                            "error": analyze_result.get("message", "Unbekannter Fehler"),
+                        })
+
+                except Exception as e:
+                    failed += 1
+                    errors.append({
+                        "document_id": doc.id,
+                        "filename": doc.original_filename,
+                        "error": str(e),
+                    })
+
+                # Fortschritt aktualisieren
+                job.update_progress(
+                    processed=i + 1,
+                    successful=successful,
+                    failed=failed,
+                    message=f"Analysiere {doc.original_filename}...",
+                )
+                await session.commit()
+
+            # Job abschließen
+            job.mark_completed(results={
+                "total": len(documents),
+                "successful": successful,
+                "failed": failed,
+            })
+            job.errors = errors
+            await session.commit()
+
+            return {
+                "status": "success",
+                "job_id": job_id,
+                "total": len(documents),
+                "successful": successful,
+                "failed": failed,
+            }
+
+        except Exception as e:
+            job.mark_failed(str(e))
+            await session.commit()
+            raise
+
+
+@celery_app.task(bind=True, max_retries=3)
+def batch_validate_task(self, job_id: str) -> dict[str, Any]:
+    """
+    Batch-Validierung mehrerer Dokumente.
+
+    Args:
+        job_id: BatchJob-ID
+
+    Returns:
+        Dict mit Ergebnis der Batch-Verarbeitung
+    """
+    logger.info(f"Starting batch validate job: {job_id}")
+
+    try:
+        result = run_async(_batch_validate_async(job_id))
+        return result
+
+    except Exception as e:
+        logger.exception(f"Batch validate error for job {job_id}: {e}")
+        run_async(_mark_job_failed(job_id, str(e)))
+        self.retry(exc=e, countdown=60)
+
+
+async def _batch_validate_async(job_id: str) -> dict[str, Any]:
+    """
+    Asynchrone Batch-Validierung.
+    """
+    from app.models.batch_job import BatchJob
+
+    session_maker = get_celery_session_maker()
+
+    async with session_maker() as session:
+        # Job laden
+        result = await session.execute(
+            select(BatchJob).where(BatchJob.id == job_id)
+        )
+        job = result.scalar_one_or_none()
+
+        if not job:
+            return {"status": "error", "message": "Job nicht gefunden"}
+
+        job.mark_started()
+        await session.commit()
+
+        try:
+            params = job.parameters or {}
+            document_ids = params.get("document_ids")
+            revalidate = params.get("revalidate", False)
+
+            # Dokumente laden
+            query = select(Document)
+            if job.project_id:
+                query = query.where(Document.project_id == job.project_id)
+            if document_ids:
+                query = query.where(Document.id.in_(document_ids))
+            elif not revalidate:
+                query = query.where(Document.status == DocumentStatus.UPLOADED.value)
+
+            doc_result = await session.execute(query)
+            documents = doc_result.scalars().all()
+
+            job.total_items = len(documents)
+            await session.commit()
+
+            successful = 0
+            failed = 0
+
+            for i, doc in enumerate(documents):
+                try:
+                    process_result = await _process_document_async(doc.id)
+                    if process_result.get("status") == "success":
+                        successful += 1
+                    else:
+                        failed += 1
+                except Exception:
+                    failed += 1
+
+                job.update_progress(
+                    processed=i + 1,
+                    successful=successful,
+                    failed=failed,
+                )
+                await session.commit()
+
+            job.mark_completed(results={
+                "total": len(documents),
+                "successful": successful,
+                "failed": failed,
+            })
+            await session.commit()
+
+            return {
+                "status": "success",
+                "job_id": job_id,
+                "total": len(documents),
+                "successful": successful,
+                "failed": failed,
+            }
+
+        except Exception as e:
+            job.mark_failed(str(e))
+            await session.commit()
+            raise
+
+
+@celery_app.task(bind=True)
+def solution_apply_task(self, job_id: str) -> dict[str, Any]:
+    """
+    Task zum Anwenden einer Lösungsdatei.
+
+    Args:
+        job_id: BatchJob-ID
+
+    Returns:
+        Dict mit Ergebnis
+    """
+    logger.info(f"Starting solution apply job: {job_id}")
+    # Implementierung folgt in Phase 7
+    return {"status": "not_implemented", "job_id": job_id}
+
+
+@celery_app.task(bind=True)
+def rag_rebuild_task(self, job_id: str) -> dict[str, Any]:
+    """
+    Task zum Neuaufbau des RAG-Index.
+
+    Args:
+        job_id: BatchJob-ID
+
+    Returns:
+        Dict mit Ergebnis
+    """
+    logger.info(f"Starting RAG rebuild job: {job_id}")
+    # Implementierung folgt
+    return {"status": "not_implemented", "job_id": job_id}
+
+
+@celery_app.task(bind=True)
+def batch_export_task(self, job_id: str) -> dict[str, Any]:
+    """
+    Task für Batch-Export.
+
+    Args:
+        job_id: BatchJob-ID
+
+    Returns:
+        Dict mit Ergebnis
+    """
+    logger.info(f"Starting batch export job: {job_id}")
+    # Implementierung folgt
+    return {"status": "not_implemented", "job_id": job_id}
+
+
+async def _mark_job_failed(job_id: str, error: str) -> None:
+    """
+    Markiert einen Job als fehlgeschlagen.
+    """
+    from app.models.batch_job import BatchJob
+
+    session_maker = get_celery_session_maker()
+
+    async with session_maker() as session:
+        result = await session.execute(
+            select(BatchJob).where(BatchJob.id == job_id)
+        )
+        job = result.scalar_one_or_none()
+
+        if job:
+            job.mark_failed(error)
+            await session.commit()
+
+
+@celery_app.task
+def cleanup_old_results() -> dict[str, Any]:
+    """
+    Bereinigt alte Ergebnisse und temporäre Dateien.
+
+    Wird periodisch vom Celery Beat ausgeführt.
+
+    Returns:
+        Dict mit Bereinigungsstatistik
+    """
+    logger.info("Running cleanup task")
+
+    try:
+        result = run_async(_cleanup_async())
+        return result
+    except Exception as e:
+        logger.exception(f"Cleanup error: {e}")
+        return {"status": "error", "message": str(e)}
+
+
+async def _cleanup_async() -> dict[str, Any]:
+    """
+    Asynchrone Bereinigung.
+    """
+    from datetime import timedelta
+    from app.models.batch_job import BatchJob
+    from app.models.enums import BatchJobStatus
+
+    session_maker = get_celery_session_maker()
+    cleaned_jobs = 0
+    cleaned_files = 0
+
+    async with session_maker() as session:
+        # Alte abgeschlossene Batch-Jobs löschen (älter als 30 Tage)
+        cutoff = datetime.utcnow() - timedelta(days=30)
+        result = await session.execute(
+            select(BatchJob).where(
+                BatchJob.completed_at < cutoff,
+                BatchJob.status.in_([
+                    BatchJobStatus.COMPLETED.value,
+                    BatchJobStatus.FAILED.value,
+                    BatchJobStatus.CANCELLED.value,
+                ])
+            )
+        )
+        old_jobs = result.scalars().all()
+
+        for job in old_jobs:
+            await session.delete(job)
+            cleaned_jobs += 1
+
+        await session.commit()
+
+    # Temporäre Dateien bereinigen
+    temp_dirs = [
+        settings.uploads_path / "temp",
+        settings.exports_path / "temp",
+    ]
+
+    for temp_dir in temp_dirs:
+        if temp_dir.exists():
+            for file in temp_dir.iterdir():
+                try:
+                    if file.is_file():
+                        # Dateien älter als 1 Tag löschen
+                        if datetime.fromtimestamp(file.stat().st_mtime) < datetime.utcnow() - timedelta(days=1):
+                            file.unlink()
+                            cleaned_files += 1
+                except Exception as e:
+                    logger.warning(f"Could not delete {file}: {e}")
+
+    logger.info(f"Cleanup completed: {cleaned_jobs} jobs, {cleaned_files} files")
+
+    return {
+        "status": "success",
+        "cleaned_jobs": cleaned_jobs,
+        "cleaned_files": cleaned_files,
+    }

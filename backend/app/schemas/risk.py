@@ -106,6 +106,14 @@ class RiskAssessmentRequest(BaseModel):
     beneficiary_name: str | None = Field(
         default=None, description="Name des Begünstigten"
     )
+    beneficiary_vat_id: str | None = Field(
+        default=None, description="USt-IdNr. des Begünstigten (für Selbstrechnungs-Prüfung)"
+    )
+
+    # Lieferanten-Daten (für Selbstrechnungs-Prüfung)
+    supplier_vat_id: str | None = Field(
+        default=None, description="USt-IdNr. des Lieferanten"
+    )
 
 
 class RiskAssessmentResult(BaseModel):

@@ -292,6 +292,8 @@ class RiskIndicator(str, Enum):
     OUTSIDE_PROJECT_PERIOD = "OUTSIDE_PROJECT_PERIOD"  # Leistung außerhalb Projektzeitraum
     NO_PROJECT_REFERENCE = "NO_PROJECT_REFERENCE"  # Leistungsbeschreibung ohne Projektbezug
     RECIPIENT_MISMATCH = "RECIPIENT_MISMATCH"  # Rechnungsempfänger ≠ Begünstigter
+    SELF_INVOICE = "SELF_INVOICE"  # Selbstrechnung: Lieferant-UST-ID = Begünstigter-UST-ID
+    DUPLICATE_INVOICE = "DUPLICATE_INVOICE"  # Doppelte Rechnungsnummer
 
 
 class DataClassification(str, Enum):
@@ -311,3 +313,152 @@ class SampleStatus(str, Enum):
     PENDING_REVIEW = "PENDING_REVIEW"  # Extraktion fertig, wartet auf Review
     APPROVED = "APPROVED"  # Ground Truth bestätigt, RAG-Beispiele erstellt
     REJECTED = "REJECTED"  # Sample abgelehnt (schlechte Qualität)
+
+
+# ============================================================
+# LLM Training Workflow Enums (Feature: feature_llm_training_workflow.md)
+# ============================================================
+
+
+class ErrorCategory(str, Enum):
+    """Fehler-Kategorien für Training und Prüfung."""
+
+    TAX = "TAX"  # Steuerrecht (§14 UStG)
+    PROJECT = "PROJECT"  # Projektbezug
+    FRAUD = "FRAUD"  # Betrugsindikatoren
+    SEMANTIC = "SEMANTIC"  # KI-Prüfung
+    ECONOMIC = "ECONOMIC"  # Wirtschaftlichkeit
+    CUSTOM = "CUSTOM"  # Benutzerdefiniert
+
+
+class ErrorCode(str, Enum):
+    """
+    Standardisierte Fehler-Codes für Generator und Prüfsystem.
+
+    Format: {KATEGORIE}_{MERKMAL}_{TYP}
+    """
+
+    # ============ TAX (Steuerrecht §14 UStG) ============
+    # Lieferant
+    TAX_SUPPLIER_NAME_MISSING = "TAX_SUPPLIER_NAME_MISSING"
+    TAX_SUPPLIER_NAME_INCOMPLETE = "TAX_SUPPLIER_NAME_INCOMPLETE"
+    TAX_SUPPLIER_ADDRESS_MISSING = "TAX_SUPPLIER_ADDRESS_MISSING"
+    TAX_SUPPLIER_ADDRESS_INCOMPLETE = "TAX_SUPPLIER_ADDRESS_INCOMPLETE"
+
+    # Empfänger
+    TAX_CUSTOMER_NAME_MISSING = "TAX_CUSTOMER_NAME_MISSING"
+    TAX_CUSTOMER_ADDRESS_MISSING = "TAX_CUSTOMER_ADDRESS_MISSING"
+
+    # Steuernummer
+    TAX_ID_MISSING = "TAX_ID_MISSING"
+    TAX_ID_INVALID_FORMAT = "TAX_ID_INVALID_FORMAT"
+
+    # Rechnungsdaten
+    TAX_INVOICE_DATE_MISSING = "TAX_INVOICE_DATE_MISSING"
+    TAX_INVOICE_DATE_INVALID = "TAX_INVOICE_DATE_INVALID"
+    TAX_INVOICE_DATE_FUTURE = "TAX_INVOICE_DATE_FUTURE"
+    TAX_INVOICE_NUMBER_MISSING = "TAX_INVOICE_NUMBER_MISSING"
+    TAX_INVOICE_NUMBER_DUPLICATE = "TAX_INVOICE_NUMBER_DUPLICATE"
+
+    # Leistung
+    TAX_SERVICE_DESCRIPTION_MISSING = "TAX_SERVICE_DESCRIPTION_MISSING"
+    TAX_SERVICE_DESCRIPTION_VAGUE = "TAX_SERVICE_DESCRIPTION_VAGUE"
+    TAX_SUPPLY_DATE_MISSING = "TAX_SUPPLY_DATE_MISSING"
+
+    # Beträge
+    TAX_NET_AMOUNT_MISSING = "TAX_NET_AMOUNT_MISSING"
+    TAX_NET_AMOUNT_INVALID = "TAX_NET_AMOUNT_INVALID"
+    TAX_VAT_RATE_MISSING = "TAX_VAT_RATE_MISSING"
+    TAX_VAT_RATE_WRONG = "TAX_VAT_RATE_WRONG"
+    TAX_VAT_RATE_INVALID = "TAX_VAT_RATE_INVALID"
+    TAX_VAT_AMOUNT_MISSING = "TAX_VAT_AMOUNT_MISSING"
+    TAX_VAT_AMOUNT_WRONG = "TAX_VAT_AMOUNT_WRONG"
+    TAX_GROSS_AMOUNT_MISSING = "TAX_GROSS_AMOUNT_MISSING"
+    TAX_GROSS_AMOUNT_WRONG = "TAX_GROSS_AMOUNT_WRONG"
+
+    # ============ PROJECT (Projektbezug) ============
+    PROJECT_PERIOD_BEFORE_START = "PROJECT_PERIOD_BEFORE_START"
+    PROJECT_PERIOD_AFTER_END = "PROJECT_PERIOD_AFTER_END"
+    PROJECT_PERIOD_OUTSIDE = "PROJECT_PERIOD_OUTSIDE"
+    PROJECT_RECIPIENT_MISMATCH = "PROJECT_RECIPIENT_MISMATCH"
+    PROJECT_LOCATION_MISMATCH = "PROJECT_LOCATION_MISMATCH"
+    PROJECT_REFERENCE_MISSING = "PROJECT_REFERENCE_MISSING"
+    PROJECT_REFERENCE_VAGUE = "PROJECT_REFERENCE_VAGUE"
+
+    # ============ FRAUD (Betrugsindikatoren) ============
+    FRAUD_SELF_INVOICE = "FRAUD_SELF_INVOICE"  # Lieferant-UST-ID = Empfänger-UST-ID
+    FRAUD_CIRCULAR_INVOICE = "FRAUD_CIRCULAR_INVOICE"  # Zirkelrechnung
+    FRAUD_DUPLICATE_INVOICE = "FRAUD_DUPLICATE_INVOICE"  # Bereits eingereicht
+    FRAUD_ROUND_AMOUNT_PATTERN = "FRAUD_ROUND_AMOUNT_PATTERN"  # Verdächtige runde Beträge
+    FRAUD_VENDOR_CLUSTERING = "FRAUD_VENDOR_CLUSTERING"  # Ungewöhnliche Lieferantenhäufung
+
+    # ============ SEMANTIC (KI-Prüfung) ============
+    SEMANTIC_NO_PROJECT_RELEVANCE = "SEMANTIC_NO_PROJECT_RELEVANCE"
+    SEMANTIC_LOW_PROJECT_RELEVANCE = "SEMANTIC_LOW_PROJECT_RELEVANCE"
+    SEMANTIC_RED_FLAG_LUXURY = "SEMANTIC_RED_FLAG_LUXURY"
+    SEMANTIC_RED_FLAG_ENTERTAINMENT = "SEMANTIC_RED_FLAG_ENTERTAINMENT"
+    SEMANTIC_RED_FLAG_PRIVATE = "SEMANTIC_RED_FLAG_PRIVATE"
+
+    # ============ ECONOMIC (Wirtschaftlichkeit) ============
+    ECONOMIC_HIGH_AMOUNT = "ECONOMIC_HIGH_AMOUNT"
+    ECONOMIC_ABOVE_MARKET = "ECONOMIC_ABOVE_MARKET"
+    ECONOMIC_STATISTICAL_OUTLIER = "ECONOMIC_STATISTICAL_OUTLIER"
+
+
+class BatchJobStatus(str, Enum):
+    """Status eines Batch-Jobs."""
+
+    PENDING = "PENDING"  # Wartet auf Ausführung
+    SCHEDULED = "SCHEDULED"  # Geplant (Celery Beat)
+    RUNNING = "RUNNING"  # Läuft gerade
+    PAUSED = "PAUSED"  # Pausiert
+    COMPLETED = "COMPLETED"  # Erfolgreich abgeschlossen
+    FAILED = "FAILED"  # Fehlgeschlagen
+    CANCELLED = "CANCELLED"  # Abgebrochen
+
+
+class SolutionFileFormat(str, Enum):
+    """Unterstützte Lösungsdatei-Formate."""
+
+    JSON = "JSON"
+    JSONL = "JSONL"
+    CSV = "CSV"
+
+
+class MatchingStrategy(str, Enum):
+    """Strategie für Lösungsdatei-Matching."""
+
+    FILENAME = "FILENAME"  # Nur Dateiname
+    FILENAME_POSITION = "FILENAME_POSITION"  # Dateiname + Position
+    POSITION_ONLY = "POSITION_ONLY"  # Nur Position in Upload-Reihenfolge
+
+
+class ChunkStrategy(str, Enum):
+    """Chunking-Strategie für RAG."""
+
+    FIXED = "fixed"  # Feste Token-Größe
+    PARAGRAPH = "paragraph"  # An Absatzgrenzen
+    SEMANTIC = "semantic"  # An Satzgrenzen
+
+
+class CriterionLogicType(str, Enum):
+    """Prüflogik-Typen für benutzerdefinierte Kriterien."""
+
+    THRESHOLD = "threshold"  # Numerischer Vergleich
+    REGEX = "regex"  # Musterprüfung
+    BLACKLIST = "blacklist"  # Verbotene Werte
+    WHITELIST = "whitelist"  # Erlaubte Werte
+    DATE_RANGE = "date_range"  # Zeitraumprüfung
+    COMPARISON = "comparison"  # Feldvergleich
+    LLM_PROMPT = "llm_prompt"  # Semantische Prüfung via LLM
+
+
+class FeatureStatus(str, Enum):
+    """Status eines Features in der Dokumentenliste."""
+
+    VALID = "VALID"  # Korrekt erkannt
+    INVALID = "INVALID"  # Fehler erkannt
+    WARNING = "WARNING"  # Warnung
+    MISSING = "MISSING"  # Nicht gefunden
+    PENDING = "PENDING"  # Noch nicht geprüft
+    CORRECTED = "CORRECTED"  # Manuell korrigiert

@@ -11,6 +11,7 @@ export const de = {
     rulesets: 'Regelwerke',
     generator: 'Generator',
     statistics: 'Statistik',
+    training: 'Schulung',
     users: 'Nutzer',
     settings: 'Einstellungen',
     logout: 'Abmelden',

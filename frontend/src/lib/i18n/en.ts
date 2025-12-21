@@ -11,6 +11,7 @@ export const en = {
     rulesets: 'Rulesets',
     generator: 'Generator',
     statistics: 'Statistics',
+    training: 'Training',
     users: 'Users',
     settings: 'Settings',
     logout: 'Logout',

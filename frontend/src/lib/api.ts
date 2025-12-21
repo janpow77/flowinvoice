@@ -203,6 +203,20 @@ export const api = {
     return response.data
   },
 
+  getDocumentFileUrl: (id: string) => {
+    // Returns the URL for the document file (PDF)
+    // Token is handled by the browser's Authorization header
+    const token = localStorage.getItem(TOKEN_KEY)
+    return `/api/documents/${id}/file${token ? `?token=${encodeURIComponent(token)}` : ''}`
+  },
+
+  getDocumentFileBlob: async (id: string) => {
+    const response = await apiClient.get(`/documents/${id}/file`, {
+      responseType: 'blob',
+    })
+    return response.data
+  },
+
   getDocumentLlmRuns: async (documentId: string) => {
     const response = await apiClient.get(`/documents/${documentId}/llm-runs`)
     return response.data.data || []
@@ -670,6 +684,107 @@ export const api = {
         'X-API-Key': localStorage.getItem('flowaudit_admin_key') || 'admin',
       },
     })
+    return response.data
+  },
+
+  // Solution Files
+  getSolutionFiles: async (projectId: string) => {
+    const response = await apiClient.get(`/projects/${projectId}/solutions`)
+    return response.data
+  },
+
+  uploadSolutionFile: async (projectId: string, file: File) => {
+    const formData = new FormData()
+    formData.append('file', file)
+    const response = await apiClient.post(`/projects/${projectId}/solutions/upload`, formData, {
+      headers: {
+        'Content-Type': 'multipart/form-data',
+      },
+    })
+    return response.data
+  },
+
+  getSolutionFile: async (projectId: string, solutionFileId: string) => {
+    const response = await apiClient.get(`/projects/${projectId}/solutions/${solutionFileId}`)
+    return response.data
+  },
+
+  previewSolutionMatching: async (projectId: string, solutionFileId: string, strategy?: string) => {
+    const params = strategy ? `?strategy=${strategy}` : ''
+    const response = await apiClient.post(
+      `/projects/${projectId}/solutions/${solutionFileId}/preview${params}`
+    )
+    return response.data
+  },
+
+  applySolutionFile: async (projectId: string, solutionFileId: string, options?: {
+    strategy?: string
+    overwrite_existing?: boolean
+    min_confidence?: number
+    create_rag_examples?: boolean
+    mark_as_validated?: boolean
+  }) => {
+    const response = await apiClient.post(
+      `/projects/${projectId}/solutions/${solutionFileId}/apply`,
+      options || {}
+    )
+    return response.data
+  },
+
+  deleteSolutionFile: async (projectId: string, solutionFileId: string) => {
+    await apiClient.delete(`/projects/${projectId}/solutions/${solutionFileId}`)
+  },
+
+  // Batch Jobs
+  getBatchJobs: async (params?: {
+    project_id?: string
+    status?: string
+    job_type?: string
+    limit?: number
+    offset?: number
+  }) => {
+    const queryParams = new URLSearchParams()
+    if (params?.project_id) queryParams.append('project_id', params.project_id)
+    if (params?.status) queryParams.append('status', params.status)
+    if (params?.job_type) queryParams.append('job_type', params.job_type)
+    if (params?.limit) queryParams.append('limit', params.limit.toString())
+    if (params?.offset) queryParams.append('offset', params.offset.toString())
+    const response = await apiClient.get(`/batch-jobs?${queryParams.toString()}`)
+    return response.data
+  },
+
+  getBatchJob: async (jobId: string) => {
+    const response = await apiClient.get(`/batch-jobs/${jobId}`)
+    return response.data
+  },
+
+  createBatchJob: async (data: {
+    job_type: string
+    project_id?: string
+    parameters?: Record<string, unknown>
+    priority?: number
+    scheduled_at?: string
+  }) => {
+    const response = await apiClient.post('/batch-jobs', data)
+    return response.data
+  },
+
+  cancelBatchJob: async (jobId: string) => {
+    await apiClient.delete(`/batch-jobs/${jobId}`)
+  },
+
+  retryBatchJob: async (jobId: string) => {
+    const response = await apiClient.post(`/batch-jobs/${jobId}/retry`)
+    return response.data
+  },
+
+  createBatchAnalyzeJob: async (projectId: string, params?: {
+    document_ids?: string[]
+    use_rag?: boolean
+    provider_id?: string
+    skip_analyzed?: boolean
+  }) => {
+    const response = await apiClient.post(`/batch-jobs/analyze?project_id=${projectId}`, params || {})
     return response.data
   },
 }

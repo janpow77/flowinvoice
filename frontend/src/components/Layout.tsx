@@ -11,6 +11,7 @@ import {
   Settings,
   Users,
   LogOut,
+  GraduationCap,
 } from 'lucide-react'
 import clsx from 'clsx'
 import { useAuth } from '../context/AuthContext'
@@ -36,6 +37,7 @@ const navigationItems: NavItem[] = [
   { key: 'rulesets', href: '/rulesets', icon: Book, allowedRoles: ['admin', 'schueler'] },
   { key: 'generator', href: '/generator', icon: FileOutput },
   { key: 'statistics', href: '/statistics', icon: BarChart3, allowedRoles: ['admin'] },
+  { key: 'training', href: '/training', icon: GraduationCap, allowedRoles: ['admin', 'schueler'] },
   { key: 'users', href: '/users', icon: Users, allowedRoles: ['admin'] },
   { key: 'settings', href: '/settings', icon: Settings },
 ]

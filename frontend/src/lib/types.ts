@@ -161,3 +161,160 @@ export interface ProviderInfo {
   available?: boolean
   models?: string[]
 }
+
+// ============================================================================
+// Solution File Types
+// ============================================================================
+
+export type SolutionFileFormat = 'JSON' | 'JSONL' | 'CSV';
+export type MatchingStrategy = 'FILENAME' | 'FILENAME_POSITION' | 'POSITION_ONLY';
+export type FeatureStatus = 'VALID' | 'INVALID' | 'WARNING' | 'MISSING' | 'PENDING' | 'CORRECTED';
+
+export interface SolutionError {
+  code: string;
+  feature_id: string;
+  severity: 'INFO' | 'LOW' | 'MEDIUM' | 'HIGH' | 'CRITICAL';
+  expected?: unknown;
+  actual?: unknown;
+  message: string;
+}
+
+export interface SolutionEntry {
+  position: number;
+  filename: string;
+  is_valid: boolean;
+  errors: SolutionError[];
+  fields: Record<string, unknown>;
+  template?: string;
+}
+
+export interface SolutionFileUploadResponse {
+  solution_file_id: string;
+  format: SolutionFileFormat;
+  entry_count: number;
+  valid_count: number;
+  invalid_count: number;
+  error_count: number;
+  generator_version?: string;
+}
+
+export interface MatchPreviewItem {
+  document_id: string;
+  document_filename: string;
+  solution_filename: string;
+  solution_position: number;
+  is_valid: boolean;
+  error_count: number;
+  error_codes: string[];
+  confidence: number;
+  match_reason: string;
+}
+
+export interface SolutionPreviewResponse {
+  solution_file_id: string;
+  project_id: string;
+  strategy: MatchingStrategy;
+  matched_count: number;
+  unmatched_documents: number;
+  unmatched_solutions: number;
+  match_rate: number;
+  matches: MatchPreviewItem[];
+  warnings: string[];
+}
+
+export interface ApplyOptionsSchema {
+  strategy?: MatchingStrategy;
+  overwrite_existing?: boolean;
+  min_confidence?: number;
+  create_rag_examples?: boolean;
+  mark_as_validated?: boolean;
+}
+
+export interface AppliedCorrection {
+  document_id: string;
+  document_filename: string;
+  errors_applied: number;
+  fields_updated: number;
+  rag_examples_created: number;
+  status: string;
+}
+
+export interface SolutionApplyResponse {
+  solution_file_id: string;
+  project_id: string;
+  applied_count: number;
+  skipped_count: number;
+  error_count: number;
+  rag_examples_created: number;
+  corrections: AppliedCorrection[];
+  errors: string[];
+}
+
+export interface SolutionFileListItem {
+  id: string;
+  project_id: string;
+  filename: string;
+  format: SolutionFileFormat;
+  entry_count: number;
+  applied: boolean;
+  applied_at?: string;
+  created_at: string;
+}
+
+// Feature Status for Document List
+export interface DocumentFeatureStatus {
+  feature_id: string;
+  feature_name: string;
+  status: FeatureStatus;
+  value?: unknown;
+  expected?: unknown;
+  error_code?: string;
+  message?: string;
+}
+
+// ============================================================================
+// Batch Job Types
+// ============================================================================
+
+export type BatchJobStatus =
+  | 'PENDING'
+  | 'QUEUED'
+  | 'RUNNING'
+  | 'COMPLETED'
+  | 'FAILED'
+  | 'CANCELLED';
+
+export type BatchJobType =
+  | 'BATCH_ANALYZE'
+  | 'BATCH_VALIDATE'
+  | 'BATCH_EXPORT'
+  | 'SOLUTION_APPLY'
+  | 'RAG_REBUILD';
+
+export interface BatchJob {
+  id: string;
+  job_type: BatchJobType;
+  project_id?: string;
+  status: BatchJobStatus;
+  priority: number;
+  total_items: number;
+  processed_items: number;
+  successful_items: number;
+  failed_items: number;
+  skipped_items: number;
+  progress_percent: number;
+  parameters?: Record<string, unknown>;
+  errors: string[];
+  warnings: string[];
+  result?: Record<string, unknown>;
+  scheduled_at?: string;
+  started_at?: string;
+  completed_at?: string;
+  created_at: string;
+  created_by_id?: string;
+}
+
+export interface BatchJobListResponse {
+  jobs: BatchJob[];
+  total: number;
+}

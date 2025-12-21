@@ -86,6 +86,11 @@ class RiskChecker:
         if recipient_finding:
             findings.append(recipient_finding)
 
+        # 8. Selbstrechnung prüfen (KRITISCH)
+        self_invoice_finding = self._check_self_invoice(request)
+        if self_invoice_finding:
+            findings.append(self_invoice_finding)
+
         # Ergebnis zusammenstellen
         risk_score = self._calculate_risk_score(findings)
         highest_severity = self._get_highest_severity(findings)
@@ -281,6 +286,42 @@ class RiskChecker:
             )
 
         return None
+
+    def _check_self_invoice(
+        self, request: RiskAssessmentRequest
+    ) -> RiskFinding | None:
+        """
+        Prüft auf Selbstrechnung (KRITISCH).
+
+        Eine Selbstrechnung liegt vor, wenn die USt-IdNr. des Lieferanten
+        mit der USt-IdNr. des Begünstigten (Zuwendungsempfänger) übereinstimmt.
+        Dies ist ein kritischer Betrugsindikator.
+        """
+        if not request.supplier_vat_id or not request.beneficiary_vat_id:
+            return None
+
+        # USt-IdNr. normalisieren (Leerzeichen und Punkte entfernen)
+        supplier_vat = self._normalize_vat_id(request.supplier_vat_id)
+        beneficiary_vat = self._normalize_vat_id(request.beneficiary_vat_id)
+
+        if supplier_vat == beneficiary_vat:
+            return RiskFinding(
+                indicator=RiskIndicator.SELF_INVOICE,
+                severity=Severity.CRITICAL,
+                description="SELBSTRECHNUNG: Lieferant und Begünstigter haben gleiche USt-IdNr.",
+                evidence=f"Lieferant-USt-ID: '{request.supplier_vat_id}' = Begünstigter-USt-ID: '{request.beneficiary_vat_id}'",
+                recommendation="KRITISCH: Selbstrechnungen sind nicht förderfähig. Sofortige Prüfung erforderlich.",
+            )
+
+        return None
+
+    def _normalize_vat_id(self, vat_id: str) -> str:
+        """Normalisiert eine USt-IdNr. für Vergleiche."""
+        # Entferne Leerzeichen, Punkte, Bindestriche
+        normalized = vat_id.upper().strip()
+        for char in [" ", ".", "-", "/", "\\"]:
+            normalized = normalized.replace(char, "")
+        return normalized
 
     def _calculate_risk_score(self, findings: list[RiskFinding]) -> float:
         """Berechnet aggregierten Risiko-Score."""
