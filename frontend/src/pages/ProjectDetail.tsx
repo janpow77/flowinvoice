@@ -427,7 +427,7 @@ export default function ProjectDetail() {
   if (isLoading) {
     return (
       <div className="flex items-center justify-center min-h-[400px]">
-        <Loader2 className="h-12 w-12 text-primary-600 animate-spin" />
+        <Loader2 className="h-12 w-12 text-accent-primary animate-spin" />
       </div>
     )
   }
@@ -435,9 +435,9 @@ export default function ProjectDetail() {
   if (error || !project) {
     return (
       <div className="text-center py-12">
-        <AlertCircle className="h-12 w-12 text-red-500 mx-auto mb-4" />
-        <p className="text-gray-500">{t('errors.notFound')}</p>
-        <Link to="/projects" className="mt-4 text-primary-600 hover:underline">
+        <AlertCircle className="h-12 w-12 text-status-danger mx-auto mb-4" />
+        <p className="text-theme-text-muted">{t('errors.notFound')}</p>
+        <Link to="/projects" className="mt-4 text-accent-primary hover:underline">
           {t('common.back')}
         </Link>
       </div>
@@ -451,21 +451,21 @@ export default function ProjectDetail() {
     return (
       <div className="space-y-6">
         <div className="flex items-center gap-4">
-          <Link to="/projects" className="p-2 hover:bg-gray-100 rounded-lg transition-colors">
-            <ArrowLeft className="h-5 w-5 text-gray-500" />
+          <Link to="/projects" className="p-2 hover:bg-theme-hover rounded-lg transition-colors">
+            <ArrowLeft className="h-5 w-5 text-theme-text-muted" />
           </Link>
           <div>
-            <h1 className="text-2xl font-bold text-gray-900">{project.project.project_title}</h1>
+            <h1 className="text-2xl font-bold text-theme-text-primary">{project.project.project_title}</h1>
           </div>
         </div>
-        <div className="bg-white rounded-lg border border-gray-200 p-6">
+        <div className="bg-theme-card rounded-lg border border-theme-border-default p-6">
           <TaxSystemSelector
             currentRuleset={project.ruleset_id_hint}
             onSelect={rulesetId => updateRulesetMutation.mutate(rulesetId)}
           />
           {showTaxSelector && project.ruleset_id_hint && (
-            <div className="mt-4 pt-4 border-t border-gray-200">
-              <button onClick={() => setShowTaxSelector(false)} className="text-gray-500 hover:text-gray-700">
+            <div className="mt-4 pt-4 border-t border-theme-border-default">
+              <button onClick={() => setShowTaxSelector(false)} className="text-theme-text-muted hover:text-theme-text-secondary">
                 {t('common.cancel')}
               </button>
             </div>
@@ -481,11 +481,11 @@ export default function ProjectDetail() {
   return (
     <div className="space-y-6">
       {/* Header with Project Data */}
-      <div className="bg-white rounded-lg border border-gray-200 p-6">
+      <div className="bg-theme-card rounded-lg border border-theme-border-default p-6">
         <div className="flex items-center justify-between mb-4">
           <div className="flex items-center gap-4">
-            <Link to="/projects" className="p-2 hover:bg-gray-100 rounded-lg transition-colors">
-              <ArrowLeft className="h-5 w-5 text-gray-500" />
+            <Link to="/projects" className="p-2 hover:bg-theme-hover rounded-lg transition-colors">
+              <ArrowLeft className="h-5 w-5 text-theme-text-muted" />
             </Link>
             {isEditing && editForm ? (
               <input
@@ -495,10 +495,10 @@ export default function ProjectDetail() {
                   ...editForm,
                   project: { ...editForm.project, project_title: e.target.value }
                 })}
-                className="text-2xl font-bold text-gray-900 border-b-2 border-primary-500 focus:outline-none bg-transparent"
+                className="text-2xl font-bold text-theme-text-primary border-b-2 border-accent-primary focus:outline-none bg-transparent"
               />
             ) : (
-              <h1 className="text-2xl font-bold text-gray-900">{project.project.project_title}</h1>
+              <h1 className="text-2xl font-bold text-theme-text-primary">{project.project.project_title}</h1>
             )}
           </div>
           {/* Edit/Save Buttons */}
@@ -507,14 +507,14 @@ export default function ProjectDetail() {
               <>
                 <button
                   onClick={cancelEditing}
-                  className="px-3 py-1.5 text-gray-600 hover:bg-gray-100 rounded-lg transition-colors"
+                  className="px-3 py-1.5 text-theme-text-secondary hover:bg-theme-hover rounded-lg transition-colors"
                 >
                   {t('common.cancel')}
                 </button>
                 <button
                   onClick={saveEditing}
                   disabled={updateProjectMutation.isPending}
-                  className="flex items-center gap-2 px-3 py-1.5 bg-primary-600 text-white rounded-lg hover:bg-primary-700 disabled:opacity-50"
+                  className="flex items-center gap-2 px-3 py-1.5 bg-accent-primary text-white rounded-lg hover:bg-accent-primary-hover disabled:opacity-50"
                 >
                   {updateProjectMutation.isPending ? (
                     <Loader2 className="h-4 w-4 animate-spin" />
@@ -527,7 +527,7 @@ export default function ProjectDetail() {
             ) : (
               <button
                 onClick={startEditing}
-                className="flex items-center gap-2 px-3 py-1.5 text-gray-600 hover:bg-gray-100 rounded-lg transition-colors"
+                className="flex items-center gap-2 px-3 py-1.5 text-theme-text-secondary hover:bg-theme-hover rounded-lg transition-colors"
               >
                 <Pencil className="h-4 w-4" />
                 {t('common.edit')}
@@ -541,7 +541,7 @@ export default function ProjectDetail() {
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 text-sm">
             {/* Beneficiary Name */}
             <div>
-              <label className="block text-gray-500 mb-1">{t('projectDetail.beneficiaryName')}</label>
+              <label className="block text-theme-text-muted mb-1">{t('projectDetail.beneficiaryName')}</label>
               <input
                 type="text"
                 value={editForm.beneficiary.name}
@@ -549,13 +549,13 @@ export default function ProjectDetail() {
                   ...editForm,
                   beneficiary: { ...editForm.beneficiary, name: e.target.value }
                 })}
-                className="w-full px-2 py-1 border border-gray-300 rounded focus:ring-1 focus:ring-primary-500 focus:border-primary-500"
+                className="w-full px-2 py-1 border border-theme-border-default rounded bg-theme-input text-theme-text-primary focus:ring-1 focus:ring-accent-primary focus:border-accent-primary"
               />
             </div>
 
             {/* Street */}
             <div>
-              <label className="block text-gray-500 mb-1">{t('projectDetail.street')}</label>
+              <label className="block text-theme-text-muted mb-1">{t('projectDetail.street')}</label>
               <input
                 type="text"
                 value={editForm.beneficiary.street}
@@ -563,14 +563,14 @@ export default function ProjectDetail() {
                   ...editForm,
                   beneficiary: { ...editForm.beneficiary, street: e.target.value }
                 })}
-                className="w-full px-2 py-1 border border-gray-300 rounded focus:ring-1 focus:ring-primary-500 focus:border-primary-500"
+                className="w-full px-2 py-1 border border-theme-border-default rounded bg-theme-input text-theme-text-primary focus:ring-1 focus:ring-accent-primary focus:border-accent-primary"
               />
             </div>
 
             {/* ZIP + City */}
             <div className="flex gap-2">
               <div className="w-1/3">
-                <label className="block text-gray-500 mb-1">{t('projectDetail.zip')}</label>
+                <label className="block text-theme-text-muted mb-1">{t('projectDetail.zip')}</label>
                 <input
                   type="text"
                   value={editForm.beneficiary.zip}
@@ -578,11 +578,11 @@ export default function ProjectDetail() {
                     ...editForm,
                     beneficiary: { ...editForm.beneficiary, zip: e.target.value }
                   })}
-                  className="w-full px-2 py-1 border border-gray-300 rounded focus:ring-1 focus:ring-primary-500 focus:border-primary-500"
+                  className="w-full px-2 py-1 border border-theme-border-default rounded bg-theme-input text-theme-text-primary focus:ring-1 focus:ring-accent-primary focus:border-accent-primary"
                 />
               </div>
               <div className="w-2/3">
-                <label className="block text-gray-500 mb-1">{t('projectDetail.city')}</label>
+                <label className="block text-theme-text-muted mb-1">{t('projectDetail.city')}</label>
                 <input
                   type="text"
                   value={editForm.beneficiary.city}
@@ -590,14 +590,14 @@ export default function ProjectDetail() {
                     ...editForm,
                     beneficiary: { ...editForm.beneficiary, city: e.target.value }
                   })}
-                  className="w-full px-2 py-1 border border-gray-300 rounded focus:ring-1 focus:ring-primary-500 focus:border-primary-500"
+                  className="w-full px-2 py-1 border border-theme-border-default rounded bg-theme-input text-theme-text-primary focus:ring-1 focus:ring-accent-primary focus:border-accent-primary"
                 />
               </div>
             </div>
 
             {/* VAT ID */}
             <div>
-              <label className="block text-gray-500 mb-1">{t('projectDetail.vatId')}</label>
+              <label className="block text-theme-text-muted mb-1">{t('projectDetail.vatId')}</label>
               <input
                 type="text"
                 value={editForm.beneficiary.vat_id}
@@ -606,13 +606,13 @@ export default function ProjectDetail() {
                   beneficiary: { ...editForm.beneficiary, vat_id: e.target.value }
                 })}
                 placeholder="DE123456789"
-                className="w-full px-2 py-1 border border-gray-300 rounded focus:ring-1 focus:ring-primary-500 focus:border-primary-500"
+                className="w-full px-2 py-1 border border-theme-border-default rounded bg-theme-input text-theme-text-primary focus:ring-1 focus:ring-accent-primary focus:border-accent-primary"
               />
             </div>
 
             {/* Tax Number */}
             <div>
-              <label className="block text-gray-500 mb-1">{t('projectDetail.taxNumber')}</label>
+              <label className="block text-theme-text-muted mb-1">{t('projectDetail.taxNumber')}</label>
               <input
                 type="text"
                 value={editForm.beneficiary.tax_number}
@@ -621,13 +621,13 @@ export default function ProjectDetail() {
                   beneficiary: { ...editForm.beneficiary, tax_number: e.target.value }
                 })}
                 placeholder="123/456/78901"
-                className="w-full px-2 py-1 border border-gray-300 rounded focus:ring-1 focus:ring-primary-500 focus:border-primary-500"
+                className="w-full px-2 py-1 border border-theme-border-default rounded bg-theme-input text-theme-text-primary focus:ring-1 focus:ring-accent-primary focus:border-accent-primary"
               />
             </div>
 
             {/* File Reference */}
             <div>
-              <label className="block text-gray-500 mb-1">{t('projectDetail.fileReference')}</label>
+              <label className="block text-theme-text-muted mb-1">{t('projectDetail.fileReference')}</label>
               <input
                 type="text"
                 value={editForm.project.file_reference}
@@ -635,13 +635,13 @@ export default function ProjectDetail() {
                   ...editForm,
                   project: { ...editForm.project, file_reference: e.target.value }
                 })}
-                className="w-full px-2 py-1 border border-gray-300 rounded focus:ring-1 focus:ring-primary-500 focus:border-primary-500"
+                className="w-full px-2 py-1 border border-theme-border-default rounded bg-theme-input text-theme-text-primary focus:ring-1 focus:ring-accent-primary focus:border-accent-primary"
               />
             </div>
 
             {/* Execution Location */}
             <div>
-              <label className="block text-gray-500 mb-1">{t('projectDetail.executionLocation')}</label>
+              <label className="block text-theme-text-muted mb-1">{t('projectDetail.executionLocation')}</label>
               <input
                 type="text"
                 value={editForm.project.implementation_location}
@@ -649,13 +649,13 @@ export default function ProjectDetail() {
                   ...editForm,
                   project: { ...editForm.project, implementation_location: e.target.value }
                 })}
-                className="w-full px-2 py-1 border border-gray-300 rounded focus:ring-1 focus:ring-primary-500 focus:border-primary-500"
+                className="w-full px-2 py-1 border border-theme-border-default rounded bg-theme-input text-theme-text-primary focus:ring-1 focus:ring-accent-primary focus:border-accent-primary"
               />
             </div>
 
             {/* Execution City */}
             <div>
-              <label className="block text-gray-500 mb-1">{t('projectDetail.executionCity')}</label>
+              <label className="block text-theme-text-muted mb-1">{t('projectDetail.executionCity')}</label>
               <input
                 type="text"
                 value={editForm.project.implementation_city}
@@ -663,13 +663,13 @@ export default function ProjectDetail() {
                   ...editForm,
                   project: { ...editForm.project, implementation_city: e.target.value }
                 })}
-                className="w-full px-2 py-1 border border-gray-300 rounded focus:ring-1 focus:ring-primary-500 focus:border-primary-500"
+                className="w-full px-2 py-1 border border-theme-border-default rounded bg-theme-input text-theme-text-primary focus:ring-1 focus:ring-accent-primary focus:border-accent-primary"
               />
             </div>
 
             {/* Execution Period */}
             <div className="md:col-span-2">
-              <label className="block text-gray-500 mb-1">{t('projectDetail.executionPeriod', 'Durchführungszeitraum')}</label>
+              <label className="block text-theme-text-muted mb-1">{t('projectDetail.executionPeriod', 'Durchführungszeitraum')}</label>
               <div className="flex items-center gap-2">
                 <input
                   type="date"
@@ -678,9 +678,9 @@ export default function ProjectDetail() {
                     ...editForm,
                     project: { ...editForm.project, period_start: e.target.value }
                   })}
-                  className="flex-1 px-2 py-1 border border-gray-300 rounded focus:ring-1 focus:ring-primary-500 focus:border-primary-500"
+                  className="flex-1 px-2 py-1 border border-theme-border-default rounded bg-theme-input text-theme-text-primary focus:ring-1 focus:ring-accent-primary focus:border-accent-primary"
                 />
-                <span className="text-gray-500">{t('projectDetail.periodTo', 'bis')}</span>
+                <span className="text-theme-text-muted">{t('projectDetail.periodTo', 'bis')}</span>
                 <input
                   type="date"
                   value={editForm.project.period_end}
@@ -688,14 +688,14 @@ export default function ProjectDetail() {
                     ...editForm,
                     project: { ...editForm.project, period_end: e.target.value }
                   })}
-                  className="flex-1 px-2 py-1 border border-gray-300 rounded focus:ring-1 focus:ring-primary-500 focus:border-primary-500"
+                  className="flex-1 px-2 py-1 border border-theme-border-default rounded bg-theme-input text-theme-text-primary focus:ring-1 focus:ring-accent-primary focus:border-accent-primary"
                 />
               </div>
             </div>
 
             {/* Project Description */}
             <div className="md:col-span-2 lg:col-span-3">
-              <label className="block text-gray-500 mb-1">{t('projectDetail.projectDescription')}</label>
+              <label className="block text-theme-text-muted mb-1">{t('projectDetail.projectDescription')}</label>
               <textarea
                 value={editForm.project.project_description}
                 onChange={e => setEditForm({
@@ -703,7 +703,7 @@ export default function ProjectDetail() {
                   project: { ...editForm.project, project_description: e.target.value }
                 })}
                 rows={3}
-                className="w-full px-2 py-1 border border-gray-300 rounded focus:ring-1 focus:ring-primary-500 focus:border-primary-500"
+                className="w-full px-2 py-1 border border-theme-border-default rounded bg-theme-input text-theme-text-primary focus:ring-1 focus:ring-accent-primary focus:border-accent-primary"
               />
             </div>
           </div>
@@ -712,40 +712,40 @@ export default function ProjectDetail() {
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-x-6 gap-y-3 text-sm">
             {/* Beneficiary Name */}
             <div>
-              <span className="text-gray-500">{t('projectDetail.beneficiaryName')}:</span>
-              <span className="ml-2 font-medium">{project.beneficiary.name}</span>
+              <span className="text-theme-text-muted">{t('projectDetail.beneficiaryName')}:</span>
+              <span className="ml-2 font-medium text-theme-text-primary">{project.beneficiary.name}</span>
             </div>
 
             {/* Address */}
             <div className="md:col-span-2">
-              <span className="text-gray-500">{t('projectDetail.address')}:</span>
-              <span className="ml-2 font-medium">
+              <span className="text-theme-text-muted">{t('projectDetail.address')}:</span>
+              <span className="ml-2 font-medium text-theme-text-primary">
                 {project.beneficiary.street}, {project.beneficiary.zip} {project.beneficiary.city}
               </span>
             </div>
 
             {/* VAT ID */}
             <div>
-              <span className="text-gray-500">{t('projectDetail.vatId')}:</span>
-              <span className="ml-2 font-medium">{project.beneficiary.vat_id || '-'}</span>
+              <span className="text-theme-text-muted">{t('projectDetail.vatId')}:</span>
+              <span className="ml-2 font-medium text-theme-text-primary">{project.beneficiary.vat_id || '-'}</span>
             </div>
 
             {/* Tax Number */}
             <div>
-              <span className="text-gray-500">{t('projectDetail.taxNumber')}:</span>
-              <span className="ml-2 font-medium">{project.beneficiary.tax_number || '-'}</span>
+              <span className="text-theme-text-muted">{t('projectDetail.taxNumber')}:</span>
+              <span className="ml-2 font-medium text-theme-text-primary">{project.beneficiary.tax_number || '-'}</span>
             </div>
 
             {/* File Reference (Aktenzeichen) */}
             <div>
-              <span className="text-gray-500">{t('projectDetail.fileReference')}:</span>
-              <span className="ml-2 font-medium">{project.project.file_reference || '-'}</span>
+              <span className="text-theme-text-muted">{t('projectDetail.fileReference')}:</span>
+              <span className="ml-2 font-medium text-theme-text-primary">{project.project.file_reference || '-'}</span>
             </div>
 
             {/* Execution Location (Durchführungsort) */}
             <div className="md:col-span-2">
-              <span className="text-gray-500">{t('projectDetail.executionLocation')}:</span>
-              <span className="ml-2 font-medium">
+              <span className="text-theme-text-muted">{t('projectDetail.executionLocation')}:</span>
+              <span className="ml-2 font-medium text-theme-text-primary">
                 {project.project.implementation
                   ? `${project.project.implementation.location_name || ''}${project.project.implementation.city ? `, ${project.project.implementation.city}` : ''}`
                   : '-'}
@@ -754,8 +754,8 @@ export default function ProjectDetail() {
 
             {/* Execution Period (Durchführungszeitraum) */}
             <div className="md:col-span-2">
-              <span className="text-gray-500">{t('projectDetail.executionPeriod', 'Durchführungszeitraum')}:</span>
-              <span className="ml-2 font-medium">
+              <span className="text-theme-text-muted">{t('projectDetail.executionPeriod', 'Durchführungszeitraum')}:</span>
+              <span className="ml-2 font-medium text-theme-text-primary">
                 {project.project.project_period?.start && project.project.project_period?.end
                   ? `${new Date(project.project.project_period.start).toLocaleDateString('de-DE')} ${t('projectDetail.periodTo', 'bis')} ${new Date(project.project.project_period.end).toLocaleDateString('de-DE')}`
                   : '-'}
@@ -764,15 +764,15 @@ export default function ProjectDetail() {
 
             {/* Project Description */}
             <div className="md:col-span-3">
-              <span className="text-gray-500">{t('projectDetail.projectDescription')}:</span>
-              <p className="mt-1 text-gray-700">{project.project.project_description || '-'}</p>
+              <span className="text-theme-text-muted">{t('projectDetail.projectDescription')}:</span>
+              <p className="mt-1 text-theme-text-secondary">{project.project.project_description || '-'}</p>
             </div>
 
             {/* Project Period */}
             {project.project.project_period && (
               <div>
-                <span className="text-gray-500">{t('projectDetail.projectPeriod')}:</span>
-                <span className="ml-2 font-medium">
+                <span className="text-theme-text-muted">{t('projectDetail.projectPeriod')}:</span>
+                <span className="ml-2 font-medium text-theme-text-primary">
                   {project.project.project_period.start && new Date(project.project.project_period.start).toLocaleDateString('de-DE')}
                   {project.project.project_period.end && ` - ${new Date(project.project.project_period.end).toLocaleDateString('de-DE')}`}
                 </span>
@@ -782,14 +782,14 @@ export default function ProjectDetail() {
         )}
 
         {/* Ruleset Badge */}
-        <div className="mt-4 pt-4 border-t border-gray-100 flex items-center justify-between">
+        <div className="mt-4 pt-4 border-t border-theme-border-subtle flex items-center justify-between">
           <div className="flex items-center gap-2">
             <span className="text-2xl">{currentRuleset?.flag}</span>
-            <span className="font-medium">{lang === 'de' ? currentRuleset?.title_de : currentRuleset?.title_en}</span>
+            <span className="font-medium text-theme-text-primary">{lang === 'de' ? currentRuleset?.title_de : currentRuleset?.title_en}</span>
           </div>
           <button
             onClick={() => setShowTaxSelector(true)}
-            className="text-sm text-primary-600 hover:underline"
+            className="text-sm text-accent-primary hover:underline"
           >
             {t('taxSelector.changeSystem')}
           </button>
@@ -797,14 +797,14 @@ export default function ProjectDetail() {
       </div>
 
       {/* Tab Navigation */}
-      <div className="bg-white rounded-lg border border-gray-200">
-        <div className="flex border-b border-gray-200">
+      <div className="bg-theme-card rounded-lg border border-theme-border-default">
+        <div className="flex border-b border-theme-border-default">
           <button
             onClick={() => setActiveTab('overview')}
             className={`flex items-center gap-2 px-4 py-3 text-sm font-medium border-b-2 transition-colors ${
               activeTab === 'overview'
-                ? 'border-primary-500 text-primary-600'
-                : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                ? 'border-accent-primary text-accent-primary'
+                : 'border-transparent text-theme-text-muted hover:text-theme-text-secondary hover:border-theme-border-default'
             }`}
           >
             <FolderOpen className="h-4 w-4" />
@@ -814,14 +814,14 @@ export default function ProjectDetail() {
             onClick={() => setActiveTab('upload')}
             className={`flex items-center gap-2 px-4 py-3 text-sm font-medium border-b-2 transition-colors ${
               activeTab === 'upload'
-                ? 'border-primary-500 text-primary-600'
-                : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                ? 'border-accent-primary text-accent-primary'
+                : 'border-transparent text-theme-text-muted hover:text-theme-text-secondary hover:border-theme-border-default'
             }`}
           >
             <Search className="h-4 w-4" />
             {t('projectDetail.tabAnalyze', 'Analysieren')}
             {uploadQueue.length > 0 && (
-              <span className="ml-1 px-2 py-0.5 text-xs bg-primary-100 text-primary-600 rounded-full">
+              <span className="ml-1 px-2 py-0.5 text-xs bg-accent-primary/10 text-accent-primary rounded-full">
                 {uploadQueue.length}
               </span>
             )}
@@ -830,14 +830,14 @@ export default function ProjectDetail() {
             onClick={() => setActiveTab('documents')}
             className={`flex items-center gap-2 px-4 py-3 text-sm font-medium border-b-2 transition-colors ${
               activeTab === 'documents'
-                ? 'border-primary-500 text-primary-600'
-                : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                ? 'border-accent-primary text-accent-primary'
+                : 'border-transparent text-theme-text-muted hover:text-theme-text-secondary hover:border-theme-border-default'
             }`}
           >
             <List className="h-4 w-4" />
             {t('projectDetail.tabDocuments', 'Belege & Feedback')}
             {processedDocs.length > 0 && (
-              <span className="ml-1 px-2 py-0.5 text-xs bg-gray-100 text-gray-600 rounded-full">
+              <span className="ml-1 px-2 py-0.5 text-xs bg-theme-hover text-theme-text-secondary rounded-full">
                 {processedDocs.length}
               </span>
             )}
@@ -851,33 +851,33 @@ export default function ProjectDetail() {
           {/* Left Column - Belegliste */}
           <div className="lg:col-span-2 space-y-4">
             {/* Collapsible Features */}
-            <div className="bg-white rounded-lg border border-gray-200">
+            <div className="bg-theme-card rounded-lg border border-theme-border-default">
               <button
                 onClick={() => setShowFeatures(!showFeatures)}
-                className="w-full px-4 py-3 flex items-center justify-between text-left hover:bg-gray-50"
+                className="w-full px-4 py-3 flex items-center justify-between text-left hover:bg-theme-hover"
               >
-                <span className="font-medium text-gray-900">{t('projectDetail.showFeatures')}</span>
+                <span className="font-medium text-theme-text-primary">{t('projectDetail.showFeatures')}</span>
                 {showFeatures ? (
-                  <ChevronDown className="h-5 w-5 text-gray-400" />
+                  <ChevronDown className="h-5 w-5 text-theme-text-muted" />
                 ) : (
-                  <ChevronRight className="h-5 w-5 text-gray-400" />
+                  <ChevronRight className="h-5 w-5 text-theme-text-muted" />
                 )}
               </button>
               {showFeatures && currentRuleset && (
-                <div className="px-4 pb-4 border-t border-gray-100">
+                <div className="px-4 pb-4 border-t border-theme-border-subtle">
                   <div className="mt-3 space-y-2 text-sm max-h-60 overflow-y-auto">
                     {currentRuleset.features.map(feature => (
                       <div key={feature.feature_id} className="flex items-center justify-between py-1">
-                        <span className="text-gray-600">
+                        <span className="text-theme-text-muted">
                           {lang === 'de' ? feature.name_de : feature.name_en}
                         </span>
                         <span
                           className={`px-2 py-0.5 text-xs rounded ${
                             feature.required_level === 'REQUIRED'
-                              ? 'bg-red-100 text-red-700'
+                              ? 'bg-status-danger-bg text-status-danger'
                               : feature.required_level === 'CONDITIONAL'
-                              ? 'bg-yellow-100 text-yellow-700'
-                              : 'bg-gray-100 text-gray-600'
+                              ? 'bg-status-warning-bg text-status-warning'
+                              : 'bg-theme-hover text-theme-text-muted'
                           }`}
                         >
                           {feature.required_level}
@@ -890,52 +890,52 @@ export default function ProjectDetail() {
             </div>
 
             {/* Belegliste (Processed Documents) */}
-            <div className="bg-white rounded-lg border border-gray-200">
-              <div className="px-4 py-3 border-b border-gray-200">
-                <h3 className="font-semibold text-gray-900">{t('projectDetail.documentList')}</h3>
+            <div className="bg-theme-card rounded-lg border border-theme-border-default">
+              <div className="px-4 py-3 border-b border-theme-border-default">
+                <h3 className="font-semibold text-theme-text-primary">{t('projectDetail.documentList')}</h3>
               </div>
 
               {processedDocs.length > 0 ? (
                 <div className="overflow-x-auto">
                   <table className="w-full text-sm">
-                    <thead className="bg-gray-50">
+                    <thead className="bg-theme-hover">
                       <tr>
-                        <th className="px-4 py-2 text-left text-gray-500 font-medium">Nr.</th>
-                        <th className="px-4 py-2 text-left text-gray-500 font-medium">
+                        <th className="px-4 py-2 text-left text-theme-text-muted font-medium">Nr.</th>
+                        <th className="px-4 py-2 text-left text-theme-text-muted font-medium">
                           {t('projectDetail.supplier')}
                         </th>
-                        <th className="px-4 py-2 text-left text-gray-500 font-medium">
+                        <th className="px-4 py-2 text-left text-theme-text-muted font-medium">
                           {t('projectDetail.date')}
                         </th>
-                        <th className="px-4 py-2 text-right text-gray-500 font-medium">
+                        <th className="px-4 py-2 text-right text-theme-text-muted font-medium">
                           {t('projectDetail.amount')}
                         </th>
-                        <th className="px-4 py-2 text-center text-gray-500 font-medium">Status</th>
+                        <th className="px-4 py-2 text-center text-theme-text-muted font-medium">Status</th>
                         <th className="px-4 py-2"></th>
                       </tr>
                     </thead>
-                    <tbody className="divide-y divide-gray-100">
+                    <tbody className="divide-y divide-theme-border-subtle">
                       {processedDocs.map((doc, index) => (
-                        <tr key={doc.id} className="hover:bg-gray-50">
-                          <td className="px-4 py-3 text-gray-900">{index + 1}</td>
-                          <td className="px-4 py-3 text-gray-900">
+                        <tr key={doc.id} className="hover:bg-theme-hover">
+                          <td className="px-4 py-3 text-theme-text-primary">{index + 1}</td>
+                          <td className="px-4 py-3 text-theme-text-primary">
                             {doc.extracted_data?.supplier_name_address?.value?.split('\n')[0] || '-'}
                           </td>
-                          <td className="px-4 py-3 text-gray-600">
+                          <td className="px-4 py-3 text-theme-text-muted">
                             {doc.extracted_data?.invoice_date?.value || '-'}
                           </td>
-                          <td className="px-4 py-3 text-right font-medium text-gray-900">
+                          <td className="px-4 py-3 text-right font-medium text-theme-text-primary">
                             {doc.extracted_data?.gross_amount?.value
                               ? `${parseFloat(doc.extracted_data.gross_amount.value).toLocaleString('de-DE', { minimumFractionDigits: 2 })} €`
                               : '-'}
                           </td>
                           <td className="px-4 py-3 text-center">
                             {doc.analysis_result?.overall_assessment === 'ok' ? (
-                              <CheckCircle className="h-5 w-5 text-green-500 mx-auto" />
+                              <CheckCircle className="h-5 w-5 text-status-success mx-auto" />
                             ) : doc.analysis_result?.overall_assessment === 'rejected' ? (
-                              <AlertCircle className="h-5 w-5 text-red-500 mx-auto" />
+                              <AlertCircle className="h-5 w-5 text-status-danger mx-auto" />
                             ) : (
-                              <Clock className="h-5 w-5 text-yellow-500 mx-auto" />
+                              <Clock className="h-5 w-5 text-status-warning mx-auto" />
                             )}
                           </td>
                           <td className="px-4 py-3">
@@ -944,7 +944,7 @@ export default function ProjectDetail() {
                                 setSelectedDocument(doc.id)
                                 setActiveTab('documents')
                               }}
-                              className="text-primary-600 hover:text-primary-700"
+                              className="text-accent-primary hover:text-accent-primary-hover"
                             >
                               <Eye className="h-5 w-5" />
                             </button>
@@ -955,8 +955,8 @@ export default function ProjectDetail() {
                   </table>
                 </div>
               ) : (
-                <div className="px-4 py-8 text-center text-gray-500">
-                  <FileText className="h-10 w-10 text-gray-300 mx-auto mb-2" />
+                <div className="px-4 py-8 text-center text-theme-text-muted">
+                  <FileText className="h-10 w-10 text-theme-text-disabled mx-auto mb-2" />
                   {t('projectDetail.noProcessedDocuments')}
                 </div>
               )}
@@ -965,20 +965,20 @@ export default function ProjectDetail() {
 
           {/* Right Column - Quick Stats */}
           <div className="space-y-4">
-            <div className="bg-white rounded-lg border border-gray-200 p-4">
-              <h3 className="font-semibold text-gray-900 mb-3">{t('projectDetail.quickStats', 'Schnellübersicht')}</h3>
+            <div className="bg-theme-card rounded-lg border border-theme-border-default p-4">
+              <h3 className="font-semibold text-theme-text-primary mb-3">{t('projectDetail.quickStats', 'Schnellübersicht')}</h3>
               <div className="space-y-3">
                 <div className="flex justify-between items-center">
-                  <span className="text-gray-500">{t('projectDetail.totalDocuments', 'Belege gesamt')}</span>
+                  <span className="text-theme-text-muted">{t('projectDetail.totalDocuments', 'Belege gesamt')}</span>
                   <span className="font-medium">{documents?.length || 0}</span>
                 </div>
                 <div className="flex justify-between items-center">
-                  <span className="text-gray-500">{t('projectDetail.analyzedDocuments', 'Analysiert')}</span>
-                  <span className="font-medium text-green-600">{processedDocs.length}</span>
+                  <span className="text-theme-text-muted">{t('projectDetail.analyzedDocuments', 'Analysiert')}</span>
+                  <span className="font-medium text-status-success">{processedDocs.length}</span>
                 </div>
                 <div className="flex justify-between items-center">
-                  <span className="text-gray-500">{t('projectDetail.acceptedDocuments', 'Akzeptiert')}</span>
-                  <span className="font-medium text-primary-600">
+                  <span className="text-theme-text-muted">{t('projectDetail.acceptedDocuments', 'Akzeptiert')}</span>
+                  <span className="font-medium text-accent-primary">
                     {documents?.filter(d => d.status === 'ACCEPTED').length || 0}
                   </span>
                 </div>
@@ -986,7 +986,7 @@ export default function ProjectDetail() {
             </div>
             <button
               onClick={() => setActiveTab('upload')}
-              className="w-full flex items-center justify-center gap-2 px-4 py-3 bg-primary-600 text-white rounded-lg hover:bg-primary-700"
+              className="w-full flex items-center justify-center gap-2 px-4 py-3 bg-accent-primary text-white rounded-lg hover:bg-accent-primary-hover"
             >
               <Search className="h-5 w-5" />
               {t('projectDetail.analyzeDocuments', 'Belege analysieren')}
@@ -999,11 +999,11 @@ export default function ProjectDetail() {
       {activeTab === 'documents' && (
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           {/* Left: Document List */}
-          <div className="lg:col-span-1 bg-white rounded-lg border border-gray-200">
-            <div className="px-4 py-3 border-b border-gray-200">
-              <h3 className="font-semibold text-gray-900">{t('projectDetail.documentList')}</h3>
+          <div className="lg:col-span-1 bg-theme-card rounded-lg border border-theme-border-default">
+            <div className="px-4 py-3 border-b border-theme-border-default">
+              <h3 className="font-semibold text-theme-text-primary">{t('projectDetail.documentList')}</h3>
             </div>
-            <div className="divide-y divide-gray-100 max-h-[600px] overflow-y-auto">
+            <div className="divide-y divide-theme-border-subtle max-h-[600px] overflow-y-auto">
               {processedDocs.length > 0 ? (
                 processedDocs.map((doc, index) => {
                   const isSelected = selectedDocument === doc.id
@@ -1012,26 +1012,26 @@ export default function ProjectDetail() {
                     <button
                       key={doc.id}
                       onClick={() => setSelectedDocument(doc.id)}
-                      className={`w-full text-left px-4 py-3 hover:bg-gray-50 transition-colors ${
-                        isSelected ? 'bg-primary-50 border-l-4 border-primary-500' : ''
+                      className={`w-full text-left px-4 py-3 hover:bg-theme-hover transition-colors ${
+                        isSelected ? 'bg-theme-selected border-l-4 border-accent-primary' : ''
                       }`}
                     >
                       <div className="flex items-center justify-between">
-                        <span className="font-medium text-gray-900 truncate">
+                        <span className="font-medium text-theme-text-primary truncate">
                           {index + 1}. {doc.extracted_data?.supplier_name_address?.value?.split('\n')[0] || doc.filename}
                         </span>
                         <div className="flex items-center gap-1">
-                          {isAccepted && <Lock className="h-4 w-4 text-green-500" />}
+                          {isAccepted && <Lock className="h-4 w-4 text-status-success" />}
                           {doc.analysis_result?.overall_assessment === 'ok' ? (
-                            <CheckCircle className="h-4 w-4 text-green-500" />
+                            <CheckCircle className="h-4 w-4 text-status-success" />
                           ) : doc.analysis_result?.overall_assessment === 'rejected' ? (
-                            <AlertCircle className="h-4 w-4 text-red-500" />
+                            <AlertCircle className="h-4 w-4 text-status-danger" />
                           ) : (
-                            <Clock className="h-4 w-4 text-yellow-500" />
+                            <Clock className="h-4 w-4 text-status-warning" />
                           )}
                         </div>
                       </div>
-                      <div className="text-sm text-gray-500 mt-1">
+                      <div className="text-sm text-theme-text-muted mt-1">
                         {doc.extracted_data?.invoice_date?.value || '-'} • {doc.extracted_data?.gross_amount?.value
                           ? `${parseFloat(doc.extracted_data.gross_amount.value).toLocaleString('de-DE', { minimumFractionDigits: 2 })} €`
                           : '-'}
@@ -1040,8 +1040,8 @@ export default function ProjectDetail() {
                   )
                 })
               ) : (
-                <div className="px-4 py-8 text-center text-gray-500">
-                  <FileText className="h-8 w-8 text-gray-300 mx-auto mb-2" />
+                <div className="px-4 py-8 text-center text-theme-text-muted">
+                  <FileText className="h-8 w-8 text-theme-text-disabled mx-auto mb-2" />
                   {t('projectDetail.noProcessedDocuments')}
                 </div>
               )}
@@ -1060,24 +1060,24 @@ export default function ProjectDetail() {
                 return (
                   <>
                     {/* Document Header */}
-                    <div className="bg-white rounded-lg border border-gray-200 p-4">
+                    <div className="bg-theme-card rounded-lg border border-theme-border-default p-4">
                       <div className="flex items-center justify-between mb-3">
-                        <h3 className="font-semibold text-gray-900">{doc.filename}</h3>
+                        <h3 className="font-semibold text-theme-text-primary">{doc.filename}</h3>
                         <div className="flex items-center gap-2">
                           {isAccepted ? (
-                            <span className="flex items-center gap-1 px-2 py-1 text-xs bg-green-100 text-green-700 rounded">
+                            <span className="flex items-center gap-1 px-2 py-1 text-xs bg-status-success-bg text-status-success rounded">
                               <Lock className="h-3 w-3" />
                               {t('projectDetail.accepted', 'Akzeptiert')}
                             </span>
                           ) : (
-                            <span className="flex items-center gap-1 px-2 py-1 text-xs bg-yellow-100 text-yellow-700 rounded">
+                            <span className="flex items-center gap-1 px-2 py-1 text-xs bg-status-warning-bg text-status-warning rounded">
                               <Clock className="h-3 w-3" />
                               {t('projectDetail.pendingReview', 'Prüfung ausstehend')}
                             </span>
                           )}
                           <Link
                             to={`/documents/${doc.id}`}
-                            className="text-primary-600 hover:text-primary-700 p-1"
+                            className="text-accent-primary hover:text-accent-primary-hover p-1"
                             title={t('projectDetail.viewDetails', 'Details anzeigen')}
                           >
                             <FileText className="h-5 w-5" />
@@ -1088,11 +1088,11 @@ export default function ProjectDetail() {
                       {/* Quick Info */}
                       <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
                         <div>
-                          <span className="text-gray-500">{t('projectDetail.date')}</span>
+                          <span className="text-theme-text-muted">{t('projectDetail.date')}</span>
                           <p className="font-medium">{doc.extracted_data?.invoice_date?.value || '-'}</p>
                         </div>
                         <div>
-                          <span className="text-gray-500">{t('projectDetail.amount')}</span>
+                          <span className="text-theme-text-muted">{t('projectDetail.amount')}</span>
                           <p className="font-medium">
                             {doc.extracted_data?.gross_amount?.value
                               ? `${parseFloat(doc.extracted_data.gross_amount.value).toLocaleString('de-DE', { minimumFractionDigits: 2 })} €`
@@ -1100,7 +1100,7 @@ export default function ProjectDetail() {
                           </p>
                         </div>
                         <div>
-                          <span className="text-gray-500">{t('projectDetail.confidence', 'Konfidenz')}</span>
+                          <span className="text-theme-text-muted">{t('projectDetail.confidence', 'Konfidenz')}</span>
                           <p className="font-medium">
                             {doc.analysis_result?.confidence
                               ? `${Math.round(doc.analysis_result.confidence * 100)}%`
@@ -1108,11 +1108,11 @@ export default function ProjectDetail() {
                           </p>
                         </div>
                         <div>
-                          <span className="text-gray-500">Status</span>
+                          <span className="text-theme-text-muted">Status</span>
                           <p className={`font-medium ${
-                            doc.analysis_result?.overall_assessment === 'ok' ? 'text-green-600' :
-                            doc.analysis_result?.overall_assessment === 'rejected' ? 'text-red-600' :
-                            'text-yellow-600'
+                            doc.analysis_result?.overall_assessment === 'ok' ? 'text-status-success' :
+                            doc.analysis_result?.overall_assessment === 'rejected' ? 'text-status-danger' :
+                            'text-status-warning'
                           }`}>
                             {doc.analysis_result?.overall_assessment === 'ok' ? t('projectDetail.ok', 'OK') :
                              doc.analysis_result?.overall_assessment === 'rejected' ? t('projectDetail.rejected', 'Abgelehnt') :
@@ -1123,8 +1123,8 @@ export default function ProjectDetail() {
                     </div>
 
                     {/* Extracted Features */}
-                    <div className="bg-white rounded-lg border border-gray-200 p-4">
-                      <h4 className="font-semibold text-gray-900 mb-3">{t('projectDetail.extractedFeatures', 'Erkannte Merkmale')}</h4>
+                    <div className="bg-theme-card rounded-lg border border-theme-border-default p-4">
+                      <h4 className="font-semibold text-theme-text-primary mb-3">{t('projectDetail.extractedFeatures', 'Erkannte Merkmale')}</h4>
                       {doc.extracted_data && Object.keys(doc.extracted_data).length > 0 ? (
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-sm">
                           {Object.entries(doc.extracted_data).map(([key, val]) => {
@@ -1133,14 +1133,14 @@ export default function ProjectDetail() {
                               ? (lang === 'de' ? featureName.name_de : featureName.name_en)
                               : key.replace(/_/g, ' ')
                             return (
-                              <div key={key} className="flex justify-between items-start p-2 bg-gray-50 rounded">
-                                <span className="text-gray-600 capitalize">{displayName}</span>
+                              <div key={key} className="flex justify-between items-start p-2 bg-theme-hover rounded">
+                                <span className="text-theme-text-muted capitalize">{displayName}</span>
                                 <div className="text-right">
-                                  <span className="font-medium text-gray-900 block">
+                                  <span className="font-medium text-theme-text-primary block">
                                     {val?.value || '-'}
                                   </span>
                                   {val?.confidence !== undefined && (
-                                    <span className="text-xs text-gray-400">
+                                    <span className="text-xs text-theme-text-muted">
                                       {Math.round(val.confidence * 100)}%
                                     </span>
                                   )}
@@ -1150,45 +1150,45 @@ export default function ProjectDetail() {
                           })}
                         </div>
                       ) : (
-                        <p className="text-gray-500">{t('projectDetail.noExtractedData', 'Keine Daten extrahiert')}</p>
+                        <p className="text-theme-text-muted">{t('projectDetail.noExtractedData', 'Keine Daten extrahiert')}</p>
                       )}
                     </div>
 
                     {/* LLM Runs History */}
                     {selectedDocLlmRuns && selectedDocLlmRuns.length > 0 && (
-                      <div className="bg-white rounded-lg border border-gray-200 p-4">
-                        <h4 className="font-semibold text-gray-900 mb-3">{t('projectDetail.llmRuns', 'Erkennungsläufe')}</h4>
+                      <div className="bg-theme-card rounded-lg border border-theme-border-default p-4">
+                        <h4 className="font-semibold text-theme-text-primary mb-3">{t('projectDetail.llmRuns', 'Erkennungsläufe')}</h4>
                         <div className="space-y-3">
                           {selectedDocLlmRuns.map((run, index) => (
-                            <div key={run.id} className="p-3 bg-gray-50 rounded-lg">
+                            <div key={run.id} className="p-3 bg-theme-hover rounded-lg">
                               <div className="flex items-center justify-between mb-2">
                                 <div className="flex items-center gap-2">
-                                  <span className="font-medium text-gray-900">
+                                  <span className="font-medium text-theme-text-primary">
                                     Run #{selectedDocLlmRuns.length - index}
                                   </span>
                                   <span className={`px-2 py-0.5 text-xs rounded ${
-                                    run.status === 'COMPLETED' ? 'bg-green-100 text-green-700' :
-                                    run.status === 'FAILED' ? 'bg-red-100 text-red-700' :
-                                    'bg-yellow-100 text-yellow-700'
+                                    run.status === 'COMPLETED' ? 'bg-status-success-bg text-status-success' :
+                                    run.status === 'FAILED' ? 'bg-status-danger-bg text-status-danger' :
+                                    'bg-status-warning-bg text-status-warning'
                                   }`}>
                                     {run.status}
                                   </span>
                                 </div>
-                                <span className="text-xs text-gray-400">
+                                <span className="text-xs text-theme-text-muted">
                                   {new Date(run.created_at).toLocaleString('de-DE')}
                                 </span>
                               </div>
                               <div className="grid grid-cols-2 md:grid-cols-4 gap-2 text-sm">
                                 <div>
-                                  <span className="text-gray-500">{t('projectDetail.provider', 'Provider')}</span>
+                                  <span className="text-theme-text-muted">{t('projectDetail.provider', 'Provider')}</span>
                                   <p className="font-medium">{run.provider}</p>
                                 </div>
                                 <div>
-                                  <span className="text-gray-500">{t('projectDetail.model', 'Modell')}</span>
+                                  <span className="text-theme-text-muted">{t('projectDetail.model', 'Modell')}</span>
                                   <p className="font-medium truncate" title={run.model_name}>{run.model_name}</p>
                                 </div>
                                 <div>
-                                  <span className="text-gray-500">{t('projectDetail.duration', 'Dauer')}</span>
+                                  <span className="text-theme-text-muted">{t('projectDetail.duration', 'Dauer')}</span>
                                   <p className="font-medium">
                                     {run.stats.duration_ms
                                       ? `${(run.stats.duration_ms / 1000).toFixed(2)}s`
@@ -1196,7 +1196,7 @@ export default function ProjectDetail() {
                                   </p>
                                 </div>
                                 <div>
-                                  <span className="text-gray-500">{t('projectDetail.tokens', 'Tokens')}</span>
+                                  <span className="text-theme-text-muted">{t('projectDetail.tokens', 'Tokens')}</span>
                                   <p className="font-medium">
                                     {run.stats.input_tokens && run.stats.output_tokens
                                       ? `${run.stats.input_tokens} → ${run.stats.output_tokens}`
@@ -1205,7 +1205,7 @@ export default function ProjectDetail() {
                                 </div>
                               </div>
                               {run.error_message && (
-                                <div className="mt-2 p-2 bg-red-50 rounded text-sm text-red-700">
+                                <div className="mt-2 p-2 bg-status-danger-bg rounded text-sm text-status-danger">
                                   {run.error_message}
                                 </div>
                               )}
@@ -1217,23 +1217,23 @@ export default function ProjectDetail() {
 
                     {/* Feedback History */}
                     {hasFeedback && (
-                      <div className="bg-white rounded-lg border border-gray-200 p-4">
-                        <h4 className="font-semibold text-gray-900 mb-3">{t('projectDetail.feedbackHistory', 'Feedback-Verlauf')}</h4>
+                      <div className="bg-theme-card rounded-lg border border-theme-border-default p-4">
+                        <h4 className="font-semibold text-theme-text-primary mb-3">{t('projectDetail.feedbackHistory', 'Feedback-Verlauf')}</h4>
                         <div className="space-y-2">
                           {selectedDocFeedback.map((fb) => (
-                            <div key={fb.feedback_id} className="flex items-center justify-between p-2 bg-gray-50 rounded text-sm">
+                            <div key={fb.feedback_id} className="flex items-center justify-between p-2 bg-theme-hover rounded text-sm">
                               <div className="flex items-center gap-2">
                                 {fb.rating === 'CORRECT' ? (
-                                  <ThumbsUp className="h-4 w-4 text-green-500" />
+                                  <ThumbsUp className="h-4 w-4 text-status-success" />
                                 ) : (
-                                  <ThumbsDown className="h-4 w-4 text-red-500" />
+                                  <ThumbsDown className="h-4 w-4 text-status-danger" />
                                 )}
                                 <span>{fb.rating === 'CORRECT' ? t('feedback.correct', 'Korrekt') : t('feedback.incorrect', 'Fehlerhaft')}</span>
                                 {fb.override_count > 0 && (
-                                  <span className="text-xs text-gray-500">({fb.override_count} {t('feedback.corrections', 'Korrekturen')})</span>
+                                  <span className="text-xs text-theme-text-muted">({fb.override_count} {t('feedback.corrections', 'Korrekturen')})</span>
                                 )}
                               </div>
-                              <span className="text-gray-400 text-xs">
+                              <span className="text-theme-text-muted text-xs">
                                 {new Date(fb.created_at).toLocaleString('de-DE')}
                               </span>
                             </div>
@@ -1244,16 +1244,16 @@ export default function ProjectDetail() {
 
                     {/* Feedback Actions - only if not accepted */}
                     {!isAccepted && (
-                      <div className="bg-white rounded-lg border border-gray-200 p-4">
-                        <h4 className="font-semibold text-gray-900 mb-3">{t('projectDetail.submitFeedback', 'Feedback abgeben')}</h4>
+                      <div className="bg-theme-card rounded-lg border border-theme-border-default p-4">
+                        <h4 className="font-semibold text-theme-text-primary mb-3">{t('projectDetail.submitFeedback', 'Feedback abgeben')}</h4>
 
                         {/* Comment */}
                         <div className="mb-4">
-                          <label className="block text-sm text-gray-600 mb-1">{t('projectDetail.comment', 'Kommentar (optional)')}</label>
+                          <label className="block text-sm text-theme-text-muted mb-1">{t('projectDetail.comment', 'Kommentar (optional)')}</label>
                           <textarea
                             value={feedbackComment}
                             onChange={(e) => setFeedbackComment(e.target.value)}
-                            className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-1 focus:ring-primary-500 focus:border-primary-500"
+                            className="w-full px-3 py-2 border border-theme-border-default rounded-lg text-sm focus:ring-1 focus:ring-accent-primary focus:border-accent-primary"
                             rows={2}
                             placeholder={t('projectDetail.commentPlaceholder', 'Anmerkungen zur Prüfung...')}
                           />
@@ -1266,7 +1266,7 @@ export default function ProjectDetail() {
                             <button
                               onClick={() => finalizeMutation.mutate(doc.id)}
                               disabled={finalizeMutation.isPending}
-                              className="flex items-center gap-2 px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 disabled:opacity-50"
+                              className="flex items-center gap-2 px-4 py-2 bg-theme-hover text-theme-text-primary rounded-lg hover:bg-theme-card border border-theme-border-default disabled:opacity-50"
                             >
                               {finalizeMutation.isPending && <Loader2 className="h-4 w-4 animate-spin" />}
                               <CheckCircle className="h-4 w-4" />
@@ -1282,7 +1282,7 @@ export default function ProjectDetail() {
                               acceptResult: false
                             })}
                             disabled={feedbackMutation.isPending}
-                            className="flex items-center gap-2 px-4 py-2 border border-green-200 text-green-600 rounded-lg hover:bg-green-50 disabled:opacity-50"
+                            className="flex items-center gap-2 px-4 py-2 border border-status-success-border text-status-success rounded-lg hover:bg-status-success-bg disabled:opacity-50"
                           >
                             {feedbackMutation.isPending && <Loader2 className="h-4 w-4 animate-spin" />}
                             <ThumbsUp className="h-4 w-4" />
@@ -1296,7 +1296,7 @@ export default function ProjectDetail() {
                               acceptResult: false
                             })}
                             disabled={feedbackMutation.isPending}
-                            className="flex items-center gap-2 px-4 py-2 border border-red-200 text-red-600 rounded-lg hover:bg-red-50 disabled:opacity-50"
+                            className="flex items-center gap-2 px-4 py-2 border border-status-danger-border text-status-danger rounded-lg hover:bg-status-danger-bg disabled:opacity-50"
                           >
                             {feedbackMutation.isPending && <Loader2 className="h-4 w-4 animate-spin" />}
                             <ThumbsDown className="h-4 w-4" />
@@ -1310,7 +1310,7 @@ export default function ProjectDetail() {
                               acceptResult: true
                             })}
                             disabled={feedbackMutation.isPending}
-                            className="flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:opacity-50"
+                            className="flex items-center gap-2 px-4 py-2 bg-status-success text-white rounded-lg hover:bg-status-success/90 disabled:opacity-50"
                           >
                             {feedbackMutation.isPending && <Loader2 className="h-4 w-4 animate-spin" />}
                             <Lock className="h-4 w-4" />
@@ -1323,8 +1323,8 @@ export default function ProjectDetail() {
                 )
               })()
             ) : (
-              <div className="bg-white rounded-lg border border-gray-200 p-8 text-center text-gray-500">
-                <FileText className="h-12 w-12 text-gray-300 mx-auto mb-3" />
+              <div className="bg-theme-card rounded-lg border border-theme-border-default p-8 text-center text-theme-text-muted">
+                <FileText className="h-12 w-12 text-theme-text-disabled mx-auto mb-3" />
                 <p>{t('projectDetail.selectDocument', 'Wählen Sie einen Beleg aus der Liste')}</p>
               </div>
             )}
@@ -1338,8 +1338,8 @@ export default function ProjectDetail() {
           {/* Left Column - Upload queue */}
           <div className="lg:col-span-2 space-y-4">
             {/* Upload Area */}
-            <div className="bg-white rounded-lg border border-gray-200 p-6">
-              <h3 className="font-semibold text-gray-900 mb-4">{t('projectDetail.uploadedFiles')}</h3>
+            <div className="bg-theme-card rounded-lg border border-theme-border-default p-6">
+              <h3 className="font-semibold text-theme-text-primary mb-4">{t('projectDetail.uploadedFiles')}</h3>
 
               {/* File List */}
               {uploadQueue.length > 0 && (
@@ -1347,19 +1347,19 @@ export default function ProjectDetail() {
                   {uploadQueue.map((file, index) => (
                     <div
                       key={file.id}
-                      className="p-3 bg-gray-50 rounded-lg"
+                      className="p-3 bg-theme-hover rounded-lg"
                     >
                       <div className="flex items-center justify-between">
                         <div className="flex items-center gap-2 flex-1 min-w-0">
-                          <span className="text-gray-400 w-6">{index + 1}.</span>
+                          <span className="text-theme-text-muted w-6">{index + 1}.</span>
                           <span className="truncate font-medium">{file.file.name}</span>
                         </div>
                         <div className="flex items-center gap-2">
-                          {file.status === 'uploading' && <Loader2 className="h-4 w-4 animate-spin text-primary-600" />}
-                          {file.status === 'done' && <CheckCircle className="h-4 w-4 text-green-500" />}
-                          {file.status === 'error' && <AlertCircle className="h-4 w-4 text-red-500" />}
+                          {file.status === 'uploading' && <Loader2 className="h-4 w-4 animate-spin text-accent-primary" />}
+                          {file.status === 'done' && <CheckCircle className="h-4 w-4 text-status-success" />}
+                          {file.status === 'error' && <AlertCircle className="h-4 w-4 text-status-danger" />}
                           {file.status === 'pending' && (
-                            <button onClick={() => removeFromQueue(file.id)} className="text-gray-400 hover:text-red-500">
+                            <button onClick={() => removeFromQueue(file.id)} className="text-theme-text-muted hover:text-status-danger">
                               <Trash2 className="h-4 w-4" />
                             </button>
                           )}
@@ -1371,7 +1371,7 @@ export default function ProjectDetail() {
                           <select
                             value={file.documentType}
                             onChange={e => updateDocumentType(file.id, e.target.value as DocumentType)}
-                            className="w-full px-2 py-1 text-sm border border-gray-300 rounded focus:ring-1 focus:ring-primary-500 focus:border-primary-500"
+                            className="w-full px-2 py-1 text-sm border border-theme-border-default rounded focus:ring-1 focus:ring-accent-primary focus:border-accent-primary"
                           >
                             <option value="INVOICE">{t('documentTypes.invoice')}</option>
                             <option value="BANK_STATEMENT">{t('documentTypes.bankStatement')}</option>
@@ -1396,13 +1396,13 @@ export default function ProjectDetail() {
               <div
                 {...getRootProps()}
                 className={`border-2 border-dashed rounded-lg p-8 text-center cursor-pointer transition-colors ${
-                  isDragActive ? 'border-primary-500 bg-primary-50' : 'border-gray-300 hover:border-primary-400'
+                  isDragActive ? 'border-accent-primary bg-theme-selected' : 'border-theme-border-default hover:border-accent-primary'
                 } ${uploadQueue.length >= 20 ? 'opacity-50 cursor-not-allowed' : ''}`}
               >
                 <input {...getInputProps()} />
-                <Upload className="h-10 w-10 text-gray-400 mx-auto mb-3" />
-                <p className="text-gray-600">{t('projectDetail.dropzoneText')}</p>
-                <p className="text-sm text-gray-400 mt-2">
+                <Upload className="h-10 w-10 text-theme-text-muted mx-auto mb-3" />
+                <p className="text-theme-text-muted">{t('projectDetail.dropzoneText')}</p>
+                <p className="text-sm text-theme-text-muted mt-2">
                   {t('projectDetail.maxFiles', { count: 20 - uploadQueue.length })}
                 </p>
               </div>
@@ -1412,8 +1412,8 @@ export default function ProjectDetail() {
           {/* Right Column - Actions */}
           <div className="space-y-4">
             {/* Upload Actions */}
-            <div className="bg-white rounded-lg border border-gray-200 p-4">
-              <h3 className="font-semibold text-gray-900 mb-4">{t('projectDetail.actions', 'Aktionen')}</h3>
+            <div className="bg-theme-card rounded-lg border border-theme-border-default p-4">
+              <h3 className="font-semibold text-theme-text-primary mb-4">{t('projectDetail.actions', 'Aktionen')}</h3>
 
               <div className="space-y-3">
                 {/* Upload Button */}
@@ -1421,7 +1421,7 @@ export default function ProjectDetail() {
                   <button
                     onClick={uploadAllFiles}
                     disabled={uploadMutation.isPending}
-                    className="w-full px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 disabled:opacity-50 flex items-center justify-center gap-2"
+                    className="w-full px-4 py-2 bg-accent-primary text-white rounded-lg hover:bg-accent-primary-hover disabled:opacity-50 flex items-center justify-center gap-2"
                   >
                     {uploadMutation.isPending && <Loader2 className="h-4 w-4 animate-spin" />}
                     <Upload className="h-4 w-4" />
@@ -1433,7 +1433,7 @@ export default function ProjectDetail() {
                 <button
                   onClick={analyzeAllDocuments}
                   disabled={analyzeMutation.isPending || !uploadQueue.some(f => f.status === 'done')}
-                  className="w-full flex items-center justify-center gap-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="w-full flex items-center justify-center gap-2 px-4 py-2 bg-status-success text-white rounded-lg hover:bg-status-success/90 disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   {analyzeMutation.isPending && <Loader2 className="h-4 w-4 animate-spin" />}
                   <Search className="h-4 w-4" />
@@ -1443,7 +1443,7 @@ export default function ProjectDetail() {
                 {/* Settings Button */}
                 <button
                   onClick={() => setShowSettings(true)}
-                  className="w-full flex items-center justify-center gap-2 px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50"
+                  className="w-full flex items-center justify-center gap-2 px-4 py-2 border border-theme-border-default text-theme-text-secondary rounded-lg hover:bg-theme-hover"
                 >
                   <Settings className="h-4 w-4" />
                   {t('projectDetail.analysisSettings')}
@@ -1452,20 +1452,20 @@ export default function ProjectDetail() {
             </div>
 
             {/* Status Info */}
-            <div className="bg-white rounded-lg border border-gray-200 p-4">
-              <h3 className="font-semibold text-gray-900 mb-3">{t('projectDetail.uploadStatus', 'Upload-Status')}</h3>
+            <div className="bg-theme-card rounded-lg border border-theme-border-default p-4">
+              <h3 className="font-semibold text-theme-text-primary mb-3">{t('projectDetail.uploadStatus', 'Upload-Status')}</h3>
               <div className="space-y-2 text-sm">
                 <div className="flex justify-between">
-                  <span className="text-gray-500">{t('projectDetail.pending', 'Ausstehend')}</span>
+                  <span className="text-theme-text-muted">{t('projectDetail.pending', 'Ausstehend')}</span>
                   <span className="font-medium">{uploadQueue.filter(f => f.status === 'pending').length}</span>
                 </div>
                 <div className="flex justify-between">
-                  <span className="text-gray-500">{t('projectDetail.uploaded', 'Hochgeladen')}</span>
-                  <span className="font-medium text-green-600">{uploadQueue.filter(f => f.status === 'done').length}</span>
+                  <span className="text-theme-text-muted">{t('projectDetail.uploaded', 'Hochgeladen')}</span>
+                  <span className="font-medium text-status-success">{uploadQueue.filter(f => f.status === 'done').length}</span>
                 </div>
                 <div className="flex justify-between">
-                  <span className="text-gray-500">{t('projectDetail.errors', 'Fehler')}</span>
-                  <span className="font-medium text-red-600">{uploadQueue.filter(f => f.status === 'error').length}</span>
+                  <span className="text-theme-text-muted">{t('projectDetail.errors', 'Fehler')}</span>
+                  <span className="font-medium text-status-danger">{uploadQueue.filter(f => f.status === 'error').length}</span>
                 </div>
               </div>
             </div>
@@ -1478,27 +1478,27 @@ export default function ProjectDetail() {
         <div className="fixed inset-0 z-50 overflow-y-auto">
           <div className="flex min-h-screen items-center justify-center p-4">
             <div className="fixed inset-0 bg-black/50" onClick={() => setShowSettings(false)} />
-            <div className="relative bg-white rounded-xl shadow-xl w-full max-w-md p-6">
+            <div className="relative bg-theme-card rounded-xl shadow-xl w-full max-w-md p-6">
               <div className="flex items-center justify-between mb-4">
-                <h3 className="text-lg font-semibold text-gray-900">{t('projectDetail.analysisSettings')}</h3>
-                <button onClick={() => setShowSettings(false)} className="text-gray-400 hover:text-gray-600">
+                <h3 className="text-lg font-semibold text-theme-text-primary">{t('projectDetail.analysisSettings')}</h3>
+                <button onClick={() => setShowSettings(false)} className="text-theme-text-muted hover:text-theme-text-muted">
                   <X className="h-5 w-5" />
                 </button>
               </div>
 
               <div className="space-y-4">
                 <div className="flex items-center justify-between">
-                  <label className="text-sm text-gray-700">{t('projectDetail.useOcr')}</label>
+                  <label className="text-sm text-theme-text-secondary">{t('projectDetail.useOcr')}</label>
                   <input
                     type="checkbox"
                     checked={settings.useOcr}
                     onChange={e => setSettings({ ...settings, useOcr: e.target.checked })}
-                    className="rounded border-gray-300 text-primary-600 focus:ring-primary-500"
+                    className="rounded border-theme-border-default text-accent-primary focus:ring-accent-primary"
                   />
                 </div>
 
                 <div>
-                  <label className="block text-sm text-gray-700 mb-1">
+                  <label className="block text-sm text-theme-text-secondary mb-1">
                     {t('projectDetail.confidenceThreshold')}
                   </label>
                   <input
@@ -1510,15 +1510,15 @@ export default function ProjectDetail() {
                     onChange={e => setSettings({ ...settings, confidenceThreshold: parseFloat(e.target.value) })}
                     className="w-full"
                   />
-                  <span className="text-sm text-gray-500">{Math.round(settings.confidenceThreshold * 100)}%</span>
+                  <span className="text-sm text-theme-text-muted">{Math.round(settings.confidenceThreshold * 100)}%</span>
                 </div>
 
                 <div>
-                  <label className="block text-sm text-gray-700 mb-1">{t('projectDetail.maxRuns')}</label>
+                  <label className="block text-sm text-theme-text-secondary mb-1">{t('projectDetail.maxRuns')}</label>
                   <select
                     value={settings.maxRuns}
                     onChange={e => setSettings({ ...settings, maxRuns: parseInt(e.target.value) })}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg"
+                    className="w-full px-3 py-2 border border-theme-border-default rounded-lg"
                   >
                     <option value="1">1</option>
                     <option value="2">2</option>
@@ -1530,7 +1530,7 @@ export default function ProjectDetail() {
               <div className="mt-6 flex justify-end">
                 <button
                   onClick={() => setShowSettings(false)}
-                  className="px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700"
+                  className="px-4 py-2 bg-accent-primary text-white rounded-lg hover:bg-accent-primary-hover"
                 >
                   {t('common.save')}
                 </button>
