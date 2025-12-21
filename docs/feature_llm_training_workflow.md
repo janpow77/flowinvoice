@@ -1569,6 +1569,39 @@ Die Generator-GUI ermöglicht:
 3. Batch-Job starten/überwachen
 4. Ergebnisse analysieren
 
+### Dokumenttypen
+
+> **Wichtig**: Der Generator erzeugt ausschließlich **Rechnungen** (`invoice`).
+
+Im Projekt existieren verschiedene Dokumenttypen:
+
+| Slug | Name | Generator | Beschreibung |
+|------|------|-----------|--------------|
+| `invoice` | Rechnung | ✓ Unterstützt | Standard-Rechnungen und Belege |
+| `bank_statement` | Kontoauszug | ✗ | Bank- und Kontoauszüge |
+| `procurement` | Vergabeunterlagen | ✗ | Ausschreibungen und Vergabedokumente |
+| `other` | Sonstiges | ✗ | Andere Dokumenttypen |
+
+Der Batch-Job filtert automatisch auf den Dokumenttyp:
+
+```
+┌─────────────────────────────────────────────────────────────────────────────────────┐
+│  DOKUMENTTYP-FILTER                                                                 │
+├─────────────────────────────────────────────────────────────────────────────────────┤
+│                                                                                     │
+│  Generator erzeugt:      Rechnung (invoice)                                         │
+│                                                                                     │
+│  Batch-Job verarbeitet:                                                             │
+│  ● Nur Rechnungen (invoice)  ← Standard für Training                               │
+│  ○ Alle Dokumenttypen                                                               │
+│  ○ Auswahl: [ ] Rechnung [✓] Kontoauszug [ ] Vergabe [ ] Sonstige                  │
+│                                                                                     │
+│  💡 Das Regelwerk DE_USTG gilt nur für Rechnungen.                                  │
+│     Andere Dokumenttypen benötigen eigene Regelwerke.                               │
+│                                                                                     │
+└─────────────────────────────────────────────────────────────────────────────────────┘
+```
+
 ---
 
 ### PDF-Generierung
