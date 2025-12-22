@@ -2036,6 +2036,8 @@ async def _batch_generate_async(job_id: str) -> dict[str, Any]:
             # Optional: Dokumente hochladen
             uploaded_doc_ids: list[str] = []
             if upload_after_generate and job.project_id:
+                import hashlib
+
                 job.update_progress(
                     processed=count,
                     successful=successful,
@@ -2048,18 +2050,22 @@ async def _batch_generate_async(job_id: str) -> dict[str, Any]:
                     try:
                         filepath = Path(solution["filepath"])
                         if filepath.exists():
+                            # SHA256 berechnen
+                            sha256_hash = hashlib.sha256(filepath.read_bytes()).hexdigest()
+
                             # Dokument in DB erstellen
                             doc = Document(
                                 id=str(uuid4()),
                                 project_id=job.project_id,
+                                filename=solution["filename"],
                                 original_filename=solution["filename"],
-                                file_path=str(filepath),
-                                file_size=filepath.stat().st_size,
+                                sha256=sha256_hash,
+                                storage_path=str(filepath),
+                                file_size_bytes=filepath.stat().st_size,
                                 mime_type="application/pdf",
                                 status=DocumentStatus.UPLOADED,
                                 ruleset_id=ruleset_id,
-                                # Metadaten für spätere Auswertung
-                                metadata={
+                                extracted_data={
                                     "generated": True,
                                     "generator_job_id": job_id,
                                     "template": solution["template"],
