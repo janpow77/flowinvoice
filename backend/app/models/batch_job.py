@@ -21,6 +21,7 @@ class BatchJob(Base):
     Batch-Job für Massenverarbeitung von Dokumenten.
 
     Unterstützte Job-Typen:
+    - BATCH_GENERATE: Test-Dokumente generieren
     - BATCH_ANALYZE: Mehrere Dokumente analysieren
     - BATCH_VALIDATE: Mehrere Dokumente validieren
     - BATCH_EXPORT: Ergebnisse exportieren
@@ -111,6 +112,14 @@ class BatchJob(Base):
 
     # Priorität (höher = wichtiger)
     priority: Mapped[int] = mapped_column(Integer, default=0)
+
+    # Job-Verkettung (wartet auf anderen Job)
+    depends_on_job_id: Mapped[Optional[str]] = mapped_column(
+        UUID(as_uuid=False),
+        ForeignKey("batch_jobs.id", ondelete="SET NULL"),
+        nullable=True,
+        index=True,
+    )
 
     # Wiederholungseinstellungen
     max_retries: Mapped[int] = mapped_column(Integer, default=3)

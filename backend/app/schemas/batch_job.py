@@ -13,11 +13,12 @@ from app.models.enums import BatchJobStatus
 class BatchJobCreate(BaseModel):
     """Schema für das Erstellen eines Batch-Jobs."""
 
-    job_type: str = Field(..., description="Job-Typ (BATCH_ANALYZE, BATCH_VALIDATE, etc.)")
+    job_type: str = Field(..., description="Job-Typ (BATCH_GENERATE, BATCH_ANALYZE, BATCH_VALIDATE, etc.)")
     project_id: Optional[str] = Field(None, description="Projekt-ID")
     parameters: dict[str, Any] = Field(default_factory=dict, description="Job-Parameter")
     priority: int = Field(0, ge=-10, le=10, description="Priorität (-10 bis 10)")
     scheduled_at: Optional[datetime] = Field(None, description="Geplante Ausführungszeit")
+    depends_on_job_id: Optional[str] = Field(None, description="Wartet auf diesen Job")
 
 
 class BatchJobUpdate(BaseModel):
@@ -66,6 +67,7 @@ class BatchJobResponse(BaseModel):
     scheduled_at: Optional[datetime]
     is_scheduled: bool
     priority: int
+    depends_on_job_id: Optional[str] = None
 
     class Config:
         from_attributes = True
@@ -80,12 +82,16 @@ class BatchJobListItem(BaseModel):
     status: str
     total_items: int
     processed_items: int
+    successful_items: int
+    failed_items: int
     progress_percent: float
     created_at: datetime
     started_at: Optional[datetime]
     completed_at: Optional[datetime]
+    scheduled_at: Optional[datetime] = None
     is_scheduled: bool
     priority: int
+    depends_on_job_id: Optional[str] = None
 
     class Config:
         from_attributes = True
@@ -142,3 +148,19 @@ class RagRebuildParams(BaseModel):
     clear_existing: bool = Field(False, description="Bestehenden Index löschen")
     include_feedback: bool = True
     include_examples: bool = True
+
+
+class BatchGenerateParams(BaseModel):
+    """Parameter für Batch-Generierung von Test-Dokumenten."""
+
+    count: int = Field(20, ge=1, le=10000, description="Anzahl zu generierender Dokumente")
+    ruleset_id: str = Field("DE_USTG", description="Regelwerk")
+    templates_enabled: list[str] = Field(
+        default_factory=lambda: ["T1_HANDWERK", "T3_CORPORATE"],
+        description="Aktivierte Templates"
+    )
+    error_rate_total: float = Field(5.0, ge=0.0, le=100.0, description="Fehlerrate in Prozent")
+    severity: int = Field(2, ge=1, le=5, description="Schweregrad der Fehler")
+    alias_noise_probability: float = Field(10.0, ge=0.0, le=100.0, description="Alias-Rauschen")
+    upload_after_generate: bool = Field(True, description="Nach Generierung hochladen")
+    analyze_after_upload: bool = Field(False, description="Nach Upload analysieren")

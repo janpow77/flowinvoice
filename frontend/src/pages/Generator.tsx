@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import {
@@ -87,6 +87,7 @@ function JobStatusBadge({ status }: { status: string }) {
 // Job-Type Label
 function JobTypeLabel({ type }: { type: string }) {
   const labels: Record<string, string> = {
+    BATCH_GENERATE: 'Generierung',
     BATCH_ANALYZE: 'Analyse',
     BATCH_VALIDATE: 'Validierung',
     BATCH_EXPORT: 'Export',
@@ -125,13 +126,26 @@ export default function Generator() {
   })
 
   // New batch job form state
-  const [newJobType, setNewJobType] = useState<string>('BATCH_ANALYZE')
+  const [newJobType, setNewJobType] = useState<string>('BATCH_GENERATE')
   const [newJobProjectId, setNewJobProjectId] = useState<string>('')
   const [showNewJobForm, setShowNewJobForm] = useState(false)
   const [newJobPriority, setNewJobPriority] = useState<number>(0)
   const [newJobScheduledAt, setNewJobScheduledAt] = useState<string>('')
 
+  // Job chaining
+  const [dependsOnJobId, setDependsOnJobId] = useState<string>('')
+
   // Job-specific parameters
+  const [generateParams, setGenerateParams] = useState({
+    count: 100,
+    ruleset_id: 'DE_USTG',
+    templates_enabled: ['T1_HANDWERK', 'T3_CORPORATE'],
+    error_rate_total: 5.0,
+    severity: 2,
+    alias_noise_probability: 10.0,
+    upload_after_generate: true,
+    analyze_after_upload: false,
+  })
   const [analyzeParams, setAnalyzeParams] = useState({
     max_concurrent: 5,
     provider: '',
@@ -163,6 +177,19 @@ export default function Generator() {
     queryKey: ['projects'],
     queryFn: () => api.getProjects(),
   })
+
+  // Fetch settings for LLM provider pre-fill
+  const { data: settings } = useQuery({
+    queryKey: ['settings'],
+    queryFn: () => api.getSettings(),
+  })
+
+  // Pre-fill LLM provider from settings
+  useEffect(() => {
+    if (settings?.llm_provider && !analyzeParams.provider) {
+      setAnalyzeParams(prev => ({ ...prev, provider: settings.llm_provider }))
+    }
+  }, [settings])
 
   // Fetch job status
   const { data: jobStatus } = useQuery({
@@ -256,6 +283,7 @@ export default function Generator() {
       parameters?: Record<string, unknown>
       priority?: number
       scheduled_at?: string
+      depends_on_job_id?: string
     }) =>
       api.createBatchJob({
         job_type: data.job_type,
@@ -263,16 +291,28 @@ export default function Generator() {
         parameters: data.parameters || {},
         priority: data.priority || 0,
         scheduled_at: data.scheduled_at || undefined,
+        depends_on_job_id: data.depends_on_job_id || undefined,
       }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['batch-jobs'] })
       setShowNewJobForm(false)
-      setNewJobType('BATCH_ANALYZE')
+      setNewJobType('BATCH_GENERATE')
       setNewJobProjectId('')
       setNewJobPriority(0)
       setNewJobScheduledAt('')
+      setDependsOnJobId('')
       // Reset job-specific params
-      setAnalyzeParams({ max_concurrent: 5, provider: '', model: '', status_filter: [] })
+      setGenerateParams({
+        count: 100,
+        ruleset_id: 'DE_USTG',
+        templates_enabled: ['T1_HANDWERK', 'T3_CORPORATE'],
+        error_rate_total: 5.0,
+        severity: 2,
+        alias_noise_probability: 10.0,
+        upload_after_generate: true,
+        analyze_after_upload: false,
+      })
+      setAnalyzeParams({ max_concurrent: 5, provider: settings?.llm_provider || '', model: '', status_filter: [] })
       setValidateParams({ revalidate: false })
       setExportParams({ format: 'CSV', include_errors: true, include_analysis: true })
       setRagParams({ clear_existing: false, include_feedback: true, include_examples: true })
@@ -296,6 +336,18 @@ export default function Generator() {
     let parameters: Record<string, unknown> = {}
 
     switch (newJobType) {
+      case 'BATCH_GENERATE':
+        parameters = {
+          count: generateParams.count,
+          ruleset_id: generateParams.ruleset_id,
+          templates_enabled: generateParams.templates_enabled,
+          error_rate_total: generateParams.error_rate_total,
+          severity: generateParams.severity,
+          alias_noise_probability: generateParams.alias_noise_probability,
+          upload_after_generate: generateParams.upload_after_generate,
+          analyze_after_upload: generateParams.analyze_after_upload,
+        }
+        break
       case 'BATCH_ANALYZE':
         parameters = {
           max_concurrent: analyzeParams.max_concurrent,
@@ -331,6 +383,7 @@ export default function Generator() {
       parameters,
       priority: newJobPriority,
       scheduled_at: newJobScheduledAt || undefined,
+      depends_on_job_id: dependsOnJobId || undefined,
     })
   }
 
@@ -964,6 +1017,7 @@ export default function Generator() {
                     onChange={(e) => setNewJobType(e.target.value)}
                     className="w-full px-3 py-2 border border-theme-border-default rounded-lg bg-theme-input text-theme-text-primary"
                   >
+                    <option value="BATCH_GENERATE">{t('generator.jobTypeGenerate', 'Test-Dokumente generieren')}</option>
                     <option value="BATCH_ANALYZE">{t('generator.jobTypeAnalyze', 'Dokumente analysieren')}</option>
                     <option value="BATCH_VALIDATE">{t('generator.jobTypeValidate', 'Dokumente validieren')}</option>
                     <option value="BATCH_EXPORT">{t('generator.jobTypeExport', 'Ergebnisse exportieren')}</option>
@@ -1022,11 +1076,147 @@ export default function Generator() {
                 </div>
               </div>
 
+              {/* Job Chaining */}
+              <div className="mt-4">
+                <label className="block text-sm font-medium text-theme-text-secondary mb-1">
+                  {t('generator.dependsOn', 'Wartet auf Job (optional)')}
+                </label>
+                <select
+                  value={dependsOnJobId}
+                  onChange={(e) => setDependsOnJobId(e.target.value)}
+                  className="w-full px-3 py-2 border border-theme-border-default rounded-lg bg-theme-input text-theme-text-primary"
+                >
+                  <option value="">{t('generator.noDependency', 'Keine Abhängigkeit - sofort starten')}</option>
+                  {batchJobs
+                    .filter((job: BatchJob) => job.status !== 'CANCELLED' && job.status !== 'FAILED')
+                    .map((job: BatchJob) => {
+                      const jobTypeLabels: Record<string, string> = {
+                        BATCH_GENERATE: 'Generierung',
+                        BATCH_ANALYZE: 'Analyse',
+                        BATCH_VALIDATE: 'Validierung',
+                        BATCH_EXPORT: 'Export',
+                        RAG_REBUILD: 'RAG',
+                      }
+                      return (
+                        <option key={job.id} value={job.id}>
+                          {new Date(job.created_at).toLocaleDateString('de-DE')} - {jobTypeLabels[job.job_type] || job.job_type} ({job.status})
+                        </option>
+                      )
+                    })}
+                </select>
+                <p className="text-xs text-theme-text-muted mt-1">
+                  {t('generator.dependsOnHint', 'Dieser Job startet erst, wenn der ausgewählte Job abgeschlossen ist.')}
+                </p>
+              </div>
+
               {/* Job-specific parameters */}
               <div className="border-t border-theme-border-default pt-4 mt-4">
                 <h4 className="text-sm font-medium text-theme-text-secondary mb-3">
                   {t('generator.jobParameters', 'Job-Parameter')}
                 </h4>
+
+                {/* BATCH_GENERATE parameters */}
+                {newJobType === 'BATCH_GENERATE' && (
+                  <div className="space-y-4">
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                      <div>
+                        <label className="block text-xs font-medium text-theme-text-muted mb-1">
+                          {t('generator.docCount', 'Anzahl Dokumente')}
+                        </label>
+                        <input
+                          type="number"
+                          min={1}
+                          max={10000}
+                          value={generateParams.count}
+                          onChange={(e) => setGenerateParams({ ...generateParams, count: parseInt(e.target.value) || 100 })}
+                          className="w-full px-3 py-2 border border-theme-border-default rounded-lg bg-theme-input text-theme-text-primary"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-xs font-medium text-theme-text-muted mb-1">
+                          {t('generator.ruleset', 'Regelwerk')}
+                        </label>
+                        <select
+                          value={generateParams.ruleset_id}
+                          onChange={(e) => setGenerateParams({ ...generateParams, ruleset_id: e.target.value })}
+                          className="w-full px-3 py-2 border border-theme-border-default rounded-lg bg-theme-input text-theme-text-primary"
+                        >
+                          <option value="DE_USTG">DE_USTG (Deutsches UStG)</option>
+                          <option value="EU_VAT">EU_VAT (EU-Mehrwertsteuer)</option>
+                          <option value="CH_MWSTG">CH_MWSTG (Schweizer MwSt)</option>
+                        </select>
+                      </div>
+                      <div>
+                        <label className="block text-xs font-medium text-theme-text-muted mb-1">
+                          {t('generator.errorRate', 'Fehlerrate')} ({generateParams.error_rate_total}%)
+                        </label>
+                        <input
+                          type="range"
+                          min={0}
+                          max={50}
+                          step={1}
+                          value={generateParams.error_rate_total}
+                          onChange={(e) => setGenerateParams({ ...generateParams, error_rate_total: parseFloat(e.target.value) })}
+                          className="w-full"
+                        />
+                      </div>
+                    </div>
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                      <div>
+                        <label className="block text-xs font-medium text-theme-text-muted mb-1">
+                          {t('generator.severity', 'Schweregrad')} ({generateParams.severity}/5)
+                        </label>
+                        <input
+                          type="range"
+                          min={1}
+                          max={5}
+                          step={1}
+                          value={generateParams.severity}
+                          onChange={(e) => setGenerateParams({ ...generateParams, severity: parseInt(e.target.value) })}
+                          className="w-full"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-xs font-medium text-theme-text-muted mb-1">
+                          {t('generator.aliasNoise', 'Alias-Rauschen')} ({generateParams.alias_noise_probability}%)
+                        </label>
+                        <input
+                          type="range"
+                          min={0}
+                          max={50}
+                          step={1}
+                          value={generateParams.alias_noise_probability}
+                          onChange={(e) => setGenerateParams({ ...generateParams, alias_noise_probability: parseFloat(e.target.value) })}
+                          className="w-full"
+                        />
+                      </div>
+                      <div className="flex flex-col justify-end gap-2">
+                        <label className="flex items-center gap-2 cursor-pointer">
+                          <input
+                            type="checkbox"
+                            checked={generateParams.upload_after_generate}
+                            onChange={(e) => setGenerateParams({ ...generateParams, upload_after_generate: e.target.checked })}
+                            className="rounded border-theme-border-default text-accent-primary focus:ring-accent-primary"
+                          />
+                          <span className="text-xs text-theme-text-secondary">
+                            {t('generator.uploadAfterGenerate', 'Nach Generierung hochladen')}
+                          </span>
+                        </label>
+                        <label className="flex items-center gap-2 cursor-pointer">
+                          <input
+                            type="checkbox"
+                            checked={generateParams.analyze_after_upload}
+                            onChange={(e) => setGenerateParams({ ...generateParams, analyze_after_upload: e.target.checked })}
+                            className="rounded border-theme-border-default text-accent-primary focus:ring-accent-primary"
+                          />
+                          <span className="text-xs text-theme-text-secondary">
+                            {t('generator.analyzeAfterUpload', 'Nach Upload analysieren')}
+                          </span>
+                        </label>
+                      </div>
+                    </div>
+                  </div>
+                )}
 
                 {/* BATCH_ANALYZE parameters */}
                 {newJobType === 'BATCH_ANALYZE' && (
@@ -1187,6 +1377,7 @@ export default function Generator() {
               {/* Job Type Description */}
               <div className="mt-4 p-3 bg-theme-hover rounded-lg">
                 <p className="text-sm text-theme-text-muted">
+                  {newJobType === 'BATCH_GENERATE' && t('generator.jobDescGenerate', 'Generiert Test-Rechnungen mit konfigurierbaren Fehlern und lädt sie optional ins Projekt hoch.')}
                   {newJobType === 'BATCH_ANALYZE' && t('generator.jobDescAnalyze', 'Analysiert alle validierten Dokumente des Projekts mit dem LLM.')}
                   {newJobType === 'BATCH_VALIDATE' && t('generator.jobDescValidate', 'Validiert alle Dokumente gegen das konfigurierte Regelwerk.')}
                   {newJobType === 'BATCH_EXPORT' && t('generator.jobDescExport', 'Exportiert alle Prüfergebnisse als CSV/Excel.')}

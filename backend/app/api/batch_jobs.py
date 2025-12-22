@@ -77,14 +77,19 @@ async def create_batch_job(
     Erstellt einen neuen Batch-Job.
 
     Job-Typen:
+    - BATCH_GENERATE: Test-Dokumente generieren
     - BATCH_ANALYZE: Mehrere Dokumente analysieren
     - BATCH_VALIDATE: Mehrere Dokumente validieren
     - BATCH_EXPORT: Ergebnisse exportieren
     - SOLUTION_APPLY: Lösungsdatei anwenden
     - RAG_REBUILD: RAG-Index neu aufbauen
+
+    Job-Verkettung:
+    - depends_on_job_id: Job wartet bis der angegebene Job abgeschlossen ist
     """
     # Validiere Job-Typ
     valid_types = [
+        "BATCH_GENERATE",
         "BATCH_ANALYZE",
         "BATCH_VALIDATE",
         "BATCH_EXPORT",
@@ -97,6 +102,25 @@ async def create_batch_job(
             detail=f"Ungültiger Job-Typ. Erlaubt: {', '.join(valid_types)}",
         )
 
+    # Prüfe ob depends_on_job existiert und gültig ist
+    depends_on_completed = True
+    if data.depends_on_job_id:
+        result = await db.execute(
+            select(BatchJob).where(BatchJob.id == data.depends_on_job_id)
+        )
+        depends_on_job = result.scalar_one_or_none()
+        if not depends_on_job:
+            raise HTTPException(
+                status_code=400,
+                detail=f"Abhängiger Job {data.depends_on_job_id} nicht gefunden",
+            )
+        # Prüfe ob der abhängige Job bereits abgeschlossen ist
+        depends_on_completed = depends_on_job.status in [
+            BatchJobStatus.COMPLETED.value,
+            BatchJobStatus.FAILED.value,
+            BatchJobStatus.CANCELLED.value,
+        ]
+
     # Erstelle Job
     job = BatchJob(
         job_type=data.job_type,
@@ -106,14 +130,16 @@ async def create_batch_job(
         priority=data.priority,
         scheduled_at=data.scheduled_at,
         is_scheduled=data.scheduled_at is not None,
+        depends_on_job_id=data.depends_on_job_id,
     )
 
     db.add(job)
     await db.commit()
     await db.refresh(job)
 
-    # Starte Job sofort, wenn nicht geplant
-    if not job.is_scheduled:
+    # Starte Job sofort, wenn nicht geplant und keine Abhängigkeit wartet
+    should_start = not job.is_scheduled and depends_on_completed and not data.depends_on_job_id
+    if should_start:
         task = celery_app.send_task(
             f"app.worker.tasks.{_get_task_name(job.job_type)}",
             args=[job.id],
@@ -121,6 +147,10 @@ async def create_batch_job(
         )
         job.celery_task_id = task.id
         job.status = BatchJobStatus.QUEUED.value
+        await db.commit()
+        await db.refresh(job)
+    elif data.depends_on_job_id and not depends_on_completed:
+        job.status_message = f"Wartet auf Job {data.depends_on_job_id}"
         await db.commit()
         await db.refresh(job)
 
@@ -278,6 +308,7 @@ async def create_batch_analyze_job(
 def _get_task_name(job_type: str) -> str:
     """Gibt den Celery-Task-Namen für einen Job-Typ zurück."""
     task_map = {
+        "BATCH_GENERATE": "batch_generate_task",
         "BATCH_ANALYZE": "batch_analyze_task",
         "BATCH_VALIDATE": "batch_validate_task",
         "BATCH_EXPORT": "batch_export_task",
@@ -290,6 +321,7 @@ def _get_task_name(job_type: str) -> str:
 def _get_queue_name(job_type: str) -> str:
     """Gibt die Celery-Queue für einen Job-Typ zurück."""
     queue_map = {
+        "BATCH_GENERATE": "documents",
         "BATCH_ANALYZE": "llm",
         "BATCH_VALIDATE": "documents",
         "BATCH_EXPORT": "export",

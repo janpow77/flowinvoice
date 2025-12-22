@@ -809,6 +809,7 @@ export const api = {
     parameters?: Record<string, unknown>
     priority?: number
     scheduled_at?: string
+    depends_on_job_id?: string
   }) => {
     const response = await apiClient.post('/batch-jobs', data)
     return response.data
