@@ -183,6 +183,16 @@ export const de = {
     allTime: 'Gesamter Zeitraum',
   },
 
+  // Settings Tabs
+  settingsTabs: {
+    general: 'Allgemein',
+    aiAnalysis: 'KI-Analyse',
+    documentTypes: 'Dokumenttypen',
+    checkers: 'Prüfmodule',
+    profiles: 'Profile',
+    system: 'System',
+  },
+
   // Settings
   settings: {
     title: 'Einstellungen',

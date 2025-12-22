@@ -17,10 +17,15 @@ import {
   FileText,
   ChevronDown,
   ChevronUp,
+  Shield,
+  Brain,
+  TrendingUp,
+  UserCheck,
+  Info,
 } from 'lucide-react'
 import clsx from 'clsx'
 import { api } from '@/lib/api'
-import type { PrecheckError, FeatureStatus } from '@/lib/types'
+import type { PrecheckError, FeatureStatus, RiskFinding } from '@/lib/types'
 import { PDFViewer, DocumentSplitView, FeatureStatusBadge } from '@/components/documents'
 
 interface FieldCorrection {
@@ -373,6 +378,241 @@ export default function DocumentDetail() {
                 </div>
               </div>
             ))}
+          </div>
+        </div>
+      )}
+
+      {/* Check Results Section (Risk, Semantic, Economic) */}
+      {document.analysis_result && (
+        <div className="bg-theme-card rounded-lg border border-theme-border">
+          <div className="px-4 py-3 border-b border-theme-border flex items-center justify-between">
+            <h3 className="font-semibold text-theme-text-primary">Prüfergebnisse</h3>
+            <div className="flex items-center gap-1">
+              <Info className="h-4 w-4 text-theme-text-muted" />
+              <span className="text-xs text-theme-text-muted">Schulungsansicht</span>
+            </div>
+          </div>
+          <div className="p-4 space-y-4">
+            {/* Risk Assessment */}
+            {document.analysis_result.risk_assessment && (
+              <div className="border border-theme-border rounded-lg overflow-hidden">
+                <div className={clsx(
+                  'px-4 py-2 flex items-center gap-3',
+                  document.analysis_result.risk_assessment.highest_severity === 'HIGH' ||
+                  document.analysis_result.risk_assessment.highest_severity === 'CRITICAL'
+                    ? 'bg-status-danger-bg'
+                    : document.analysis_result.risk_assessment.highest_severity === 'MEDIUM'
+                    ? 'bg-status-warning-bg'
+                    : 'bg-status-success-bg'
+                )}>
+                  <Shield className="h-5 w-5" />
+                  <span className="font-medium">Risikoprüfung</span>
+                  <span className="text-sm ml-auto">
+                    Score: {document.analysis_result.risk_assessment.risk_score}/100
+                  </span>
+                </div>
+                {document.analysis_result.risk_assessment.findings?.length > 0 ? (
+                  <div className="p-3 space-y-2">
+                    {document.analysis_result.risk_assessment.findings.map((finding: RiskFinding, i: number) => (
+                      <div key={i} className={clsx(
+                        'p-2 rounded text-sm flex items-start gap-2',
+                        finding.severity === 'HIGH' || finding.severity === 'CRITICAL'
+                          ? 'bg-status-danger-bg'
+                          : finding.severity === 'MEDIUM'
+                          ? 'bg-status-warning-bg'
+                          : 'bg-theme-hover'
+                      )}>
+                        <span className="font-mono text-xs px-1 py-0.5 rounded bg-theme-surface">
+                          {finding.severity}
+                        </span>
+                        <span>{finding.message}</span>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="p-3 text-sm text-status-success flex items-center gap-2">
+                    <CheckCircle className="h-4 w-4" />
+                    Keine Risikoindikatoren gefunden
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* Semantic Check */}
+            {document.analysis_result.semantic_check && (
+              <div className="border border-theme-border rounded-lg overflow-hidden">
+                <div className={clsx(
+                  'px-4 py-2 flex items-center gap-3',
+                  document.analysis_result.semantic_check.passed
+                    ? 'bg-status-success-bg'
+                    : 'bg-status-warning-bg'
+                )}>
+                  <Brain className="h-5 w-5" />
+                  <span className="font-medium">Semantische Prüfung</span>
+                  {document.analysis_result.semantic_check.project_relevance_score !== undefined && (
+                    <span className="text-sm ml-auto">
+                      Projektrelevanz: {Math.round(document.analysis_result.semantic_check.project_relevance_score * 100)}%
+                    </span>
+                  )}
+                </div>
+                <div className="p-3 space-y-2">
+                  {document.analysis_result.semantic_check.message && (
+                    <p className="text-sm text-theme-text-muted">
+                      {document.analysis_result.semantic_check.message}
+                    </p>
+                  )}
+                  {document.analysis_result.semantic_check.red_flags &&
+                   document.analysis_result.semantic_check.red_flags.length > 0 && (
+                    <div className="flex flex-wrap gap-1">
+                      {document.analysis_result.semantic_check.red_flags.map((flag: string, i: number) => (
+                        <span key={i} className="px-2 py-0.5 text-xs bg-status-danger-bg text-status-danger rounded-full">
+                          {flag}
+                        </span>
+                      ))}
+                    </div>
+                  )}
+                  {document.analysis_result.semantic_check.passed && (
+                    <div className="text-sm text-status-success flex items-center gap-2">
+                      <CheckCircle className="h-4 w-4" />
+                      Semantische Prüfung bestanden
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
+
+            {/* Economic Check */}
+            {document.analysis_result.economic_check && (
+              <div className="border border-theme-border rounded-lg overflow-hidden">
+                <div className={clsx(
+                  'px-4 py-2 flex items-center gap-3',
+                  document.analysis_result.economic_check.passed
+                    ? 'bg-status-success-bg'
+                    : 'bg-status-warning-bg'
+                )}>
+                  <TrendingUp className="h-5 w-5" />
+                  <span className="font-medium">Wirtschaftlichkeitsprüfung</span>
+                </div>
+                <div className="p-3 space-y-2">
+                  {document.analysis_result.economic_check.message && (
+                    <p className="text-sm text-theme-text-muted">
+                      {document.analysis_result.economic_check.message}
+                    </p>
+                  )}
+                  {document.analysis_result.economic_check.budget_check && (
+                    <div className={clsx(
+                      'p-2 rounded text-sm flex items-center gap-2',
+                      document.analysis_result.economic_check.budget_check.passed
+                        ? 'bg-status-success-bg text-status-success'
+                        : 'bg-status-danger-bg text-status-danger'
+                    )}>
+                      {document.analysis_result.economic_check.budget_check.passed ? (
+                        <CheckCircle className="h-4 w-4" />
+                      ) : (
+                        <XCircle className="h-4 w-4" />
+                      )}
+                      Budgetprüfung: {document.analysis_result.economic_check.budget_check.message || (
+                        document.analysis_result.economic_check.budget_check.passed ? 'OK' : 'Nicht bestanden'
+                      )}
+                    </div>
+                  )}
+                  {document.analysis_result.economic_check.price_check && (
+                    <div className={clsx(
+                      'p-2 rounded text-sm flex items-center gap-2',
+                      document.analysis_result.economic_check.price_check.passed
+                        ? 'bg-status-success-bg text-status-success'
+                        : 'bg-status-warning-bg text-status-warning'
+                    )}>
+                      {document.analysis_result.economic_check.price_check.passed ? (
+                        <CheckCircle className="h-4 w-4" />
+                      ) : (
+                        <AlertTriangle className="h-4 w-4" />
+                      )}
+                      Preisprüfung: {document.analysis_result.economic_check.price_check.message || (
+                        document.analysis_result.economic_check.price_check.passed ? 'OK' : 'Abweichung erkannt'
+                      )}
+                      {document.analysis_result.economic_check.price_check.deviation_percent !== undefined && (
+                        <span className="ml-auto font-mono text-xs">
+                          {document.analysis_result.economic_check.price_check.deviation_percent > 0 ? '+' : ''}
+                          {document.analysis_result.economic_check.price_check.deviation_percent.toFixed(1)}%
+                        </span>
+                      )}
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
+
+            {/* Beneficiary Match */}
+            {document.analysis_result.beneficiary_match && (
+              <div className="border border-theme-border rounded-lg overflow-hidden">
+                <div className={clsx(
+                  'px-4 py-2 flex items-center gap-3',
+                  document.analysis_result.beneficiary_match.matched
+                    ? 'bg-status-success-bg'
+                    : 'bg-status-warning-bg'
+                )}>
+                  <UserCheck className="h-5 w-5" />
+                  <span className="font-medium">Empfängerprüfung</span>
+                  {document.analysis_result.beneficiary_match.confidence !== undefined && (
+                    <span className="text-sm ml-auto">
+                      Konfidenz: {Math.round(document.analysis_result.beneficiary_match.confidence * 100)}%
+                    </span>
+                  )}
+                </div>
+                <div className="p-3">
+                  {document.analysis_result.beneficiary_match.message ? (
+                    <p className="text-sm text-theme-text-muted">
+                      {document.analysis_result.beneficiary_match.message}
+                    </p>
+                  ) : document.analysis_result.beneficiary_match.matched ? (
+                    <div className="text-sm text-status-success flex items-center gap-2">
+                      <CheckCircle className="h-4 w-4" />
+                      Empfänger stimmt überein
+                    </div>
+                  ) : (
+                    <div className="text-sm space-y-1">
+                      {document.analysis_result.beneficiary_match.expected_name && (
+                        <p>Erwartet: <span className="font-medium">{document.analysis_result.beneficiary_match.expected_name}</span></p>
+                      )}
+                      {document.analysis_result.beneficiary_match.found_name && (
+                        <p>Gefunden: <span className="font-medium">{document.analysis_result.beneficiary_match.found_name}</span></p>
+                      )}
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
+
+            {/* Warnings */}
+            {document.analysis_result.warnings && document.analysis_result.warnings.length > 0 && (
+              <div className="border border-status-warning-border rounded-lg overflow-hidden">
+                <div className="px-4 py-2 bg-status-warning-bg flex items-center gap-3">
+                  <AlertTriangle className="h-5 w-5 text-status-warning" />
+                  <span className="font-medium">Warnungen ({document.analysis_result.warnings.length})</span>
+                </div>
+                <div className="p-3 space-y-1">
+                  {document.analysis_result.warnings.map((warning: string, i: number) => (
+                    <p key={i} className="text-sm text-theme-text-muted flex items-start gap-2">
+                      <span className="text-status-warning">•</span>
+                      {warning}
+                    </p>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* No checks available */}
+            {!document.analysis_result.risk_assessment &&
+             !document.analysis_result.semantic_check &&
+             !document.analysis_result.economic_check &&
+             !document.analysis_result.beneficiary_match &&
+             (!document.analysis_result.warnings || document.analysis_result.warnings.length === 0) && (
+              <div className="text-center py-4 text-theme-text-muted">
+                <Info className="h-8 w-8 mx-auto mb-2 opacity-50" />
+                <p>Keine erweiterten Prüfergebnisse verfügbar</p>
+              </div>
+            )}
           </div>
         </div>
       )}

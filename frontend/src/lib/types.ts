@@ -94,12 +94,62 @@ export interface PrecheckError {
   details?: string
 }
 
+export interface SemanticCheck {
+  passed: boolean
+  project_relevance_score?: number
+  description_quality_score?: number
+  red_flags?: string[]
+  findings?: string[]
+  message?: string
+}
+
+export interface EconomicCheck {
+  passed: boolean
+  budget_check?: { passed: boolean; message?: string }
+  price_check?: { passed: boolean; deviation_percent?: number; message?: string }
+  findings?: string[]
+  message?: string
+}
+
+export interface BeneficiaryMatch {
+  matched: boolean
+  confidence?: number
+  expected_name?: string
+  found_name?: string
+  message?: string
+}
+
+export interface RiskFinding {
+  indicator: string
+  severity: 'INFO' | 'LOW' | 'MEDIUM' | 'HIGH' | 'CRITICAL'
+  message: string
+  details?: string
+  threshold?: number
+  actual_value?: number
+}
+
+export interface RiskAssessment {
+  findings: RiskFinding[]
+  risk_score: number
+  highest_severity: string
+  summary: string
+}
+
 export interface AnalysisResult {
   id: string
   overall_assessment: 'ok' | 'review_needed' | 'rejected'
   confidence: number
   provider: string
+  model?: string
   findings?: string[]
+  semantic_check?: SemanticCheck
+  economic_check?: EconomicCheck
+  beneficiary_match?: BeneficiaryMatch
+  risk_assessment?: RiskAssessment
+  warnings?: string[]
+  input_tokens?: number
+  output_tokens?: number
+  latency_ms?: number
   created_at: string
 }
 

@@ -183,6 +183,16 @@ export const en = {
     allTime: 'All Time',
   },
 
+  // Settings Tabs
+  settingsTabs: {
+    general: 'General',
+    aiAnalysis: 'AI Analysis',
+    documentTypes: 'Document Types',
+    checkers: 'Checkers',
+    profiles: 'Profiles',
+    system: 'System',
+  },
+
   // Settings
   settings: {
     title: 'Settings',
