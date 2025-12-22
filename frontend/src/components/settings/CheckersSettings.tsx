@@ -70,7 +70,11 @@ const defaultSettings: CheckersSettingsState = {
   },
 }
 
-export default function CheckersSettings() {
+interface CheckersSettingsProps {
+  rulesetId?: string
+}
+
+export default function CheckersSettings({ rulesetId }: CheckersSettingsProps) {
   const queryClient = useQueryClient()
   const [expandedSections, setExpandedSections] = useState<Record<string, boolean>>({
     risk: true,
@@ -80,11 +84,16 @@ export default function CheckersSettings() {
   const [settings, setSettings] = useState<CheckersSettingsState>(defaultSettings)
   const [hasChanges, setHasChanges] = useState(false)
 
+  // Query key includes rulesetId for per-ruleset settings
+  const queryKey = rulesetId ? ['checkerSettings', rulesetId] : ['checkerSettings']
+
   // Load settings from backend
   const { isLoading } = useQuery({
-    queryKey: ['checkerSettings'],
+    queryKey,
     queryFn: async () => {
       try {
+        // TODO: When backend supports per-ruleset checkers, use rulesetId
+        // For now, load global settings
         const response = await api.getSettings()
         if (response?.checkers) {
           setSettings(prev => ({
@@ -102,10 +111,11 @@ export default function CheckersSettings() {
   // Save settings mutation
   const saveMutation = useMutation({
     mutationFn: async (newSettings: CheckersSettingsState) => {
+      // TODO: When backend supports per-ruleset checkers, include rulesetId
       return api.updateSettings({ checkers: newSettings })
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['checkerSettings'] })
+      queryClient.invalidateQueries({ queryKey })
       setHasChanges(false)
     },
   })

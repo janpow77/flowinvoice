@@ -23,9 +23,13 @@ import {
   XCircle,
   Clock,
   RefreshCw,
+  Shield,
 } from 'lucide-react'
 import clsx from 'clsx'
 import { api } from '@/lib/api'
+import CheckersSettings from '@/components/settings/CheckersSettings'
+
+type DetailTab = 'overview' | 'checkers'
 
 // Alle unterstützten Dokumenttypen
 const DOCUMENT_TYPES = [
@@ -143,6 +147,7 @@ export default function Rulesets() {
   const [editForm, setEditForm] = useState<Partial<Ruleset>>({})
   const [showLlmSchema, setShowLlmSchema] = useState(false)
   const [copiedField, setCopiedField] = useState<string | null>(null)
+  const [detailTab, setDetailTab] = useState<DetailTab>('overview')
 
   // Sample management state
   const [showSamples, setShowSamples] = useState(false)
@@ -580,9 +585,48 @@ export default function Rulesets() {
           </div>
         </div>
 
-        {/* Legal References */}
-        <div className="bg-theme-card rounded-lg border border-theme-border-default p-6">
-          <h3 className="text-lg font-semibold text-theme-text-primary mb-4">{t('rulesets.legalReferences')}</h3>
+        {/* Tab Navigation */}
+        <div className="border-b border-theme-border-default">
+          <nav className="-mb-px flex space-x-4" aria-label="Tabs">
+            <button
+              onClick={() => setDetailTab('overview')}
+              className={clsx(
+                'group inline-flex items-center gap-2 py-3 px-1 border-b-2 font-medium text-sm whitespace-nowrap transition-colors',
+                detailTab === 'overview'
+                  ? 'border-accent-primary text-accent-primary'
+                  : 'border-transparent text-theme-text-muted hover:text-theme-text-primary hover:border-theme-border-strong'
+              )}
+            >
+              <Book className={clsx(
+                'h-4 w-4',
+                detailTab === 'overview' ? 'text-accent-primary' : 'text-theme-text-muted group-hover:text-theme-text-secondary'
+              )} />
+              {t('rulesets.tabOverview', 'Übersicht')}
+            </button>
+            <button
+              onClick={() => setDetailTab('checkers')}
+              className={clsx(
+                'group inline-flex items-center gap-2 py-3 px-1 border-b-2 font-medium text-sm whitespace-nowrap transition-colors',
+                detailTab === 'checkers'
+                  ? 'border-accent-primary text-accent-primary'
+                  : 'border-transparent text-theme-text-muted hover:text-theme-text-primary hover:border-theme-border-strong'
+              )}
+            >
+              <Shield className={clsx(
+                'h-4 w-4',
+                detailTab === 'checkers' ? 'text-accent-primary' : 'text-theme-text-muted group-hover:text-theme-text-secondary'
+              )} />
+              {t('rulesets.tabCheckers', 'Prüfmodule')}
+            </button>
+          </nav>
+        </div>
+
+        {/* Tab Content */}
+        {detailTab === 'overview' && (
+          <>
+            {/* Legal References */}
+            <div className="bg-theme-card rounded-lg border border-theme-border-default p-6">
+              <h3 className="text-lg font-semibold text-theme-text-primary mb-4">{t('rulesets.legalReferences')}</h3>
           <div className="space-y-2">
             {ruleset.legal_references?.map((ref: LegalReference, idx: number) => (
               <div key={idx} className="flex items-start gap-2 text-sm">
@@ -675,6 +719,20 @@ export default function Rulesets() {
             ))}
           </div>
         </div>
+          </>
+        )}
+
+        {/* Checkers Tab */}
+        {detailTab === 'checkers' && (
+          <div className="bg-theme-card rounded-lg border border-theme-border-default p-6">
+            <div className="mb-4 p-4 bg-status-info-bg border border-status-info-border rounded-lg">
+              <p className="text-sm text-status-info">
+                {t('rulesets.checkersInfo', 'Diese Prüfmodule werden für das Regelwerk "' + (lang === 'de' ? ruleset.title_de : ruleset.title_en) + '" angewendet. Änderungen wirken sich nur auf neue Analysen aus.')}
+              </p>
+            </div>
+            <CheckersSettings rulesetId={ruleset.ruleset_id} />
+          </div>
+        )}
 
         {/* LLM Schema Modal */}
         {showLlmSchema && (

@@ -8,7 +8,6 @@ import {
   Layers,
   Server,
   Shield,
-  ShieldCheck,
   Info,
 } from 'lucide-react'
 
@@ -18,9 +17,8 @@ import { SettingsAIAnalysis } from '@/components/settings/SettingsAIAnalysis'
 import { SettingsDocumentTypes } from '@/components/settings/SettingsDocumentTypes'
 import { SettingsProfiles } from '@/components/settings/SettingsProfiles'
 import { SettingsSystem } from '@/components/settings/SettingsSystem'
-import CheckersSettings from '@/components/settings/CheckersSettings'
 
-type SettingsTab = 'general' | 'ai-analysis' | 'document-types' | 'checkers' | 'profiles' | 'system'
+type SettingsTab = 'general' | 'ai-analysis' | 'document-types' | 'profiles' | 'system'
 
 interface TabConfig {
   id: SettingsTab
@@ -49,13 +47,6 @@ const TABS: TabConfig[] = [
     icon: FileText,
     adminOnly: true,
     description: 'Dokumenttypen und Chunking-Defaults',
-  },
-  {
-    id: 'checkers',
-    labelKey: 'settingsTabs.checkers',
-    icon: ShieldCheck,
-    adminOnly: true,
-    description: 'Risikoprüfung, Semantik und Wirtschaftlichkeit',
   },
   {
     id: 'profiles',
@@ -89,8 +80,6 @@ export default function Settings() {
         return <SettingsAIAnalysis isAdmin={isAdmin} />
       case 'document-types':
         return <SettingsDocumentTypes isAdmin={isAdmin} />
-      case 'checkers':
-        return <CheckersSettings />
       case 'profiles':
         return <SettingsProfiles isAdmin={isAdmin} />
       case 'system':
