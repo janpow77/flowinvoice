@@ -1702,12 +1702,18 @@ async def _batch_analyze_async(job_id: str) -> dict[str, Any]:
             job.errors = errors
             await session.commit()
 
+            # Abhängige Jobs starten
+            started_dependent_jobs = await _trigger_dependent_jobs(job_id)
+            if started_dependent_jobs:
+                logger.info(f"Started {len(started_dependent_jobs)} dependent jobs after batch_analyze")
+
             return {
                 "status": "success",
                 "job_id": job_id,
                 "total": len(documents),
                 "successful": successful,
                 "failed": failed,
+                "started_dependent_jobs": started_dependent_jobs,
             }
 
         except Exception as e:
@@ -1807,12 +1813,18 @@ async def _batch_validate_async(job_id: str) -> dict[str, Any]:
             })
             await session.commit()
 
+            # Abhängige Jobs starten
+            started_dependent_jobs = await _trigger_dependent_jobs(job_id)
+            if started_dependent_jobs:
+                logger.info(f"Started {len(started_dependent_jobs)} dependent jobs after batch_validate")
+
             return {
                 "status": "success",
                 "job_id": job_id,
                 "total": len(documents),
                 "successful": successful,
                 "failed": failed,
+                "started_dependent_jobs": started_dependent_jobs,
             }
 
         except Exception as e:
@@ -1869,6 +1881,259 @@ def batch_export_task(self, job_id: str) -> dict[str, Any]:
     return {"status": "not_implemented", "job_id": job_id}
 
 
+@celery_app.task(bind=True, max_retries=2)
+def batch_generate_task(self, job_id: str) -> dict[str, Any]:
+    """
+    Batch-Generierung von Test-Dokumenten.
+
+    Generiert Test-Rechnungen mit konfigurierbaren Fehlern und lädt sie
+    optional ins Projekt hoch.
+
+    Args:
+        job_id: BatchJob-ID
+
+    Returns:
+        Dict mit Generierungsergebnis
+    """
+    logger.info(f"Starting batch generate job: {job_id}")
+
+    try:
+        result = run_async(_batch_generate_async(job_id))
+        return result
+
+    except Exception as e:
+        logger.exception(f"Batch generate error for job {job_id}: {e}")
+        run_async(_mark_job_failed(job_id, str(e)))
+        self.retry(exc=e, countdown=120)
+
+
+async def _batch_generate_async(job_id: str) -> dict[str, Any]:
+    """
+    Asynchrone Batch-Generierung von Test-Dokumenten.
+    """
+    from app.models.batch_job import BatchJob
+    from uuid import uuid4
+
+    session_maker = get_celery_session_maker()
+
+    async with session_maker() as session:
+        # Job laden
+        result = await session.execute(
+            select(BatchJob).where(BatchJob.id == job_id)
+        )
+        job = result.scalar_one_or_none()
+
+        if not job:
+            return {"status": "error", "message": "Job nicht gefunden"}
+
+        # Job starten
+        job.mark_started()
+        await session.commit()
+
+        try:
+            # Parameter extrahieren
+            params = job.parameters or {}
+            count = params.get("count", 100)
+            ruleset_id = params.get("ruleset_id", "DE_USTG")
+            templates_enabled = params.get("templates_enabled", ["T1_HANDWERK", "T3_CORPORATE"])
+            error_rate_total = params.get("error_rate_total", 5.0)
+            severity = params.get("severity", 2)
+            alias_noise_probability = params.get("alias_noise_probability", 10.0)
+            upload_after_generate = params.get("upload_after_generate", True)
+            analyze_after_upload = params.get("analyze_after_upload", False)
+
+            # Zusätzliche Parameter (optional)
+            beneficiary_data = params.get("beneficiary_data")
+            project_context = params.get("project_context")
+            date_format_profiles = params.get("date_format_profiles", ["DD.MM.YYYY"])
+            per_feature_error_rates = params.get("per_feature_error_rates", {})
+
+            job.total_items = count
+            await session.commit()
+
+            # Ausgabeverzeichnis erstellen
+            output_dir = Path(f"/data/generated/{job_id}")
+            output_dir.mkdir(parents=True, exist_ok=True)
+
+            generated_files: list[str] = []
+            solutions: list[dict[str, Any]] = []
+            successful = 0
+            failed = 0
+            errors_list: list[dict[str, Any]] = []
+
+            # Dokumente generieren
+            for i in range(count):
+                try:
+                    template = random.choice(templates_enabled)
+                    has_error = random.random() * 100 < error_rate_total
+
+                    # Generiere Rechnungsdaten
+                    invoice_data = _generate_invoice_data(
+                        template=template,
+                        index=i + 1,
+                        has_error=has_error,
+                        severity=severity,
+                        ruleset_id=ruleset_id,
+                        beneficiary_data=beneficiary_data,
+                        project_context=project_context,
+                        date_format_profiles=date_format_profiles,
+                        per_feature_error_rates=per_feature_error_rates,
+                        alias_noise_probability=alias_noise_probability,
+                    )
+
+                    # Zufälliger Dateiname
+                    filename = _generate_random_filename(invoice_data, i + 1)
+                    filepath = output_dir / filename
+
+                    # PDF erstellen
+                    _format_invoice_pdf(invoice_data, filepath)
+
+                    generated_files.append(str(filepath))
+                    successful += 1
+
+                    # Lösung speichern
+                    solutions.append({
+                        "filename": filename,
+                        "filepath": str(filepath),
+                        "template": template,
+                        "has_error": has_error,
+                        "errors": invoice_data.get("injected_errors", []),
+                        "correct_values": invoice_data.get("correct_values", {}),
+                        "beneficiary_used": invoice_data.get("beneficiary_used", False),
+                        "project_id": invoice_data.get("project_id"),
+                    })
+
+                except Exception as e:
+                    failed += 1
+                    errors_list.append({
+                        "index": i + 1,
+                        "error": str(e),
+                        "timestamp": datetime.utcnow().isoformat(),
+                    })
+                    logger.warning(f"Error generating invoice {i + 1}: {e}")
+
+                # Fortschritt aktualisieren
+                job.update_progress(
+                    processed=i + 1,
+                    successful=successful,
+                    failed=failed,
+                    message=f"Generiere Dokument {i + 1}/{count}...",
+                )
+                await session.commit()
+
+            # Lösungsdatei schreiben
+            solutions_file = output_dir / "solutions.json"
+            solutions_file.write_text(
+                json.dumps(solutions, indent=2, ensure_ascii=False),
+                encoding="utf-8",
+            )
+
+            # Fehler-Übersichtsdatei erstellen
+            error_overview_file = output_dir / "fehler_uebersicht.txt"
+            error_overview_content = _create_error_overview(solutions, ruleset_id)
+            error_overview_file.write_text(error_overview_content, encoding="utf-8")
+
+            # Optional: Dokumente hochladen
+            uploaded_doc_ids: list[str] = []
+            if upload_after_generate and job.project_id:
+                job.update_progress(
+                    processed=count,
+                    successful=successful,
+                    failed=failed,
+                    message="Lade Dokumente ins Projekt hoch...",
+                )
+                await session.commit()
+
+                for solution in solutions:
+                    try:
+                        filepath = Path(solution["filepath"])
+                        if filepath.exists():
+                            # Dokument in DB erstellen
+                            doc = Document(
+                                id=str(uuid4()),
+                                project_id=job.project_id,
+                                original_filename=solution["filename"],
+                                file_path=str(filepath),
+                                file_size=filepath.stat().st_size,
+                                mime_type="application/pdf",
+                                status=DocumentStatus.UPLOADED,
+                                ruleset_id=ruleset_id,
+                                # Metadaten für spätere Auswertung
+                                metadata={
+                                    "generated": True,
+                                    "generator_job_id": job_id,
+                                    "template": solution["template"],
+                                    "has_error": solution["has_error"],
+                                    "injected_errors": solution["errors"],
+                                },
+                            )
+                            session.add(doc)
+                            uploaded_doc_ids.append(doc.id)
+                    except Exception as e:
+                        logger.warning(f"Error uploading document {solution['filename']}: {e}")
+
+                await session.commit()
+
+                # Optional: Analyse starten
+                if analyze_after_upload and uploaded_doc_ids:
+                    job.update_progress(
+                        processed=count,
+                        successful=successful,
+                        failed=failed,
+                        message="Starte Analyse der hochgeladenen Dokumente...",
+                    )
+                    await session.commit()
+
+                    # Neuen Analyse-Job erstellen, der auf diesen Job wartet
+                    analyze_job = BatchJob(
+                        job_type="BATCH_ANALYZE",
+                        project_id=job.project_id,
+                        created_by_id=job.created_by_id,
+                        parameters={
+                            "document_ids": uploaded_doc_ids,
+                            "max_concurrent": 5,
+                        },
+                        depends_on_job_id=job_id,
+                        status_message=f"Wartet auf Generierungs-Job {job_id}",
+                    )
+                    session.add(analyze_job)
+                    await session.commit()
+
+            # Job abschließen
+            job.mark_completed(results={
+                "generated_count": successful,
+                "failed_count": failed,
+                "output_dir": str(output_dir),
+                "solutions_file": str(solutions_file),
+                "uploaded_count": len(uploaded_doc_ids),
+                "uploaded_doc_ids": uploaded_doc_ids,
+            })
+            job.errors = errors_list
+            await session.commit()
+
+            logger.info(f"Batch generate completed: {successful} documents generated, {len(uploaded_doc_ids)} uploaded")
+
+            # Abhängige Jobs starten
+            started_dependent_jobs = await _trigger_dependent_jobs(job_id)
+            if started_dependent_jobs:
+                logger.info(f"Started {len(started_dependent_jobs)} dependent jobs")
+
+            return {
+                "status": "success",
+                "job_id": job_id,
+                "generated_count": successful,
+                "failed_count": failed,
+                "output_dir": str(output_dir),
+                "uploaded_count": len(uploaded_doc_ids),
+                "started_dependent_jobs": started_dependent_jobs,
+            }
+
+        except Exception as e:
+            job.mark_failed(str(e))
+            await session.commit()
+            raise
+
+
 async def _mark_job_failed(job_id: str, error: str) -> None:
     """
     Markiert einen Job als fehlgeschlagen.
@@ -1886,6 +2151,79 @@ async def _mark_job_failed(job_id: str, error: str) -> None:
         if job:
             job.mark_failed(error)
             await session.commit()
+
+
+async def _trigger_dependent_jobs(completed_job_id: str) -> list[str]:
+    """
+    Startet alle Jobs, die auf den abgeschlossenen Job gewartet haben.
+
+    Args:
+        completed_job_id: ID des abgeschlossenen Jobs
+
+    Returns:
+        Liste der gestarteten Job-IDs
+    """
+    from app.models.batch_job import BatchJob
+    from app.models.enums import BatchJobStatus
+
+    session_maker = get_celery_session_maker()
+    started_jobs: list[str] = []
+
+    async with session_maker() as session:
+        # Alle Jobs finden, die auf diesen Job warten
+        result = await session.execute(
+            select(BatchJob).where(
+                BatchJob.depends_on_job_id == completed_job_id,
+                BatchJob.status == BatchJobStatus.PENDING.value,
+            )
+        )
+        dependent_jobs = result.scalars().all()
+
+        for job in dependent_jobs:
+            try:
+                # Task starten
+                task = celery_app.send_task(
+                    f"app.worker.tasks.{_get_batch_task_name(job.job_type)}",
+                    args=[job.id],
+                    queue=_get_batch_queue_name(job.job_type),
+                )
+                job.celery_task_id = task.id
+                job.status = BatchJobStatus.QUEUED.value
+                job.status_message = f"Gestartet nach Abschluss von Job {completed_job_id}"
+                started_jobs.append(job.id)
+                logger.info(f"Started dependent job {job.id} (type={job.job_type})")
+            except Exception as e:
+                logger.error(f"Failed to start dependent job {job.id}: {e}")
+
+        await session.commit()
+
+    return started_jobs
+
+
+def _get_batch_task_name(job_type: str) -> str:
+    """Gibt den Task-Namen für einen Batch-Job-Typ zurück."""
+    task_map = {
+        "BATCH_GENERATE": "batch_generate_task",
+        "BATCH_ANALYZE": "batch_analyze_task",
+        "BATCH_VALIDATE": "batch_validate_task",
+        "BATCH_EXPORT": "batch_export_task",
+        "SOLUTION_APPLY": "solution_apply_task",
+        "RAG_REBUILD": "rag_rebuild_task",
+    }
+    return task_map.get(job_type, "batch_analyze_task")
+
+
+def _get_batch_queue_name(job_type: str) -> str:
+    """Gibt die Queue für einen Batch-Job-Typ zurück."""
+    queue_map = {
+        "BATCH_GENERATE": "documents",
+        "BATCH_ANALYZE": "llm",
+        "BATCH_VALIDATE": "documents",
+        "BATCH_EXPORT": "export",
+        "SOLUTION_APPLY": "documents",
+        "RAG_REBUILD": "llm",
+    }
+    return queue_map.get(job_type, "documents")
 
 
 @celery_app.task
