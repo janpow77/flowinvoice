@@ -13,7 +13,13 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.database import get_async_session
 from app.models.ruleset import Ruleset
+from app.models.ruleset_checker import RulesetCheckerSettings
 from app.schemas.ruleset import RulesetCreate, RulesetListItem, RulesetResponse
+from app.schemas.ruleset_checker import (
+    RulesetCheckerSettingsResponse,
+    RulesetCheckerSettingsUpdate,
+    get_default_checker_settings,
+)
 
 router = APIRouter()
 
@@ -330,6 +336,183 @@ Adresse: {adresse}
             "features_json_schema": features_json_schema,
         },
     }
+
+
+# =============================================================================
+# Ruleset Checker Settings Endpoints
+# (Must be defined BEFORE {ruleset_id}/{version} route to avoid path conflicts)
+# =============================================================================
+
+
+@router.get(
+    "/rulesets/{ruleset_id}/checkers",
+    response_model=RulesetCheckerSettingsResponse,
+)
+async def get_ruleset_checker_settings(
+    ruleset_id: str,
+    session: AsyncSession = Depends(get_async_session),
+) -> RulesetCheckerSettingsResponse:
+    """
+    Gibt die Prüfmodul-Einstellungen für ein Regelwerk zurück.
+
+    Args:
+        ruleset_id: Ruleset-ID (DE_USTG, EU_VAT, UK_VAT)
+
+    Returns:
+        Checker-Einstellungen für das Regelwerk.
+    """
+    # Prüfen ob Ruleset existiert
+    ruleset_result = await session.execute(
+        select(Ruleset).where(Ruleset.ruleset_id == ruleset_id)
+    )
+    if not ruleset_result.scalar_one_or_none():
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Ruleset {ruleset_id} not found",
+        )
+
+    # Checker-Einstellungen abrufen
+    result = await session.execute(
+        select(RulesetCheckerSettings).where(
+            RulesetCheckerSettings.ruleset_id == ruleset_id
+        )
+    )
+    settings = result.scalar_one_or_none()
+
+    if not settings:
+        # Standard-Einstellungen zurückgeben
+        return get_default_checker_settings(ruleset_id)
+
+    return RulesetCheckerSettingsResponse(
+        ruleset_id=settings.ruleset_id,
+        risk_checker=settings.risk_checker,
+        semantic_checker=settings.semantic_checker,
+        economic_checker=settings.economic_checker,
+        created_at=settings.created_at,
+        updated_at=settings.updated_at,
+    )
+
+
+@router.put(
+    "/rulesets/{ruleset_id}/checkers",
+    response_model=RulesetCheckerSettingsResponse,
+)
+async def update_ruleset_checker_settings(
+    ruleset_id: str,
+    data: RulesetCheckerSettingsUpdate,
+    session: AsyncSession = Depends(get_async_session),
+    x_role: str = Header(default="user", alias="X-Role"),
+) -> RulesetCheckerSettingsResponse:
+    """
+    Aktualisiert die Prüfmodul-Einstellungen für ein Regelwerk.
+
+    Args:
+        ruleset_id: Ruleset-ID (DE_USTG, EU_VAT, UK_VAT)
+        data: Neue Einstellungen
+
+    Returns:
+        Aktualisierte Checker-Einstellungen.
+    """
+    if x_role != "admin":
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Admin role required",
+        )
+
+    # Prüfen ob Ruleset existiert
+    ruleset_result = await session.execute(
+        select(Ruleset).where(Ruleset.ruleset_id == ruleset_id)
+    )
+    if not ruleset_result.scalar_one_or_none():
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Ruleset {ruleset_id} not found",
+        )
+
+    # Checker-Einstellungen abrufen oder erstellen
+    result = await session.execute(
+        select(RulesetCheckerSettings).where(
+            RulesetCheckerSettings.ruleset_id == ruleset_id
+        )
+    )
+    settings = result.scalar_one_or_none()
+
+    if not settings:
+        # Neue Einstellungen erstellen
+        settings = RulesetCheckerSettings(ruleset_id=ruleset_id)
+        session.add(settings)
+
+    # Einstellungen aktualisieren (nur wenn nicht None)
+    if data.risk_checker is not None:
+        settings.risk_checker = data.risk_checker.model_dump()
+
+    if data.semantic_checker is not None:
+        settings.semantic_checker = data.semantic_checker.model_dump()
+
+    if data.economic_checker is not None:
+        settings.economic_checker = data.economic_checker.model_dump()
+
+    await session.flush()
+
+    return RulesetCheckerSettingsResponse(
+        ruleset_id=settings.ruleset_id,
+        risk_checker=settings.risk_checker,
+        semantic_checker=settings.semantic_checker,
+        economic_checker=settings.economic_checker,
+        created_at=settings.created_at,
+        updated_at=settings.updated_at,
+    )
+
+
+@router.delete(
+    "/rulesets/{ruleset_id}/checkers",
+    status_code=status.HTTP_204_NO_CONTENT,
+)
+async def reset_ruleset_checker_settings(
+    ruleset_id: str,
+    session: AsyncSession = Depends(get_async_session),
+    x_role: str = Header(default="user", alias="X-Role"),
+) -> None:
+    """
+    Setzt die Prüfmodul-Einstellungen auf Standard zurück.
+
+    Löscht die gespeicherten Einstellungen, sodass Standard-Werte verwendet werden.
+
+    Args:
+        ruleset_id: Ruleset-ID (DE_USTG, EU_VAT, UK_VAT)
+    """
+    if x_role != "admin":
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Admin role required",
+        )
+
+    # Prüfen ob Ruleset existiert
+    ruleset_result = await session.execute(
+        select(Ruleset).where(Ruleset.ruleset_id == ruleset_id)
+    )
+    if not ruleset_result.scalar_one_or_none():
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Ruleset {ruleset_id} not found",
+        )
+
+    # Checker-Einstellungen löschen
+    result = await session.execute(
+        select(RulesetCheckerSettings).where(
+            RulesetCheckerSettings.ruleset_id == ruleset_id
+        )
+    )
+    settings = result.scalar_one_or_none()
+
+    if settings:
+        await session.delete(settings)
+        await session.flush()
+
+
+# =============================================================================
+# Ruleset Version Update Endpoint
+# =============================================================================
 
 
 @router.put("/rulesets/{ruleset_id}/{version}")

@@ -71,7 +71,7 @@ const defaultSettings: CheckersSettingsState = {
 }
 
 interface CheckersSettingsProps {
-  rulesetId?: string
+  rulesetId: string
 }
 
 export default function CheckersSettings({ rulesetId }: CheckersSettingsProps) {
@@ -85,36 +85,47 @@ export default function CheckersSettings({ rulesetId }: CheckersSettingsProps) {
   const [hasChanges, setHasChanges] = useState(false)
 
   // Query key includes rulesetId for per-ruleset settings
-  const queryKey = rulesetId ? ['checkerSettings', rulesetId] : ['checkerSettings']
+  const queryKey = ['checkerSettings', rulesetId]
 
   // Load settings from backend
   const { isLoading } = useQuery({
     queryKey,
     queryFn: async () => {
       try {
-        // TODO: When backend supports per-ruleset checkers, use rulesetId
-        // For now, load global settings
-        const response = await api.getSettings()
-        if (response?.checkers) {
-          setSettings(prev => ({
-            ...prev,
-            ...response.checkers,
-          }))
+        const response = await api.getRulesetCheckerSettings(rulesetId)
+        if (response) {
+          setSettings({
+            risk_checker: response.risk_checker || defaultSettings.risk_checker,
+            semantic_checker: response.semantic_checker || defaultSettings.semantic_checker,
+            economic_checker: response.economic_checker || defaultSettings.economic_checker,
+          })
         }
-        return response?.checkers || defaultSettings
+        return response || defaultSettings
       } catch {
         return defaultSettings
       }
     },
+    enabled: !!rulesetId,
   })
 
   // Save settings mutation
   const saveMutation = useMutation({
     mutationFn: async (newSettings: CheckersSettingsState) => {
-      // TODO: When backend supports per-ruleset checkers, include rulesetId
-      return api.updateSettings({ checkers: newSettings })
+      return api.updateRulesetCheckerSettings(rulesetId, newSettings)
     },
     onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey })
+      setHasChanges(false)
+    },
+  })
+
+  // Reset settings mutation
+  const resetMutation = useMutation({
+    mutationFn: async () => {
+      return api.resetRulesetCheckerSettings(rulesetId)
+    },
+    onSuccess: () => {
+      setSettings(defaultSettings)
       queryClient.invalidateQueries({ queryKey })
       setHasChanges(false)
     },
@@ -143,8 +154,7 @@ export default function CheckersSettings({ rulesetId }: CheckersSettingsProps) {
   }
 
   const resetToDefaults = () => {
-    setSettings(defaultSettings)
-    setHasChanges(true)
+    resetMutation.mutate()
   }
 
   const handleSave = () => {
@@ -174,9 +184,14 @@ export default function CheckersSettings({ rulesetId }: CheckersSettingsProps) {
         <div className="flex items-center gap-2">
           <button
             onClick={resetToDefaults}
-            className="flex items-center gap-2 px-3 py-2 text-sm text-theme-text-muted hover:text-theme-text border border-theme-border rounded-lg transition-colors"
+            disabled={resetMutation.isPending}
+            className="flex items-center gap-2 px-3 py-2 text-sm text-theme-text-muted hover:text-theme-text border border-theme-border rounded-lg transition-colors disabled:opacity-50"
           >
-            <RotateCcw className="w-4 h-4" />
+            {resetMutation.isPending ? (
+              <Loader2 className="w-4 h-4 animate-spin" />
+            ) : (
+              <RotateCcw className="w-4 h-4" />
+            )}
             Zurücksetzen
           </button>
           <button

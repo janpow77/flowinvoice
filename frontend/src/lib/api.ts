@@ -385,6 +385,51 @@ export const api = {
     return response.data
   },
 
+  // Ruleset Checker Settings
+  getRulesetCheckerSettings: async (rulesetId: string) => {
+    const response = await apiClient.get(`/rulesets/${rulesetId}/checkers`)
+    return response.data
+  },
+
+  updateRulesetCheckerSettings: async (rulesetId: string, data: {
+    risk_checker?: {
+      enabled: boolean
+      severity_threshold: string
+      check_self_invoice: boolean
+      check_duplicate_invoice: boolean
+      check_round_amounts: boolean
+      check_weekend_dates: boolean
+      round_amount_threshold: number
+    }
+    semantic_checker?: {
+      enabled: boolean
+      severity_threshold: string
+      check_project_relevance: boolean
+      check_description_quality: boolean
+      min_relevance_score: number
+      use_rag_context: boolean
+    }
+    economic_checker?: {
+      enabled: boolean
+      severity_threshold: string
+      check_budget_limits: boolean
+      check_unit_prices: boolean
+      check_funding_rate: boolean
+      max_deviation_percent: number
+    }
+  }) => {
+    const response = await apiClient.put(`/rulesets/${rulesetId}/checkers`, data, {
+      headers: { 'X-Role': 'admin' },
+    })
+    return response.data
+  },
+
+  resetRulesetCheckerSettings: async (rulesetId: string) => {
+    await apiClient.delete(`/rulesets/${rulesetId}/checkers`, {
+      headers: { 'X-Role': 'admin' },
+    })
+  },
+
   // Ruleset Samples
   getRulesetSamples: async (rulesetId: string) => {
     const response = await apiClient.get(`/rulesets/${rulesetId}/samples`)

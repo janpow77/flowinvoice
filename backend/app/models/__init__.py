@@ -14,6 +14,7 @@ from app.models.project import Project
 from app.models.project_share import ProjectShare
 from app.models.result import AnalysisResult, FinalResult
 from app.models.ruleset import Ruleset
+from app.models.ruleset_checker import RulesetCheckerSettings
 from app.models.ruleset_sample import RulesetSample
 from app.models.settings import ApiKey, Setting
 from app.models.solution import SolutionFile, SolutionMatch
@@ -26,6 +27,7 @@ from app.models.custom_criterion import CustomCriterion
 __all__ = [
     # Core
     "Ruleset",
+    "RulesetCheckerSettings",
     "RulesetSample",
     "Project",
     "ProjectShare",
