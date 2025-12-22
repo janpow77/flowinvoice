@@ -128,6 +128,29 @@ export default function Generator() {
   const [newJobType, setNewJobType] = useState<string>('BATCH_ANALYZE')
   const [newJobProjectId, setNewJobProjectId] = useState<string>('')
   const [showNewJobForm, setShowNewJobForm] = useState(false)
+  const [newJobPriority, setNewJobPriority] = useState<number>(0)
+  const [newJobScheduledAt, setNewJobScheduledAt] = useState<string>('')
+
+  // Job-specific parameters
+  const [analyzeParams, setAnalyzeParams] = useState({
+    max_concurrent: 5,
+    provider: '',
+    model: '',
+    status_filter: [] as string[],
+  })
+  const [validateParams, setValidateParams] = useState({
+    revalidate: false,
+  })
+  const [exportParams, setExportParams] = useState({
+    format: 'CSV',
+    include_errors: true,
+    include_analysis: true,
+  })
+  const [ragParams, setRagParams] = useState({
+    clear_existing: false,
+    include_feedback: true,
+    include_examples: true,
+  })
 
   // Fetch templates
   const { data: templates, isLoading: templatesLoading } = useQuery({
@@ -227,16 +250,32 @@ export default function Generator() {
 
   // Create batch job mutation
   const createBatchJobMutation = useMutation({
-    mutationFn: (data: { job_type: string; project_id?: string }) =>
+    mutationFn: (data: {
+      job_type: string
+      project_id?: string
+      parameters?: Record<string, unknown>
+      priority?: number
+      scheduled_at?: string
+    }) =>
       api.createBatchJob({
         job_type: data.job_type,
         project_id: data.project_id || undefined,
+        parameters: data.parameters || {},
+        priority: data.priority || 0,
+        scheduled_at: data.scheduled_at || undefined,
       }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['batch-jobs'] })
       setShowNewJobForm(false)
       setNewJobType('BATCH_ANALYZE')
       setNewJobProjectId('')
+      setNewJobPriority(0)
+      setNewJobScheduledAt('')
+      // Reset job-specific params
+      setAnalyzeParams({ max_concurrent: 5, provider: '', model: '', status_filter: [] })
+      setValidateParams({ revalidate: false })
+      setExportParams({ format: 'CSV', include_errors: true, include_analysis: true })
+      setRagParams({ clear_existing: false, include_feedback: true, include_examples: true })
     },
   })
 
@@ -253,9 +292,45 @@ export default function Generator() {
   }
 
   const handleCreateBatchJob = () => {
+    // Build job-specific parameters based on type
+    let parameters: Record<string, unknown> = {}
+
+    switch (newJobType) {
+      case 'BATCH_ANALYZE':
+        parameters = {
+          max_concurrent: analyzeParams.max_concurrent,
+          ...(analyzeParams.provider && { provider: analyzeParams.provider }),
+          ...(analyzeParams.model && { model: analyzeParams.model }),
+          ...(analyzeParams.status_filter.length > 0 && { status_filter: analyzeParams.status_filter }),
+        }
+        break
+      case 'BATCH_VALIDATE':
+        parameters = {
+          revalidate: validateParams.revalidate,
+        }
+        break
+      case 'BATCH_EXPORT':
+        parameters = {
+          format: exportParams.format,
+          include_errors: exportParams.include_errors,
+          include_analysis: exportParams.include_analysis,
+        }
+        break
+      case 'RAG_REBUILD':
+        parameters = {
+          clear_existing: ragParams.clear_existing,
+          include_feedback: ragParams.include_feedback,
+          include_examples: ragParams.include_examples,
+        }
+        break
+    }
+
     createBatchJobMutation.mutate({
       job_type: newJobType,
       project_id: newJobProjectId || undefined,
+      parameters,
+      priority: newJobPriority,
+      scheduled_at: newJobScheduledAt || undefined,
     })
   }
 
@@ -877,7 +952,8 @@ export default function Generator() {
                 {t('generator.createBatchJob', 'Batch-Job erstellen')}
               </h3>
 
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              {/* Basic Settings Row */}
+              <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-4">
                 {/* Job Type */}
                 <div>
                   <label className="block text-sm font-medium text-theme-text-secondary mb-1">
@@ -898,7 +974,7 @@ export default function Generator() {
                 {/* Project Selection */}
                 <div>
                   <label className="block text-sm font-medium text-theme-text-secondary mb-1">
-                    {t('generator.project', 'Projekt')} <span className="text-theme-text-muted">({t('common.optional', 'optional')})</span>
+                    {t('generator.project', 'Projekt')}
                   </label>
                   <select
                     value={newJobProjectId}
@@ -914,31 +990,198 @@ export default function Generator() {
                   </select>
                 </div>
 
-                {/* Submit Button */}
-                <div className="flex items-end">
-                  <button
-                    onClick={handleCreateBatchJob}
-                    disabled={createBatchJobMutation.isPending}
-                    className={clsx(
-                      'flex items-center justify-center gap-2 px-4 py-2 rounded-lg font-medium transition-colors w-full',
-                      createBatchJobMutation.isPending
-                        ? 'bg-theme-hover text-theme-text-disabled cursor-not-allowed'
-                        : 'bg-green-600 text-white hover:bg-green-700'
-                    )}
+                {/* Priority */}
+                <div>
+                  <label className="block text-sm font-medium text-theme-text-secondary mb-1">
+                    {t('generator.priority', 'Priorität')}
+                  </label>
+                  <select
+                    value={newJobPriority}
+                    onChange={(e) => setNewJobPriority(parseInt(e.target.value))}
+                    className="w-full px-3 py-2 border border-theme-border-default rounded-lg bg-theme-input text-theme-text-primary"
                   >
-                    {createBatchJobMutation.isPending ? (
-                      <>
-                        <Loader2 className="h-4 w-4 animate-spin" />
-                        {t('common.creating', 'Erstelle...')}
-                      </>
-                    ) : (
-                      <>
-                        <Play className="h-4 w-4" />
-                        {t('generator.startJob', 'Job starten')}
-                      </>
-                    )}
-                  </button>
+                    <option value={10}>{t('generator.priorityHighest', 'Höchste (10)')}</option>
+                    <option value={5}>{t('generator.priorityHigh', 'Hoch (5)')}</option>
+                    <option value={0}>{t('generator.priorityNormal', 'Normal (0)')}</option>
+                    <option value={-5}>{t('generator.priorityLow', 'Niedrig (-5)')}</option>
+                    <option value={-10}>{t('generator.priorityLowest', 'Niedrigste (-10)')}</option>
+                  </select>
                 </div>
+
+                {/* Scheduled At */}
+                <div>
+                  <label className="block text-sm font-medium text-theme-text-secondary mb-1">
+                    {t('generator.scheduledAt', 'Geplante Ausführung')}
+                  </label>
+                  <input
+                    type="datetime-local"
+                    value={newJobScheduledAt}
+                    onChange={(e) => setNewJobScheduledAt(e.target.value)}
+                    className="w-full px-3 py-2 border border-theme-border-default rounded-lg bg-theme-input text-theme-text-primary"
+                  />
+                </div>
+              </div>
+
+              {/* Job-specific parameters */}
+              <div className="border-t border-theme-border-default pt-4 mt-4">
+                <h4 className="text-sm font-medium text-theme-text-secondary mb-3">
+                  {t('generator.jobParameters', 'Job-Parameter')}
+                </h4>
+
+                {/* BATCH_ANALYZE parameters */}
+                {newJobType === 'BATCH_ANALYZE' && (
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <div>
+                      <label className="block text-xs font-medium text-theme-text-muted mb-1">
+                        {t('generator.maxConcurrent', 'Max. parallele Analysen')}
+                      </label>
+                      <input
+                        type="number"
+                        min={1}
+                        max={20}
+                        value={analyzeParams.max_concurrent}
+                        onChange={(e) => setAnalyzeParams({ ...analyzeParams, max_concurrent: parseInt(e.target.value) || 5 })}
+                        className="w-full px-3 py-2 border border-theme-border-default rounded-lg bg-theme-input text-theme-text-primary"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-xs font-medium text-theme-text-muted mb-1">
+                        {t('generator.llmProvider', 'LLM-Provider')}
+                      </label>
+                      <select
+                        value={analyzeParams.provider}
+                        onChange={(e) => setAnalyzeParams({ ...analyzeParams, provider: e.target.value })}
+                        className="w-full px-3 py-2 border border-theme-border-default rounded-lg bg-theme-input text-theme-text-primary"
+                      >
+                        <option value="">{t('generator.useDefault', 'Standard verwenden')}</option>
+                        <option value="ollama">Ollama</option>
+                        <option value="openai">OpenAI</option>
+                        <option value="anthropic">Anthropic</option>
+                        <option value="gemini">Google Gemini</option>
+                      </select>
+                    </div>
+                    <div>
+                      <label className="block text-xs font-medium text-theme-text-muted mb-1">
+                        {t('generator.llmModel', 'Modell')}
+                      </label>
+                      <input
+                        type="text"
+                        value={analyzeParams.model}
+                        onChange={(e) => setAnalyzeParams({ ...analyzeParams, model: e.target.value })}
+                        placeholder={t('generator.modelPlaceholder', 'z.B. llama3.2, gpt-4o')}
+                        className="w-full px-3 py-2 border border-theme-border-default rounded-lg bg-theme-input text-theme-text-primary"
+                      />
+                    </div>
+                  </div>
+                )}
+
+                {/* BATCH_VALIDATE parameters */}
+                {newJobType === 'BATCH_VALIDATE' && (
+                  <div className="flex items-center gap-4">
+                    <label className="flex items-center gap-2 cursor-pointer">
+                      <input
+                        type="checkbox"
+                        checked={validateParams.revalidate}
+                        onChange={(e) => setValidateParams({ ...validateParams, revalidate: e.target.checked })}
+                        className="rounded border-theme-border-default text-accent-primary focus:ring-accent-primary"
+                      />
+                      <span className="text-sm text-theme-text-secondary">
+                        {t('generator.revalidate', 'Bereits validierte Dokumente erneut prüfen')}
+                      </span>
+                    </label>
+                  </div>
+                )}
+
+                {/* BATCH_EXPORT parameters */}
+                {newJobType === 'BATCH_EXPORT' && (
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <div>
+                      <label className="block text-xs font-medium text-theme-text-muted mb-1">
+                        {t('generator.exportFormat', 'Export-Format')}
+                      </label>
+                      <select
+                        value={exportParams.format}
+                        onChange={(e) => setExportParams({ ...exportParams, format: e.target.value })}
+                        className="w-full px-3 py-2 border border-theme-border-default rounded-lg bg-theme-input text-theme-text-primary"
+                      >
+                        <option value="CSV">CSV</option>
+                        <option value="XLSX">Excel (XLSX)</option>
+                        <option value="JSON">JSON</option>
+                      </select>
+                    </div>
+                    <div className="flex items-center">
+                      <label className="flex items-center gap-2 cursor-pointer">
+                        <input
+                          type="checkbox"
+                          checked={exportParams.include_errors}
+                          onChange={(e) => setExportParams({ ...exportParams, include_errors: e.target.checked })}
+                          className="rounded border-theme-border-default text-accent-primary focus:ring-accent-primary"
+                        />
+                        <span className="text-sm text-theme-text-secondary">
+                          {t('generator.includeErrors', 'Fehler einschließen')}
+                        </span>
+                      </label>
+                    </div>
+                    <div className="flex items-center">
+                      <label className="flex items-center gap-2 cursor-pointer">
+                        <input
+                          type="checkbox"
+                          checked={exportParams.include_analysis}
+                          onChange={(e) => setExportParams({ ...exportParams, include_analysis: e.target.checked })}
+                          className="rounded border-theme-border-default text-accent-primary focus:ring-accent-primary"
+                        />
+                        <span className="text-sm text-theme-text-secondary">
+                          {t('generator.includeAnalysis', 'Analyse-Ergebnisse einschließen')}
+                        </span>
+                      </label>
+                    </div>
+                  </div>
+                )}
+
+                {/* RAG_REBUILD parameters */}
+                {newJobType === 'RAG_REBUILD' && (
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <div className="flex items-center">
+                      <label className="flex items-center gap-2 cursor-pointer">
+                        <input
+                          type="checkbox"
+                          checked={ragParams.clear_existing}
+                          onChange={(e) => setRagParams({ ...ragParams, clear_existing: e.target.checked })}
+                          className="rounded border-theme-border-default text-accent-primary focus:ring-accent-primary"
+                        />
+                        <span className="text-sm text-theme-text-secondary">
+                          {t('generator.clearExisting', 'Bestehenden Index löschen')}
+                        </span>
+                      </label>
+                    </div>
+                    <div className="flex items-center">
+                      <label className="flex items-center gap-2 cursor-pointer">
+                        <input
+                          type="checkbox"
+                          checked={ragParams.include_feedback}
+                          onChange={(e) => setRagParams({ ...ragParams, include_feedback: e.target.checked })}
+                          className="rounded border-theme-border-default text-accent-primary focus:ring-accent-primary"
+                        />
+                        <span className="text-sm text-theme-text-secondary">
+                          {t('generator.includeFeedback', 'Feedback einschließen')}
+                        </span>
+                      </label>
+                    </div>
+                    <div className="flex items-center">
+                      <label className="flex items-center gap-2 cursor-pointer">
+                        <input
+                          type="checkbox"
+                          checked={ragParams.include_examples}
+                          onChange={(e) => setRagParams({ ...ragParams, include_examples: e.target.checked })}
+                          className="rounded border-theme-border-default text-accent-primary focus:ring-accent-primary"
+                        />
+                        <span className="text-sm text-theme-text-secondary">
+                          {t('generator.includeExamples', 'Beispiele einschließen')}
+                        </span>
+                      </label>
+                    </div>
+                  </div>
+                )}
               </div>
 
               {/* Job Type Description */}
@@ -949,6 +1192,32 @@ export default function Generator() {
                   {newJobType === 'BATCH_EXPORT' && t('generator.jobDescExport', 'Exportiert alle Prüfergebnisse als CSV/Excel.')}
                   {newJobType === 'RAG_REBUILD' && t('generator.jobDescRagRebuild', 'Baut den RAG-Vektorindex mit allen Beispielen neu auf.')}
                 </p>
+              </div>
+
+              {/* Submit Button */}
+              <div className="mt-4 flex justify-end">
+                <button
+                  onClick={handleCreateBatchJob}
+                  disabled={createBatchJobMutation.isPending}
+                  className={clsx(
+                    'flex items-center justify-center gap-2 px-6 py-2 rounded-lg font-medium transition-colors',
+                    createBatchJobMutation.isPending
+                      ? 'bg-theme-hover text-theme-text-disabled cursor-not-allowed'
+                      : 'bg-green-600 text-white hover:bg-green-700'
+                  )}
+                >
+                  {createBatchJobMutation.isPending ? (
+                    <>
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                      {t('common.creating', 'Erstelle...')}
+                    </>
+                  ) : (
+                    <>
+                      <Play className="h-4 w-4" />
+                      {newJobScheduledAt ? t('generator.scheduleJob', 'Job planen') : t('generator.startJob', 'Job starten')}
+                    </>
+                  )}
+                </button>
               </div>
 
               {/* Error message */}
