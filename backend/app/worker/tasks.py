@@ -548,44 +548,135 @@ def _generate_invoice_data(
     date_format = random.choice(date_formats)
     date_format_python = _convert_date_format(date_format)
 
-    # Template-spezifische Daten
+    # Template-spezifische Daten mit Positionspool
     templates_config = {
         "T1_HANDWERK": {
             "supplier": "Meister Müller Handwerk GmbH",
             "supplier_address": "Werkstraße 12, 80333 München",
             "description": "Reparaturarbeiten und Materialkosten",
-            "net_range": (500, 5000),
+            "position_count_range": (3, 12),
+            "positions": [
+                {"description": "Arbeitsstunden Monteur", "unit": "Std.", "price_range": (45, 85)},
+                {"description": "Arbeitsstunden Meister", "unit": "Std.", "price_range": (75, 120)},
+                {"description": "Anfahrtspauschale", "unit": "Pausch.", "price_range": (35, 65), "qty_range": (1, 1)},
+                {"description": "Kleinmaterial", "unit": "Pausch.", "price_range": (15, 80)},
+                {"description": "Kupferrohr 15mm", "unit": "m", "price_range": (8, 15)},
+                {"description": "Kupferrohr 22mm", "unit": "m", "price_range": (12, 22)},
+                {"description": "Fitting-Set", "unit": "Stk.", "price_range": (5, 25)},
+                {"description": "Silikon-Dichtmasse", "unit": "Stk.", "price_range": (8, 18)},
+                {"description": "Absperrhahn 1/2\"", "unit": "Stk.", "price_range": (25, 55)},
+                {"description": "Wasserhahn Küche", "unit": "Stk.", "price_range": (80, 250)},
+                {"description": "Entsorgung Altmaterial", "unit": "Pausch.", "price_range": (25, 75), "qty_range": (1, 1)},
+                {"description": "Dichtungsring-Set", "unit": "Stk.", "price_range": (3, 12)},
+                {"description": "Flexschlauch", "unit": "Stk.", "price_range": (15, 35)},
+                {"description": "Heizungsthermostat", "unit": "Stk.", "price_range": (35, 95)},
+            ],
         },
         "T2_SUPERMARKT": {
             "supplier": "Frisch & Gut Lebensmittel",
             "supplier_address": "Marktplatz 1, 10115 Berlin",
             "description": "Lebensmittel und Getränke für Veranstaltung",
-            "net_range": (50, 500),
+            "position_count_range": (5, 20),
+            "positions": [
+                {"description": "Mineralwasser 1,0L", "unit": "Kiste", "price_range": (6, 10)},
+                {"description": "Orangensaft 1L", "unit": "Stk.", "price_range": (2, 4)},
+                {"description": "Kaffee gemahlen 500g", "unit": "Pkg.", "price_range": (5, 12)},
+                {"description": "Milch 1L", "unit": "Stk.", "price_range": (1, 2)},
+                {"description": "Brötchen gemischt", "unit": "Stk.", "price_range": (0.4, 0.8)},
+                {"description": "Butter 250g", "unit": "Stk.", "price_range": (2, 4)},
+                {"description": "Käse geschnitten 200g", "unit": "Pkg.", "price_range": (3, 6)},
+                {"description": "Wurst Aufschnitt 150g", "unit": "Pkg.", "price_range": (2, 5)},
+                {"description": "Obst gemischt", "unit": "kg", "price_range": (3, 6)},
+                {"description": "Kekse/Gebäck", "unit": "Pkg.", "price_range": (2, 5)},
+                {"description": "Servietten 100er", "unit": "Pkg.", "price_range": (2, 4)},
+                {"description": "Plastikbecher 50er", "unit": "Pkg.", "price_range": (3, 6)},
+            ],
         },
         "T3_CORPORATE": {
             "supplier": "TechSolutions AG",
             "supplier_address": "Innovationsweg 42, 70173 Stuttgart",
             "description": "IT-Beratung und Softwareentwicklung",
-            "net_range": (2000, 20000),
+            "position_count_range": (3, 8),
+            "positions": [
+                {"description": "Senior Developer", "unit": "Std.", "price_range": (120, 180)},
+                {"description": "Junior Developer", "unit": "Std.", "price_range": (75, 110)},
+                {"description": "Projektmanagement", "unit": "Std.", "price_range": (95, 145)},
+                {"description": "IT-Consulting", "unit": "Std.", "price_range": (140, 220)},
+                {"description": "Code Review", "unit": "Std.", "price_range": (100, 160)},
+                {"description": "Systemadministration", "unit": "Std.", "price_range": (85, 130)},
+                {"description": "Cloud-Hosting monatlich", "unit": "Monat", "price_range": (200, 800)},
+                {"description": "SSL-Zertifikat", "unit": "Jahr", "price_range": (50, 200), "qty_range": (1, 1)},
+                {"description": "Domain-Registrierung", "unit": "Jahr", "price_range": (15, 50), "qty_range": (1, 3)},
+                {"description": "Softwarelizenz", "unit": "Lizenz", "price_range": (100, 500)},
+                {"description": "Datenmigration", "unit": "Pausch.", "price_range": (500, 2000), "qty_range": (1, 1)},
+            ],
         },
         "T4_FREELANCER": {
             "supplier": "Max Mustermann",
             "supplier_address": "Homeoffice-Str. 7, 50667 Köln",
             "description": "Freiberufliche Dienstleistungen",
-            "net_range": (500, 3000),
+            "position_count_range": (2, 6),
+            "positions": [
+                {"description": "Konzeption & Planung", "unit": "Std.", "price_range": (65, 95)},
+                {"description": "Grafikdesign", "unit": "Std.", "price_range": (55, 85)},
+                {"description": "Texterstellung", "unit": "Std.", "price_range": (50, 80)},
+                {"description": "Übersetzung DE/EN", "unit": "Wort", "price_range": (0.08, 0.15)},
+                {"description": "Lektorat", "unit": "Seite", "price_range": (3, 8)},
+                {"description": "Social Media Betreuung", "unit": "Monat", "price_range": (300, 800)},
+                {"description": "Fotografie vor Ort", "unit": "Std.", "price_range": (80, 150)},
+                {"description": "Bildbearbeitung", "unit": "Bild", "price_range": (15, 45)},
+            ],
         },
         "T5_MINIMAL": {
             "supplier": "Schnellservice",
             "supplier_address": "Kurzweg 1, 60311 Frankfurt",
             "description": "Diverse Kleinleistungen",
-            "net_range": (20, 200),
+            "position_count_range": (1, 3),
+            "positions": [
+                {"description": "Servicepauschale", "unit": "Pausch.", "price_range": (15, 50), "qty_range": (1, 1)},
+                {"description": "Kleinreparatur", "unit": "Pausch.", "price_range": (20, 80), "qty_range": (1, 1)},
+                {"description": "Arbeitsstunden", "unit": "Std.", "price_range": (30, 55)},
+                {"description": "Material", "unit": "Pausch.", "price_range": (10, 40), "qty_range": (1, 1)},
+            ],
         },
     }
 
     config = templates_config.get(template, templates_config["T1_HANDWERK"])
 
-    # Beträge berechnen
-    net_amount = round(random.uniform(*config["net_range"]), 2)
+    # Positionen generieren
+    position_count = random.randint(*config.get("position_count_range", (3, 8)))
+    available_positions = config["positions"]
+    selected_positions = random.sample(
+        available_positions,
+        min(position_count, len(available_positions))
+    )
+
+    positions: list[dict[str, Any]] = []
+    net_amount = 0.0
+
+    for i, pos_template in enumerate(selected_positions, start=1):
+        qty_range = pos_template.get("qty_range", (1, 10))
+        quantity = random.randint(*qty_range) if qty_range[1] > 1 else qty_range[0]
+        # Für kleine Einheiten (Wort, etc.) höhere Mengen
+        if pos_template["unit"] in ["Wort", "Seite", "Bild"]:
+            quantity = random.randint(50, 500)
+        elif pos_template["unit"] in ["m"]:
+            quantity = round(random.uniform(2, 25), 1)
+
+        unit_price = round(random.uniform(*pos_template["price_range"]), 2)
+        line_total = round(quantity * unit_price, 2)
+        net_amount += line_total
+
+        positions.append({
+            "pos": i,
+            "description": pos_template["description"],
+            "quantity": quantity,
+            "unit": pos_template["unit"],
+            "unit_price": unit_price,
+            "total": line_total,
+        })
+
+    net_amount = round(net_amount, 2)
     vat_rate = 19 if net_amount > 50 else 7
     vat_amount = round(net_amount * vat_rate / 100, 2)
     gross_amount = round(net_amount + vat_amount, 2)
@@ -619,6 +710,7 @@ def _generate_invoice_data(
         "gross_amount": f"{gross_amount:,.2f}".replace(",", "X").replace(".", ",").replace("X", "."),
         "iban": f"DE{random.randint(10, 99)}{random.randint(1000, 9999)}{random.randint(1000, 9999)}{random.randint(1000, 9999)}{random.randint(1000, 9999)}{random.randint(10, 99)}",
         "template": template,
+        "positions": positions,  # Positionsliste für Positionstabelle
         "injected_errors": [],
         "correct_values": {},
         # Metadaten für Lösungsdatei
@@ -1232,7 +1324,70 @@ def _format_invoice_pdf(data: dict[str, Any], filepath: Path) -> None:
     {data.get('description', '')}
     """
     elements.append(Paragraph(service_text, normal_style))
-    elements.append(Spacer(1, 0.8 * cm))
+    elements.append(Spacer(1, 0.5 * cm))
+
+    # Positionstabelle
+    positions = data.get("positions", [])
+    if positions:
+        elements.append(Paragraph("POSITIONEN", heading_style))
+
+        # Tabellenkopf
+        pos_header = ["Pos", "Beschreibung", "Menge", "Einheit", "Einzelpreis", "Betrag"]
+        pos_data = [pos_header]
+
+        # Positionen einfügen
+        for pos in positions:
+            quantity = pos.get("quantity", 0)
+            # Formatierung: Ganzzahlen ohne Dezimalstellen, sonst mit
+            if isinstance(quantity, float) and quantity == int(quantity):
+                qty_str = str(int(quantity))
+            elif isinstance(quantity, float):
+                qty_str = f"{quantity:.1f}".replace(".", ",")
+            else:
+                qty_str = str(quantity)
+
+            unit_price = pos.get("unit_price", 0)
+            total = pos.get("total", 0)
+
+            pos_data.append([
+                str(pos.get("pos", "")),
+                pos.get("description", ""),
+                qty_str,
+                pos.get("unit", ""),
+                f"{unit_price:,.2f} €".replace(",", "X").replace(".", ",").replace("X", "."),
+                f"{total:,.2f} €".replace(",", "X").replace(".", ",").replace("X", "."),
+            ])
+
+        # Spaltenbreiten: Pos(1cm), Beschreibung(6cm), Menge(1.5cm), Einheit(1.5cm), Einzelpreis(2.5cm), Betrag(2.5cm)
+        pos_table = Table(pos_data, colWidths=[1 * cm, 6 * cm, 1.5 * cm, 1.5 * cm, 2.5 * cm, 2.5 * cm])
+        pos_table.setStyle(TableStyle([
+            # Header-Styling
+            ("BACKGROUND", (0, 0), (-1, 0), colors.darkblue),
+            ("TEXTCOLOR", (0, 0), (-1, 0), colors.white),
+            ("FONTNAME", (0, 0), (-1, 0), "Helvetica-Bold"),
+            ("FONTSIZE", (0, 0), (-1, 0), 9),
+            ("ALIGN", (0, 0), (-1, 0), "CENTER"),
+            ("BOTTOMPADDING", (0, 0), (-1, 0), 8),
+            ("TOPPADDING", (0, 0), (-1, 0), 8),
+            # Daten-Styling
+            ("FONTNAME", (0, 1), (-1, -1), "Helvetica"),
+            ("FONTSIZE", (0, 1), (-1, -1), 9),
+            ("ALIGN", (0, 1), (0, -1), "CENTER"),  # Pos zentriert
+            ("ALIGN", (2, 1), (2, -1), "RIGHT"),   # Menge rechts
+            ("ALIGN", (4, 1), (-1, -1), "RIGHT"),  # Preise rechts
+            ("VALIGN", (0, 1), (-1, -1), "TOP"),
+            ("BOTTOMPADDING", (0, 1), (-1, -1), 6),
+            ("TOPPADDING", (0, 1), (-1, -1), 6),
+            # Zebrastreifen
+            ("ROWBACKGROUNDS", (0, 1), (-1, -1), [colors.white, colors.Color(0.95, 0.95, 0.95)]),
+            # Rahmen
+            ("GRID", (0, 0), (-1, -1), 0.5, colors.grey),
+            ("BOX", (0, 0), (-1, -1), 1, colors.darkblue),
+        ]))
+        elements.append(pos_table)
+        elements.append(Spacer(1, 0.8 * cm))
+    else:
+        elements.append(Spacer(1, 0.3 * cm))
 
     # Beträge-Tabelle
     elements.append(Paragraph("BETRÄGE", heading_style))
