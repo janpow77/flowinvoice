@@ -1,4 +1,4 @@
-import { useState, useCallback } from 'react'
+import { useState, useCallback, useEffect } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { useTranslation } from 'react-i18next'
 import {
@@ -30,6 +30,7 @@ import { api } from '@/lib/api'
 import CheckersSettings from '@/components/settings/CheckersSettings'
 
 type DetailTab = 'overview' | 'checkers'
+type EditTab = 'basic' | 'features' | 'checkers'
 
 // Alle unterstützten Dokumenttypen
 const DOCUMENT_TYPES = [
@@ -148,6 +149,7 @@ export default function Rulesets() {
   const [showLlmSchema, setShowLlmSchema] = useState(false)
   const [copiedField, setCopiedField] = useState<string | null>(null)
   const [detailTab, setDetailTab] = useState<DetailTab>('overview')
+  const [editTab, setEditTab] = useState<EditTab>('basic')
 
   // Sample management state
   const [showSamples, setShowSamples] = useState(false)
@@ -182,6 +184,13 @@ export default function Rulesets() {
     queryFn: () => api.getRulesetSamples(selectedRuleset!.ruleset_id),
     enabled: !!selectedRuleset?.ruleset_id && showSamples,
   })
+
+  // Load rulesetDetail into editForm when entering edit mode
+  useEffect(() => {
+    if (viewMode === 'edit' && rulesetDetail && !editForm.ruleset_id) {
+      setEditForm(rulesetDetail)
+    }
+  }, [viewMode, rulesetDetail, editForm.ruleset_id])
 
   // Upload sample mutation
   const uploadSampleMutation = useMutation({
@@ -274,6 +283,7 @@ export default function Rulesets() {
   const handleEdit = () => {
     if (rulesetDetail) {
       setEditForm(rulesetDetail)
+      setEditTab('basic')
       setViewMode('edit')
     }
   }
@@ -498,6 +508,8 @@ export default function Rulesets() {
                 <button
                   onClick={() => {
                     setSelectedRuleset({ ruleset_id: ruleset.ruleset_id, version: ruleset.version } as Ruleset)
+                    setEditForm({}) // Reset form to trigger loading from rulesetDetail
+                    setEditTab('basic')
                     setViewMode('edit')
                   }}
                   className="flex items-center px-3 py-1.5 text-sm text-theme-text-secondary hover:bg-theme-hover rounded-lg transition-colors"
@@ -1198,6 +1210,16 @@ export default function Rulesets() {
   // Render edit/create view
   if (viewMode === 'edit' || viewMode === 'create') {
     const isSaving = createMutation.isPending || updateMutation.isPending
+    const isLoadingEditData = viewMode === 'edit' && isLoadingDetail
+
+    // Handle switching rulesets in edit mode
+    const handleRulesetChange = (rulesetId: string) => {
+      const selected = rulesets?.find((r: RulesetListItem) => r.ruleset_id === rulesetId)
+      if (selected) {
+        setSelectedRuleset({ ruleset_id: selected.ruleset_id, version: selected.version } as Ruleset)
+        setEditForm({}) // Reset form to trigger loading from rulesetDetail
+      }
+    }
 
     return (
       <div className="space-y-6">
@@ -1205,27 +1227,50 @@ export default function Rulesets() {
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-4">
             <button
-              onClick={() => setViewMode(viewMode === 'create' ? 'list' : 'detail')}
+              onClick={() => {
+                setViewMode(viewMode === 'create' ? 'list' : 'list')
+                setEditForm({})
+              }}
               className="p-2 hover:bg-theme-hover rounded-lg transition-colors"
             >
               <X className="h-5 w-5 text-theme-text-muted" />
             </button>
-            <h2 className="text-xl font-semibold text-theme-text-primary">
-              {viewMode === 'create' ? t('rulesets.createRuleset') : t('rulesets.editRuleset')}
-            </h2>
+            <div>
+              <h2 className="text-xl font-semibold text-theme-text-primary">
+                {viewMode === 'create' ? t('rulesets.createRuleset') : t('rulesets.editRuleset')}
+              </h2>
+              {viewMode === 'edit' && rulesets && rulesets.length > 1 && (
+                <div className="flex items-center gap-2 mt-1">
+                  <span className="text-sm text-theme-text-muted">{t('rulesets.switchRuleset', 'Regelwerk wechseln')}:</span>
+                  <select
+                    value={selectedRuleset?.ruleset_id || ''}
+                    onChange={(e) => handleRulesetChange(e.target.value)}
+                    className="px-2 py-1 text-sm bg-theme-input border border-theme-border-default rounded text-theme-text-primary focus:ring-2 focus:ring-accent-primary"
+                  >
+                    {rulesets.map((r: RulesetListItem) => (
+                      <option key={r.ruleset_id} value={r.ruleset_id}>
+                        {r.title} (v{r.version})
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              )}
+            </div>
           </div>
-          <button
-            onClick={handleSave}
-            disabled={isSaving}
-            className="flex items-center px-4 py-2 bg-accent-primary text-white rounded-lg hover:bg-accent-primary-hover transition-colors disabled:opacity-50"
-          >
-            {isSaving ? (
-              <Loader2 className="h-5 w-5 mr-2 animate-spin" />
-            ) : (
-              <Save className="h-5 w-5 mr-2" />
-            )}
-            {t('common.save')}
-          </button>
+          {editTab !== 'checkers' && (
+            <button
+              onClick={handleSave}
+              disabled={isSaving || isLoadingEditData}
+              className="flex items-center px-4 py-2 bg-accent-primary text-white rounded-lg hover:bg-accent-primary-hover transition-colors disabled:opacity-50"
+            >
+              {isSaving ? (
+                <Loader2 className="h-5 w-5 mr-2 animate-spin" />
+              ) : (
+                <Save className="h-5 w-5 mr-2" />
+              )}
+              {t('common.save')}
+            </button>
+          )}
         </div>
 
         {/* Error Display */}
@@ -1236,248 +1281,334 @@ export default function Rulesets() {
           </div>
         )}
 
-        {/* Basic Info */}
-        <div className="bg-theme-card rounded-lg border border-theme-border-default p-6">
-          <h3 className="text-lg font-semibold text-theme-text-primary mb-4">{t('rulesets.basicInfo')}</h3>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div>
-              <label className="block text-sm font-medium text-theme-text-secondary mb-1">
-                {t('rulesets.rulesetId')} *
-              </label>
-              <input
-                type="text"
-                value={editForm.ruleset_id || ''}
-                onChange={(e) => setEditForm({ ...editForm, ruleset_id: e.target.value.toUpperCase() })}
-                className="w-full px-3 py-2 bg-theme-input border border-theme-border-default rounded-lg text-theme-text-primary focus:ring-2 focus:ring-accent-primary"
-                placeholder="DE_USTG"
-                disabled={viewMode === 'edit'}
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-theme-text-secondary mb-1">
-                {t('rulesets.version')} *
-              </label>
-              <input
-                type="text"
-                value={editForm.version || ''}
-                onChange={(e) => setEditForm({ ...editForm, version: e.target.value })}
-                className="w-full px-3 py-2 bg-theme-input border border-theme-border-default rounded-lg text-theme-text-primary focus:ring-2 focus:ring-accent-primary"
-                placeholder="1.0.0"
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-theme-text-secondary mb-1">
-                {t('rulesets.titleDe')} *
-              </label>
-              <input
-                type="text"
-                value={editForm.title_de || ''}
-                onChange={(e) => setEditForm({ ...editForm, title_de: e.target.value })}
-                className="w-full px-3 py-2 bg-theme-input border border-theme-border-default rounded-lg text-theme-text-primary focus:ring-2 focus:ring-accent-primary"
-                placeholder="Deutschland – Umsatzsteuergesetz"
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-theme-text-secondary mb-1">
-                {t('rulesets.titleEn')} *
-              </label>
-              <input
-                type="text"
-                value={editForm.title_en || ''}
-                onChange={(e) => setEditForm({ ...editForm, title_en: e.target.value })}
-                className="w-full px-3 py-2 bg-theme-input border border-theme-border-default rounded-lg text-theme-text-primary focus:ring-2 focus:ring-accent-primary"
-                placeholder="Germany – VAT Act"
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-theme-text-secondary mb-1">
-                {t('rulesets.jurisdiction')}
-              </label>
-              <select
-                value={editForm.jurisdiction || 'DE'}
-                onChange={(e) => setEditForm({ ...editForm, jurisdiction: e.target.value })}
-                className="w-full px-3 py-2 bg-theme-input border border-theme-border-default rounded-lg text-theme-text-primary focus:ring-2 focus:ring-accent-primary"
-              >
-                <option value="DE">Deutschland (DE)</option>
-                <option value="AT">Österreich (AT)</option>
-                <option value="CH">Schweiz (CH)</option>
-                <option value="EU">Europäische Union (EU)</option>
-                <option value="UK">Großbritannien (UK)</option>
-              </select>
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-theme-text-secondary mb-1">
-                {t('rulesets.currency')}
-              </label>
-              <select
-                value={editForm.currency_default || 'EUR'}
-                onChange={(e) => setEditForm({ ...editForm, currency_default: e.target.value })}
-                className="w-full px-3 py-2 bg-theme-input border border-theme-border-default rounded-lg text-theme-text-primary focus:ring-2 focus:ring-accent-primary"
-              >
-                <option value="EUR">Euro (EUR)</option>
-                <option value="CHF">Schweizer Franken (CHF)</option>
-                <option value="GBP">Britisches Pfund (GBP)</option>
-                <option value="USD">US-Dollar (USD)</option>
-              </select>
-            </div>
+        {/* Loading indicator for edit mode */}
+        {isLoadingEditData && (
+          <div className="flex items-center justify-center py-12">
+            <Loader2 className="h-8 w-8 text-accent-primary animate-spin" />
+            <span className="ml-3 text-theme-text-muted">{t('common.loading')}</span>
           </div>
-        </div>
+        )}
 
-        {/* Features */}
-        <div className="bg-theme-card rounded-lg border border-theme-border-default p-6">
-          <div className="flex items-center justify-between mb-4">
-            <h3 className="text-lg font-semibold text-theme-text-primary">{t('rulesets.features')}</h3>
-            <button
-              onClick={handleAddFeature}
-              className="flex items-center px-3 py-1.5 text-sm bg-accent-primary/10 text-accent-primary rounded-lg hover:bg-accent-primary/20 transition-colors"
-            >
-              <Plus className="h-4 w-4 mr-1" />
-              {t('rulesets.addFeature')}
-            </button>
-          </div>
-
-          <div className="space-y-4">
-            {editForm.features?.map((feature, index) => (
-              <div key={feature.feature_id} className="border border-theme-border-default rounded-lg p-4">
-                <div className="flex items-start justify-between mb-4">
-                  <h4 className="font-medium text-theme-text-primary">
-                    {feature.name_de || `Merkmal ${index + 1}`}
-                  </h4>
+        {/* Tab Navigation (only show when not loading) */}
+        {!isLoadingEditData && (
+          <>
+            <div className="border-b border-theme-border-default">
+              <nav className="-mb-px flex space-x-4" aria-label="Tabs">
+                <button
+                  onClick={() => setEditTab('basic')}
+                  className={clsx(
+                    'group inline-flex items-center gap-2 py-3 px-1 border-b-2 font-medium text-sm whitespace-nowrap transition-colors',
+                    editTab === 'basic'
+                      ? 'border-accent-primary text-accent-primary'
+                      : 'border-transparent text-theme-text-muted hover:text-theme-text-primary hover:border-theme-border-strong'
+                  )}
+                >
+                  <Book className={clsx(
+                    'h-4 w-4',
+                    editTab === 'basic' ? 'text-accent-primary' : 'text-theme-text-muted group-hover:text-theme-text-secondary'
+                  )} />
+                  {t('rulesets.tabBasic', 'Grunddaten')}
+                </button>
+                <button
+                  onClick={() => setEditTab('features')}
+                  className={clsx(
+                    'group inline-flex items-center gap-2 py-3 px-1 border-b-2 font-medium text-sm whitespace-nowrap transition-colors',
+                    editTab === 'features'
+                      ? 'border-accent-primary text-accent-primary'
+                      : 'border-transparent text-theme-text-muted hover:text-theme-text-primary hover:border-theme-border-strong'
+                  )}
+                >
+                  <FileText className={clsx(
+                    'h-4 w-4',
+                    editTab === 'features' ? 'text-accent-primary' : 'text-theme-text-muted group-hover:text-theme-text-secondary'
+                  )} />
+                  {t('rulesets.tabFeatures', 'Merkmale')}
+                  {editForm.features && editForm.features.length > 0 && (
+                    <span className="ml-1 px-1.5 py-0.5 text-xs bg-theme-hover rounded-full">
+                      {editForm.features.length}
+                    </span>
+                  )}
+                </button>
+                {viewMode === 'edit' && (
                   <button
-                    onClick={() => handleDeleteFeature(index)}
-                    className="p-1 text-status-danger hover:bg-status-danger-bg rounded transition-colors"
+                    onClick={() => setEditTab('checkers')}
+                    className={clsx(
+                      'group inline-flex items-center gap-2 py-3 px-1 border-b-2 font-medium text-sm whitespace-nowrap transition-colors',
+                      editTab === 'checkers'
+                        ? 'border-accent-primary text-accent-primary'
+                        : 'border-transparent text-theme-text-muted hover:text-theme-text-primary hover:border-theme-border-strong'
+                    )}
                   >
-                    <Trash2 className="h-4 w-4" />
+                    <Shield className={clsx(
+                      'h-4 w-4',
+                      editTab === 'checkers' ? 'text-accent-primary' : 'text-theme-text-muted group-hover:text-theme-text-secondary'
+                    )} />
+                    {t('rulesets.tabCheckers', 'Prüfmodule')}
+                  </button>
+                )}
+              </nav>
+            </div>
+
+            {/* Tab Content: Basic Info */}
+            {editTab === 'basic' && (
+              <div className="bg-theme-card rounded-lg border border-theme-border-default p-6">
+                <h3 className="text-lg font-semibold text-theme-text-primary mb-4">{t('rulesets.basicInfo')}</h3>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium text-theme-text-secondary mb-1">
+                      {t('rulesets.rulesetId')} *
+                    </label>
+                    <input
+                      type="text"
+                      value={editForm.ruleset_id || ''}
+                      onChange={(e) => setEditForm({ ...editForm, ruleset_id: e.target.value.toUpperCase() })}
+                      className="w-full px-3 py-2 bg-theme-input border border-theme-border-default rounded-lg text-theme-text-primary focus:ring-2 focus:ring-accent-primary"
+                      placeholder="DE_USTG"
+                      disabled={viewMode === 'edit'}
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-theme-text-secondary mb-1">
+                      {t('rulesets.version')} *
+                    </label>
+                    <input
+                      type="text"
+                      value={editForm.version || ''}
+                      onChange={(e) => setEditForm({ ...editForm, version: e.target.value })}
+                      className="w-full px-3 py-2 bg-theme-input border border-theme-border-default rounded-lg text-theme-text-primary focus:ring-2 focus:ring-accent-primary"
+                      placeholder="1.0.0"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-theme-text-secondary mb-1">
+                      {t('rulesets.titleDe')} *
+                    </label>
+                    <input
+                      type="text"
+                      value={editForm.title_de || ''}
+                      onChange={(e) => setEditForm({ ...editForm, title_de: e.target.value })}
+                      className="w-full px-3 py-2 bg-theme-input border border-theme-border-default rounded-lg text-theme-text-primary focus:ring-2 focus:ring-accent-primary"
+                      placeholder="Deutschland – Umsatzsteuergesetz"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-theme-text-secondary mb-1">
+                      {t('rulesets.titleEn')} *
+                    </label>
+                    <input
+                      type="text"
+                      value={editForm.title_en || ''}
+                      onChange={(e) => setEditForm({ ...editForm, title_en: e.target.value })}
+                      className="w-full px-3 py-2 bg-theme-input border border-theme-border-default rounded-lg text-theme-text-primary focus:ring-2 focus:ring-accent-primary"
+                      placeholder="Germany – VAT Act"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-theme-text-secondary mb-1">
+                      {t('rulesets.jurisdiction')}
+                    </label>
+                    <select
+                      value={editForm.jurisdiction || 'DE'}
+                      onChange={(e) => setEditForm({ ...editForm, jurisdiction: e.target.value })}
+                      className="w-full px-3 py-2 bg-theme-input border border-theme-border-default rounded-lg text-theme-text-primary focus:ring-2 focus:ring-accent-primary"
+                    >
+                      <option value="DE">Deutschland (DE)</option>
+                      <option value="AT">Österreich (AT)</option>
+                      <option value="CH">Schweiz (CH)</option>
+                      <option value="EU">Europäische Union (EU)</option>
+                      <option value="UK">Großbritannien (UK)</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-theme-text-secondary mb-1">
+                      {t('rulesets.currency')}
+                    </label>
+                    <select
+                      value={editForm.currency_default || 'EUR'}
+                      onChange={(e) => setEditForm({ ...editForm, currency_default: e.target.value })}
+                      className="w-full px-3 py-2 bg-theme-input border border-theme-border-default rounded-lg text-theme-text-primary focus:ring-2 focus:ring-accent-primary"
+                    >
+                      <option value="EUR">Euro (EUR)</option>
+                      <option value="CHF">Schweizer Franken (CHF)</option>
+                      <option value="GBP">Britisches Pfund (GBP)</option>
+                      <option value="USD">US-Dollar (USD)</option>
+                    </select>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* Tab Content: Features */}
+            {editTab === 'features' && (
+              <div className="bg-theme-card rounded-lg border border-theme-border-default p-6">
+                <div className="flex items-center justify-between mb-4">
+                  <h3 className="text-lg font-semibold text-theme-text-primary">{t('rulesets.features')}</h3>
+                  <button
+                    onClick={handleAddFeature}
+                    className="flex items-center px-3 py-1.5 text-sm bg-accent-primary/10 text-accent-primary rounded-lg hover:bg-accent-primary/20 transition-colors"
+                  >
+                    <Plus className="h-4 w-4 mr-1" />
+                    {t('rulesets.addFeature')}
                   </button>
                 </div>
 
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                  <div>
-                    <label className="block text-xs font-medium text-theme-text-muted mb-1">
-                      Feature-ID
-                    </label>
-                    <input
-                      type="text"
-                      value={feature.feature_id}
-                      onChange={(e) => handleUpdateFeature(index, { feature_id: e.target.value })}
-                      className="w-full px-2 py-1.5 text-sm bg-theme-input border border-theme-border-default rounded text-theme-text-primary focus:ring-2 focus:ring-accent-primary"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-xs font-medium text-theme-text-muted mb-1">
-                      Kategorie
-                    </label>
-                    <select
-                      value={feature.category}
-                      onChange={(e) => handleUpdateFeature(index, { category: e.target.value })}
-                      className="w-full px-2 py-1.5 text-sm bg-theme-input border border-theme-border-default rounded text-theme-text-primary focus:ring-2 focus:ring-accent-primary"
-                    >
-                      <option value="IDENTITY">Identität</option>
-                      <option value="DATE">Datum</option>
-                      <option value="AMOUNT">Betrag</option>
-                      <option value="TAX">Steuer</option>
-                      <option value="TEXT">Text</option>
-                    </select>
-                  </div>
-                  <div>
-                    <label className="block text-xs font-medium text-theme-text-muted mb-1">
-                      Name (DE)
-                    </label>
-                    <input
-                      type="text"
-                      value={feature.name_de}
-                      onChange={(e) => handleUpdateFeature(index, { name_de: e.target.value })}
-                      className="w-full px-2 py-1.5 text-sm bg-theme-input border border-theme-border-default rounded text-theme-text-primary focus:ring-2 focus:ring-accent-primary"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-xs font-medium text-theme-text-muted mb-1">
-                      Name (EN)
-                    </label>
-                    <input
-                      type="text"
-                      value={feature.name_en}
-                      onChange={(e) => handleUpdateFeature(index, { name_en: e.target.value })}
-                      className="w-full px-2 py-1.5 text-sm bg-theme-input border border-theme-border-default rounded text-theme-text-primary focus:ring-2 focus:ring-accent-primary"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-xs font-medium text-theme-text-muted mb-1">
-                      Rechtsgrundlage
-                    </label>
-                    <input
-                      type="text"
-                      value={feature.legal_basis}
-                      onChange={(e) => handleUpdateFeature(index, { legal_basis: e.target.value })}
-                      className="w-full px-2 py-1.5 text-sm bg-theme-input border border-theme-border-default rounded text-theme-text-primary focus:ring-2 focus:ring-accent-primary"
-                      placeholder="§ 14 Abs. 4 Nr. 1 UStG"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-xs font-medium text-theme-text-muted mb-1">
-                      Erforderlichkeit
-                    </label>
-                    <select
-                      value={feature.required_level}
-                      onChange={(e) => handleUpdateFeature(index, { required_level: e.target.value as Feature['required_level'] })}
-                      className="w-full px-2 py-1.5 text-sm bg-theme-input border border-theme-border-default rounded text-theme-text-primary focus:ring-2 focus:ring-accent-primary"
-                    >
-                      <option value="REQUIRED">Pflicht</option>
-                      <option value="CONDITIONAL">Bedingt</option>
-                      <option value="OPTIONAL">Optional</option>
-                    </select>
-                  </div>
-                  <div className="md:col-span-2">
-                    <label className="block text-xs font-medium text-theme-text-muted mb-1">
-                      Erklärung (DE)
-                    </label>
-                    <textarea
-                      value={feature.explanation_de}
-                      onChange={(e) => handleUpdateFeature(index, { explanation_de: e.target.value })}
-                      className="w-full px-2 py-1.5 text-sm bg-theme-input border border-theme-border-default rounded text-theme-text-primary focus:ring-2 focus:ring-accent-primary"
-                      rows={2}
-                    />
-                  </div>
-                  <div className="md:col-span-2">
-                    <label className="block text-xs font-medium text-theme-text-muted mb-2">
-                      {t('rulesets.appliesTo')}
-                    </label>
-                    <div className="flex flex-wrap gap-3">
-                      {DOCUMENT_TYPES.map((docType) => (
-                        <label key={docType} className="flex items-center gap-1.5 text-sm">
+                <div className="space-y-4">
+                  {editForm.features?.map((feature, index) => (
+                    <div key={feature.feature_id} className="border border-theme-border-default rounded-lg p-4">
+                      <div className="flex items-start justify-between mb-4">
+                        <h4 className="font-medium text-theme-text-primary">
+                          {feature.name_de || `Merkmal ${index + 1}`}
+                        </h4>
+                        <button
+                          onClick={() => handleDeleteFeature(index)}
+                          className="p-1 text-status-danger hover:bg-status-danger-bg rounded transition-colors"
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </button>
+                      </div>
+
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                        <div>
+                          <label className="block text-xs font-medium text-theme-text-muted mb-1">
+                            Feature-ID
+                          </label>
                           <input
-                            type="checkbox"
-                            checked={feature.applies_to?.[docType] ?? (docType === 'standard_invoice')}
-                            onChange={(e) => handleUpdateFeature(index, {
-                              applies_to: {
-                                ...feature.applies_to,
-                                [docType]: e.target.checked
-                              }
-                            })}
-                            className="rounded border-theme-border-default text-accent-primary focus:ring-accent-primary"
+                            type="text"
+                            value={feature.feature_id}
+                            onChange={(e) => handleUpdateFeature(index, { feature_id: e.target.value })}
+                            className="w-full px-2 py-1.5 text-sm bg-theme-input border border-theme-border-default rounded text-theme-text-primary focus:ring-2 focus:ring-accent-primary"
                           />
-                          <span className="text-theme-text-secondary">{t(`rulesets.documentTypes.${docType}`)}</span>
-                        </label>
-                      ))}
+                        </div>
+                        <div>
+                          <label className="block text-xs font-medium text-theme-text-muted mb-1">
+                            Kategorie
+                          </label>
+                          <select
+                            value={feature.category}
+                            onChange={(e) => handleUpdateFeature(index, { category: e.target.value })}
+                            className="w-full px-2 py-1.5 text-sm bg-theme-input border border-theme-border-default rounded text-theme-text-primary focus:ring-2 focus:ring-accent-primary"
+                          >
+                            <option value="IDENTITY">Identität</option>
+                            <option value="DATE">Datum</option>
+                            <option value="AMOUNT">Betrag</option>
+                            <option value="TAX">Steuer</option>
+                            <option value="TEXT">Text</option>
+                          </select>
+                        </div>
+                        <div>
+                          <label className="block text-xs font-medium text-theme-text-muted mb-1">
+                            Name (DE)
+                          </label>
+                          <input
+                            type="text"
+                            value={feature.name_de}
+                            onChange={(e) => handleUpdateFeature(index, { name_de: e.target.value })}
+                            className="w-full px-2 py-1.5 text-sm bg-theme-input border border-theme-border-default rounded text-theme-text-primary focus:ring-2 focus:ring-accent-primary"
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-xs font-medium text-theme-text-muted mb-1">
+                            Name (EN)
+                          </label>
+                          <input
+                            type="text"
+                            value={feature.name_en}
+                            onChange={(e) => handleUpdateFeature(index, { name_en: e.target.value })}
+                            className="w-full px-2 py-1.5 text-sm bg-theme-input border border-theme-border-default rounded text-theme-text-primary focus:ring-2 focus:ring-accent-primary"
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-xs font-medium text-theme-text-muted mb-1">
+                            Rechtsgrundlage
+                          </label>
+                          <input
+                            type="text"
+                            value={feature.legal_basis}
+                            onChange={(e) => handleUpdateFeature(index, { legal_basis: e.target.value })}
+                            className="w-full px-2 py-1.5 text-sm bg-theme-input border border-theme-border-default rounded text-theme-text-primary focus:ring-2 focus:ring-accent-primary"
+                            placeholder="§ 14 Abs. 4 Nr. 1 UStG"
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-xs font-medium text-theme-text-muted mb-1">
+                            Erforderlichkeit
+                          </label>
+                          <select
+                            value={feature.required_level}
+                            onChange={(e) => handleUpdateFeature(index, { required_level: e.target.value as Feature['required_level'] })}
+                            className="w-full px-2 py-1.5 text-sm bg-theme-input border border-theme-border-default rounded text-theme-text-primary focus:ring-2 focus:ring-accent-primary"
+                          >
+                            <option value="REQUIRED">Pflicht</option>
+                            <option value="CONDITIONAL">Bedingt</option>
+                            <option value="OPTIONAL">Optional</option>
+                          </select>
+                        </div>
+                        <div className="md:col-span-2">
+                          <label className="block text-xs font-medium text-theme-text-muted mb-1">
+                            Erklärung (DE)
+                          </label>
+                          <textarea
+                            value={feature.explanation_de}
+                            onChange={(e) => handleUpdateFeature(index, { explanation_de: e.target.value })}
+                            className="w-full px-2 py-1.5 text-sm bg-theme-input border border-theme-border-default rounded text-theme-text-primary focus:ring-2 focus:ring-accent-primary"
+                            rows={2}
+                          />
+                        </div>
+                        <div className="md:col-span-2">
+                          <label className="block text-xs font-medium text-theme-text-muted mb-2">
+                            {t('rulesets.appliesTo')}
+                          </label>
+                          <div className="flex flex-wrap gap-3">
+                            {DOCUMENT_TYPES.map((docType) => (
+                              <label key={docType} className="flex items-center gap-1.5 text-sm">
+                                <input
+                                  type="checkbox"
+                                  checked={feature.applies_to?.[docType] ?? (docType === 'standard_invoice')}
+                                  onChange={(e) => handleUpdateFeature(index, {
+                                    applies_to: {
+                                      ...feature.applies_to,
+                                      [docType]: e.target.checked
+                                    }
+                                  })}
+                                  className="rounded border-theme-border-default text-accent-primary focus:ring-accent-primary"
+                                />
+                                <span className="text-theme-text-secondary">{t(`rulesets.documentTypes.${docType}`)}</span>
+                              </label>
+                            ))}
+                          </div>
+                        </div>
+                      </div>
                     </div>
-                  </div>
+                  ))}
+
+                  {(!editForm.features || editForm.features.length === 0) && (
+                    <div className="text-center py-8 text-theme-text-muted">
+                      <p>{t('rulesets.noFeatures')}</p>
+                      <button
+                        onClick={handleAddFeature}
+                        className="mt-2 text-accent-primary hover:underline"
+                      >
+                        {t('rulesets.addFirstFeature')}
+                      </button>
+                    </div>
+                  )}
                 </div>
               </div>
-            ))}
+            )}
 
-            {(!editForm.features || editForm.features.length === 0) && (
-              <div className="text-center py-8 text-theme-text-muted">
-                <p>{t('rulesets.noFeatures')}</p>
-                <button
-                  onClick={handleAddFeature}
-                  className="mt-2 text-accent-primary hover:underline"
-                >
-                  {t('rulesets.addFirstFeature')}
-                </button>
+            {/* Tab Content: Checkers (only in edit mode) */}
+            {editTab === 'checkers' && viewMode === 'edit' && selectedRuleset && (
+              <div className="bg-theme-card rounded-lg border border-theme-border-default p-6">
+                <div className="mb-4 p-4 bg-status-info-bg border border-status-info-border rounded-lg">
+                  <p className="text-sm text-status-info">
+                    {t('rulesets.checkersEditInfo', 'Konfigurieren Sie die Prüfmodule für dieses Regelwerk. Änderungen werden automatisch gespeichert.')}
+                  </p>
+                </div>
+                <CheckersSettings rulesetId={selectedRuleset.ruleset_id} />
               </div>
             )}
-          </div>
-        </div>
+          </>
+        )}
       </div>
     )
   }
