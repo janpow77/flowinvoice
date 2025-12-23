@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useMemo } from 'react'
 import { useTranslation } from 'react-i18next'
 import {
   FolderPlus,
@@ -21,12 +21,84 @@ import {
   Play,
   Pause,
   RotateCcw,
-  ChevronRight,
+  Zap,
 } from 'lucide-react'
 import clsx from 'clsx'
 
-// --- CSS Animationen (wie Login-Seite) ---
+// --- CSS Animationen für 3D Orbital Infografik ---
 const cssAnimations = `
+  /* Orbital Rotation */
+  @keyframes orbitRotate {
+    from { transform: rotateZ(0deg); }
+    to { transform: rotateZ(360deg); }
+  }
+
+  @keyframes orbitRotateSlow {
+    from { transform: rotateZ(0deg); }
+    to { transform: rotateZ(-360deg); }
+  }
+
+  /* Core Pulsing */
+  @keyframes corePulse {
+    0%, 100% {
+      transform: scale(1);
+      box-shadow: 0 0 40px rgba(96, 165, 250, 0.4), 0 0 80px rgba(96, 165, 250, 0.2);
+    }
+    50% {
+      transform: scale(1.05);
+      box-shadow: 0 0 60px rgba(96, 165, 250, 0.6), 0 0 120px rgba(96, 165, 250, 0.3);
+    }
+  }
+
+  .core-pulse {
+    animation: corePulse 3s ease-in-out infinite;
+  }
+
+  /* Node Glow */
+  @keyframes nodeGlow {
+    0%, 100% {
+      box-shadow: 0 0 20px rgba(96, 165, 250, 0.3);
+      filter: brightness(1);
+    }
+    50% {
+      box-shadow: 0 0 40px rgba(96, 165, 250, 0.6);
+      filter: brightness(1.1);
+    }
+  }
+
+  .node-glow {
+    animation: nodeGlow 2s ease-in-out infinite;
+  }
+
+  /* Data Flow Animation */
+  @keyframes dataFlow {
+    0% { transform: translateX(0); }
+    100% { transform: translateX(-50%); }
+  }
+
+  .data-flow {
+    animation: dataFlow 20s linear infinite;
+  }
+
+  .data-flow-fast {
+    animation: dataFlow 15s linear infinite;
+  }
+
+  .data-flow-slow {
+    animation: dataFlow 25s linear infinite reverse;
+  }
+
+  /* Binary Pulse */
+  @keyframes binaryPulse {
+    0%, 100% { opacity: 0.3; }
+    50% { opacity: 0.7; }
+  }
+
+  .binary-pulse {
+    animation: binaryPulse 3s ease-in-out infinite;
+  }
+
+  /* Fish Swim */
   @keyframes fishSwim {
     0%, 100% {
       transform: translateX(0) translateY(0) rotate(0deg);
@@ -47,41 +119,18 @@ const cssAnimations = `
     filter: drop-shadow(0 0 20px rgba(96, 165, 250, 0.6));
   }
 
-  @keyframes dataFlow {
-    0% { transform: translateX(0); }
-    100% { transform: translateX(-50%); }
+  /* Connector Flow */
+  @keyframes connectorFlow {
+    0% { stroke-dashoffset: 20; }
+    100% { stroke-dashoffset: 0; }
   }
 
-  .data-flow {
-    animation: dataFlow 20s linear infinite;
+  .connector-flow {
+    stroke-dasharray: 10, 5;
+    animation: connectorFlow 1s linear infinite;
   }
 
-  .data-flow-fast {
-    animation: dataFlow 15s linear infinite;
-  }
-
-  .data-flow-slow {
-    animation: dataFlow 25s linear infinite reverse;
-  }
-
-  @keyframes binaryPulse {
-    0%, 100% { opacity: 0.3; }
-    50% { opacity: 0.7; }
-  }
-
-  .binary-pulse {
-    animation: binaryPulse 3s ease-in-out infinite;
-  }
-
-  @keyframes nodeGlow {
-    0%, 100% { box-shadow: 0 0 20px rgba(96, 165, 250, 0.3); }
-    50% { box-shadow: 0 0 40px rgba(96, 165, 250, 0.6); }
-  }
-
-  .node-glow {
-    animation: nodeGlow 2s ease-in-out infinite;
-  }
-
+  /* Float Animation */
   @keyframes float {
     0%, 100% { transform: translateY(0); }
     50% { transform: translateY(-10px); }
@@ -91,27 +140,74 @@ const cssAnimations = `
     animation: float 3s ease-in-out infinite;
   }
 
-  @keyframes pulse-ring {
-    0% { transform: scale(1); opacity: 1; }
-    100% { transform: scale(1.5); opacity: 0; }
-  }
-
-  .pulse-ring {
-    animation: pulse-ring 2s ease-out infinite;
-  }
-
+  /* Slide In */
   @keyframes slideIn {
-    from { opacity: 0; transform: translateX(20px); }
-    to { opacity: 1; transform: translateX(0); }
+    from { opacity: 0; transform: translateY(20px); }
+    to { opacity: 1; transform: translateY(0); }
   }
 
   .animate-slide-in {
     animation: slideIn 0.5s ease-out forwards;
   }
 
-  @keyframes progress {
-    from { width: 0%; }
-    to { width: 100%; }
+  /* Pulse Ring */
+  @keyframes pulseRing {
+    0% { transform: scale(1); opacity: 1; }
+    100% { transform: scale(2); opacity: 0; }
+  }
+
+  .pulse-ring {
+    animation: pulseRing 2s ease-out infinite;
+  }
+
+  /* Particle Float */
+  @keyframes particleFloat {
+    0%, 100% {
+      transform: translateY(0) translateX(0) scale(1);
+      opacity: 0.6;
+    }
+    25% {
+      transform: translateY(-20px) translateX(10px) scale(1.2);
+      opacity: 0.8;
+    }
+    50% {
+      transform: translateY(-40px) translateX(-5px) scale(0.8);
+      opacity: 0.4;
+    }
+    75% {
+      transform: translateY(-20px) translateX(-15px) scale(1.1);
+      opacity: 0.7;
+    }
+  }
+
+  /* Zoom Focus */
+  @keyframes zoomFocus {
+    from { transform: scale(1); }
+    to { transform: scale(1.15); }
+  }
+
+  /* 3D Perspective Container */
+  .perspective-container {
+    perspective: 1200px;
+    transform-style: preserve-3d;
+  }
+
+  .orbital-stage {
+    transform-style: preserve-3d;
+    transform: rotateX(20deg);
+  }
+
+  /* Glassmorphism */
+  .glass-panel {
+    background: rgba(255, 255, 255, 0.08);
+    backdrop-filter: blur(12px);
+    border: 1px solid rgba(255, 255, 255, 0.15);
+  }
+
+  .glass-panel-strong {
+    background: rgba(255, 255, 255, 0.12);
+    backdrop-filter: blur(16px);
+    border: 1px solid rgba(255, 255, 255, 0.2);
   }
 `
 
@@ -129,6 +225,7 @@ interface WorkflowNode {
   description: string
   icon: React.ComponentType<{ className?: string }>
   color: string
+  colorRgb: string
   details: string[]
   glossaryTerms: { term: string; definition: string }[]
 }
@@ -159,7 +256,7 @@ const SAMPLE_PROJECT = {
   ],
 }
 
-// Workflow-Knoten mit Glossar-Begriffen
+// Workflow-Knoten mit Glossar-Begriffen und RGB-Farben für Glow-Effekte
 const WORKFLOW_NODES: WorkflowNode[] = [
   {
     id: 'project',
@@ -168,6 +265,7 @@ const WORKFLOW_NODES: WorkflowNode[] = [
     description: 'Förderprojekt mit Begünstigten erstellen',
     icon: FolderPlus,
     color: 'from-blue-400 to-blue-600',
+    colorRgb: '96, 165, 250',
     details: ['Projekttitel', 'Aktenzeichen', 'Zeitraum', 'Begünstigter', 'Regelwerk'],
     glossaryTerms: [
       { term: 'Begünstigter', definition: 'Der Zuwendungsempfänger des Förderprojekts, dessen Rechnungen geprüft werden.' },
@@ -181,6 +279,7 @@ const WORKFLOW_NODES: WorkflowNode[] = [
     description: 'PDF-Rechnungen ins System laden',
     icon: Upload,
     color: 'from-green-400 to-green-600',
+    colorRgb: '74, 222, 128',
     details: ['PDF-Upload', 'OCR-Erkennung', 'Batch-Upload', 'Validierung'],
     glossaryTerms: [
       { term: 'OCR', definition: 'Optical Character Recognition - Texterkennung aus gescannten Dokumenten.' },
@@ -193,6 +292,7 @@ const WORKFLOW_NODES: WorkflowNode[] = [
     description: 'Dokumente für KI aufbereiten',
     icon: Scissors,
     color: 'from-purple-400 to-purple-600',
+    colorRgb: '192, 132, 252',
     details: ['Text-Extraktion', 'Token-Chunking', 'Embeddings', 'Vektorspeicher'],
     glossaryTerms: [
       { term: 'Chunk', definition: 'Ein Textabschnitt aus einem Dokument, aufgeteilt für LLM-Verarbeitung.' },
@@ -207,6 +307,7 @@ const WORKFLOW_NODES: WorkflowNode[] = [
     description: 'Pflichtmerkmale nach §14 UStG',
     icon: BookOpen,
     color: 'from-orange-400 to-orange-600',
+    colorRgb: '251, 146, 60',
     details: ['14 Pflichtmerkmale', 'Kleinbetragsrechnung', 'Reverse-Charge', 'EU-Lieferung'],
     glossaryTerms: [
       { term: 'Pflichtmerkmal', definition: 'Gesetzlich vorgeschriebene Angabe auf einer Rechnung nach §14 UStG.' },
@@ -220,6 +321,7 @@ const WORKFLOW_NODES: WorkflowNode[] = [
     description: 'Intelligente Extraktion & Bewertung',
     icon: Brain,
     color: 'from-pink-400 to-pink-600',
+    colorRgb: '244, 114, 182',
     details: ['RAG-System', 'Few-Shot Learning', 'Semantik-Analyse', 'Konfidenz'],
     glossaryTerms: [
       { term: 'LLM', definition: 'Large Language Model - KI-Modell für Sprachverarbeitung (GPT, Claude, Llama).' },
@@ -234,6 +336,7 @@ const WORKFLOW_NODES: WorkflowNode[] = [
     description: 'Spezialisierte Validierungen',
     icon: Shield,
     color: 'from-red-400 to-red-600',
+    colorRgb: '248, 113, 113',
     details: ['Zeitraum-Check', 'Risiko-Erkennung', 'Semantik-Prüfung', 'Wirtschaftlichkeit'],
     glossaryTerms: [
       { term: 'Selbstrechnung', definition: 'Risiko: Der Begünstigte stellt sich selbst eine Rechnung aus.' },
@@ -247,6 +350,7 @@ const WORKFLOW_NODES: WorkflowNode[] = [
     description: 'Bewertung und Lernschleife',
     icon: CheckCircle,
     color: 'from-emerald-400 to-emerald-600',
+    colorRgb: '52, 211, 153',
     details: ['Gesamtbewertung', 'Fehlerhinweise', 'Korrektur', 'RAG-Lernen'],
     glossaryTerms: [
       { term: 'Feedback-Loop', definition: 'Nutzer-Korrekturen verbessern zukünftige KI-Analysen.' },
@@ -259,6 +363,7 @@ const WORKFLOW_NODES: WorkflowNode[] = [
     description: 'Dokumentation und Ausgabe',
     icon: FileText,
     color: 'from-cyan-400 to-cyan-600',
+    colorRgb: '34, 211, 238',
     details: ['Belegliste', 'PDF-Report', 'Excel-Export', 'Archivierung'],
     glossaryTerms: [
       { term: 'Prüfbericht', definition: 'Dokumentation aller Prüfergebnisse als PDF oder Excel.' },
@@ -268,7 +373,7 @@ const WORKFLOW_NODES: WorkflowNode[] = [
 
 // Binäres Datenwasser Komponente
 const BinaryDataWater = () => (
-  <div className="absolute bottom-0 left-0 right-0 h-32 overflow-hidden pointer-events-none">
+  <div className="absolute bottom-0 left-0 right-0 h-32 overflow-hidden pointer-events-none z-10">
     <div className="absolute bottom-0 left-0 right-0 h-24 bg-gradient-to-t from-blue-950/80 via-blue-900/50 to-transparent">
       <div className="data-flow-slow whitespace-nowrap font-mono text-xs pt-4">
         <span className="text-blue-400/30">{BINARY_LINES[0]} {BINARY_LINES[0]}</span>
@@ -285,6 +390,236 @@ const BinaryDataWater = () => (
   </div>
 )
 
+// SVG Bezier Connectors zwischen Nodes
+interface ConnectorProps {
+  fromAngle: number
+  toAngle: number
+  radius: number
+  isActive: boolean
+  color: string
+}
+
+const OrbitalConnector = ({ fromAngle, toAngle, radius, isActive, color }: ConnectorProps) => {
+  const fromRad = (fromAngle * Math.PI) / 180
+  const toRad = (toAngle * Math.PI) / 180
+
+  const x1 = Math.cos(fromRad) * radius
+  const y1 = Math.sin(fromRad) * radius
+  const x2 = Math.cos(toRad) * radius
+  const y2 = Math.sin(toRad) * radius
+
+  // Control points for curved path
+  const midAngle = (fromAngle + toAngle) / 2
+  const midRad = (midAngle * Math.PI) / 180
+  const controlRadius = radius * 0.7
+  const cx = Math.cos(midRad) * controlRadius
+  const cy = Math.sin(midRad) * controlRadius
+
+  return (
+    <path
+      d={`M ${x1} ${y1} Q ${cx} ${cy} ${x2} ${y2}`}
+      fill="none"
+      stroke={isActive ? color : 'rgba(255,255,255,0.15)'}
+      strokeWidth={isActive ? 3 : 1.5}
+      className={isActive ? 'connector-flow' : ''}
+      style={{
+        filter: isActive ? `drop-shadow(0 0 8px ${color})` : 'none',
+        transition: 'all 0.5s ease'
+      }}
+    />
+  )
+}
+
+// Orbital Node Component
+interface OrbitalNodeProps {
+  node: WorkflowNode
+  index: number
+  totalNodes: number
+  radius: number
+  isActive: boolean
+  isCompleted: boolean
+  onClick: () => void
+  rotationOffset: number
+}
+
+const OrbitalNode = ({
+  node,
+  index,
+  totalNodes,
+  radius,
+  isActive,
+  isCompleted,
+  onClick,
+  rotationOffset
+}: OrbitalNodeProps) => {
+  const baseAngle = (360 / totalNodes) * index - 90 // Start from top
+  const angle = baseAngle + rotationOffset
+  const angleRad = (angle * Math.PI) / 180
+
+  const x = Math.cos(angleRad) * radius
+  const y = Math.sin(angleRad) * radius
+
+  const Icon = node.icon
+
+  return (
+    <div
+      className={clsx(
+        'absolute flex flex-col items-center cursor-pointer transition-all duration-500',
+        isActive && 'z-30'
+      )}
+      style={{
+        left: `calc(50% + ${x}px)`,
+        top: `calc(50% + ${y}px)`,
+        transform: `translate(-50%, -50%) ${isActive ? 'scale(1.2)' : 'scale(1)'}`,
+      }}
+      onClick={onClick}
+    >
+      {/* Pulse Ring for Active Node */}
+      {isActive && (
+        <div
+          className="absolute w-20 h-20 rounded-full pulse-ring"
+          style={{
+            background: `radial-gradient(circle, rgba(${node.colorRgb}, 0.4) 0%, transparent 70%)`
+          }}
+        />
+      )}
+
+      {/* Node Circle */}
+      <div
+        className={clsx(
+          'w-16 h-16 rounded-full flex items-center justify-center transition-all duration-300',
+          'border-2 glass-panel-strong',
+          isActive
+            ? `bg-gradient-to-br ${node.color} border-white/40 node-glow`
+            : isCompleted
+            ? 'bg-emerald-500/80 border-emerald-400/60'
+            : 'bg-white/10 border-white/20 hover:bg-white/20 hover:border-white/30'
+        )}
+        style={{
+          boxShadow: isActive
+            ? `0 0 30px rgba(${node.colorRgb}, 0.5), 0 0 60px rgba(${node.colorRgb}, 0.3)`
+            : isCompleted
+            ? '0 0 20px rgba(52, 211, 153, 0.4)'
+            : '0 4px 20px rgba(0,0,0,0.2)'
+        }}
+      >
+        {isCompleted && !isActive ? (
+          <CheckCircle className="w-7 h-7 text-white" />
+        ) : (
+          <Icon className="w-7 h-7 text-white" />
+        )}
+      </div>
+
+      {/* Label */}
+      <div
+        className={clsx(
+          'mt-2 px-3 py-1 rounded-lg text-xs font-medium transition-all duration-300',
+          isActive
+            ? 'bg-white/20 text-white backdrop-blur-sm'
+            : 'text-white/70'
+        )}
+      >
+        {node.shortTitle}
+      </div>
+    </div>
+  )
+}
+
+// Central Core Component
+interface CentralCoreProps {
+  currentNode: WorkflowNode
+  progress: number
+}
+
+const CentralCore = ({ currentNode, progress }: CentralCoreProps) => {
+  const Icon = currentNode.icon
+
+  return (
+    <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 z-20">
+      {/* Outer Glow Ring */}
+      <div
+        className="absolute -inset-8 rounded-full opacity-30"
+        style={{
+          background: `radial-gradient(circle, rgba(${currentNode.colorRgb}, 0.4) 0%, transparent 70%)`
+        }}
+      />
+
+      {/* Progress Ring */}
+      <svg className="absolute -inset-4 w-[calc(100%+32px)] h-[calc(100%+32px)]" viewBox="0 0 120 120">
+        <circle
+          cx="60"
+          cy="60"
+          r="54"
+          fill="none"
+          stroke="rgba(255,255,255,0.1)"
+          strokeWidth="4"
+        />
+        <circle
+          cx="60"
+          cy="60"
+          r="54"
+          fill="none"
+          stroke={`rgba(${currentNode.colorRgb}, 0.8)`}
+          strokeWidth="4"
+          strokeLinecap="round"
+          strokeDasharray={`${2 * Math.PI * 54}`}
+          strokeDashoffset={`${2 * Math.PI * 54 * (1 - progress / 100)}`}
+          transform="rotate(-90 60 60)"
+          style={{ transition: 'stroke-dashoffset 0.1s linear' }}
+        />
+      </svg>
+
+      {/* Core Circle */}
+      <div
+        className={clsx(
+          'w-24 h-24 rounded-full flex flex-col items-center justify-center',
+          'glass-panel-strong core-pulse'
+        )}
+        style={{
+          background: `linear-gradient(135deg, rgba(${currentNode.colorRgb}, 0.3) 0%, rgba(${currentNode.colorRgb}, 0.1) 100%)`,
+          boxShadow: `0 0 40px rgba(${currentNode.colorRgb}, 0.4), 0 0 80px rgba(${currentNode.colorRgb}, 0.2), inset 0 0 30px rgba(255,255,255,0.1)`
+        }}
+      >
+        <Icon className="w-10 h-10 text-white mb-1" />
+        <span className="text-white/80 text-xs font-medium">Flow</span>
+      </div>
+    </div>
+  )
+}
+
+// Floating Particles
+const FloatingParticles = () => {
+  const particles = useMemo(() =>
+    Array.from({ length: 12 }, (_, i) => ({
+      id: i,
+      x: Math.random() * 100,
+      y: Math.random() * 100,
+      size: 2 + Math.random() * 4,
+      delay: Math.random() * 5,
+      duration: 4 + Math.random() * 4
+    })), []
+  )
+
+  return (
+    <div className="absolute inset-0 overflow-hidden pointer-events-none">
+      {particles.map(p => (
+        <div
+          key={p.id}
+          className="absolute rounded-full bg-blue-300/30"
+          style={{
+            left: `${p.x}%`,
+            top: `${p.y}%`,
+            width: p.size,
+            height: p.size,
+            animation: `particleFloat ${p.duration}s ease-in-out infinite`,
+            animationDelay: `${p.delay}s`
+          }}
+        />
+      ))}
+    </div>
+  )
+}
+
 export default function Training() {
   const { i18n } = useTranslation()
   const lang = i18n.language
@@ -295,20 +630,21 @@ export default function Training() {
   const [showGlossary, setShowGlossary] = useState(false)
   const [showSampleProject, setShowSampleProject] = useState(false)
   const [progress, setProgress] = useState<number>(0)
+  const [rotationOffset, setRotationOffset] = useState<number>(0)
 
   const selectedRuleset = DEMO_RULESETS.find(r => r.id === selectedRulesetId) || DEMO_RULESETS[0]
   const currentNode = WORKFLOW_NODES[currentStep]
 
   const STEP_DURATION = 5000 // 5 Sekunden pro Schritt
+  const ORBIT_RADIUS = 180 // Radius der Umlaufbahn
 
-  // Auto-Animation
+  // Auto-Animation mit Orbital-Rotation
   useEffect(() => {
     if (!isPlaying) return
 
     const progressInterval = setInterval(() => {
       setProgress(prev => {
         if (prev >= 100) {
-          // Nächster Schritt
           setCurrentStep(step => {
             if (step >= WORKFLOW_NODES.length - 1) {
               setIsPlaying(false)
@@ -320,6 +656,9 @@ export default function Training() {
         }
         return prev + (100 / (STEP_DURATION / 100))
       })
+
+      // Sanfte Orbital-Rotation während Animation
+      setRotationOffset(prev => (prev + 0.2) % 360)
     }, 100)
 
     return () => clearInterval(progressInterval)
@@ -343,6 +682,7 @@ export default function Training() {
     setIsPlaying(false)
     setCurrentStep(0)
     setProgress(0)
+    setRotationOffset(0)
   }, [])
 
   const handleStepClick = useCallback((index: number) => {
@@ -351,9 +691,17 @@ export default function Training() {
     setProgress(0)
   }, [])
 
+  // Berechne Winkel für Connectors
+  const getNodeAngle = (index: number) => {
+    return (360 / WORKFLOW_NODES.length) * index - 90
+  }
+
   return (
     <div className="min-h-screen bg-gradient-to-b from-blue-900 via-blue-700 to-blue-500 relative overflow-hidden">
       <style>{cssAnimations}</style>
+
+      {/* Floating Particles */}
+      <FloatingParticles />
 
       {/* Binäres Datenwasser am unteren Rand */}
       <BinaryDataWater />
@@ -370,9 +718,9 @@ export default function Training() {
       {/* Hauptinhalt */}
       <div className="relative z-20 p-6 pb-40">
         {/* Header */}
-        <div className="flex items-center justify-between flex-wrap gap-4 mb-6">
+        <div className="flex items-center justify-between flex-wrap gap-4 mb-4">
           <div className="flex items-center gap-4">
-            <div className="p-3 bg-white/10 backdrop-blur-sm rounded-xl border border-white/20">
+            <div className="p-3 glass-panel rounded-xl">
               <img src="/auditlogo.png" alt="FlowAudit" className="w-10 h-10 object-contain" />
             </div>
             <div>
@@ -380,7 +728,7 @@ export default function Training() {
                 {lang === 'de' ? 'Interaktive Schulung' : 'Interactive Training'}
               </h1>
               <p className="text-blue-200 text-sm">
-                {lang === 'de' ? 'Wählen Sie ein Regelwerk und starten Sie die Animation' : 'Select a ruleset and start the animation'}
+                {lang === 'de' ? '3D Workflow-Visualisierung' : '3D Workflow Visualization'}
               </p>
             </div>
           </div>
@@ -389,7 +737,7 @@ export default function Training() {
             <select
               value={selectedRulesetId}
               onChange={(e) => setSelectedRulesetId(e.target.value)}
-              className="px-4 py-2 bg-white/10 backdrop-blur-sm border border-white/20 rounded-lg text-white text-sm focus:ring-2 focus:ring-blue-300"
+              className="px-4 py-2 glass-panel rounded-lg text-white text-sm focus:ring-2 focus:ring-blue-300"
             >
               {DEMO_RULESETS.map((rs) => (
                 <option key={rs.id} value={rs.id} className="bg-blue-900 text-white">{rs.titleShort}</option>
@@ -398,7 +746,7 @@ export default function Training() {
 
             <button
               onClick={() => setShowSampleProject(true)}
-              className="flex items-center gap-2 px-4 py-2 bg-white/10 backdrop-blur-sm border border-white/20 text-white rounded-lg hover:bg-white/20 transition-colors text-sm"
+              className="flex items-center gap-2 px-4 py-2 glass-panel text-white rounded-lg hover:bg-white/20 transition-colors text-sm"
             >
               <FolderPlus className="w-4 h-4" />
               Musterprojekt
@@ -406,7 +754,7 @@ export default function Training() {
 
             <button
               onClick={() => setShowGlossary(true)}
-              className="flex items-center gap-2 px-4 py-2 bg-white/10 backdrop-blur-sm border border-white/20 text-white rounded-lg hover:bg-white/20 transition-colors text-sm"
+              className="flex items-center gap-2 px-4 py-2 glass-panel text-white rounded-lg hover:bg-white/20 transition-colors text-sm"
             >
               <Info className="w-4 h-4" />
               Glossar
@@ -415,10 +763,10 @@ export default function Training() {
         </div>
 
         {/* Steuerung */}
-        <div className="flex items-center justify-center gap-4 mb-6">
+        <div className="flex items-center justify-center gap-4 mb-4">
           <button
             onClick={handleReset}
-            className="p-3 bg-white/10 backdrop-blur-sm border border-white/20 rounded-full hover:bg-white/20 transition-colors"
+            className="p-3 glass-panel rounded-full hover:bg-white/20 transition-colors"
             title="Zurücksetzen"
           >
             <RotateCcw className="w-5 h-5 text-white" />
@@ -446,107 +794,99 @@ export default function Training() {
             )}
           </button>
 
-          <div className="text-white/70 text-sm">
+          <div className="text-white/70 text-sm flex items-center gap-2">
+            <Zap className="w-4 h-4" />
             Schritt {currentStep + 1} / {WORKFLOW_NODES.length}
           </div>
         </div>
 
-        {/* Fortschrittsbalken */}
-        <div className="bg-white/10 backdrop-blur-sm rounded-full h-3 mb-6 overflow-hidden border border-white/20">
-          <div className="flex h-full">
+        {/* 3D Orbital Infographic */}
+        <div className="perspective-container mx-auto" style={{ maxWidth: '800px' }}>
+          <div
+            className="orbital-stage relative mx-auto"
+            style={{
+              width: ORBIT_RADIUS * 2 + 160,
+              height: ORBIT_RADIUS * 2 + 160
+            }}
+          >
+            {/* SVG Connectors Layer */}
+            <svg
+              className="absolute inset-0 w-full h-full pointer-events-none"
+              viewBox={`${-ORBIT_RADIUS - 80} ${-ORBIT_RADIUS - 80} ${(ORBIT_RADIUS + 80) * 2} ${(ORBIT_RADIUS + 80) * 2}`}
+            >
+              {/* Orbital Ring */}
+              <circle
+                cx="0"
+                cy="0"
+                r={ORBIT_RADIUS}
+                fill="none"
+                stroke="rgba(255,255,255,0.1)"
+                strokeWidth="2"
+                strokeDasharray="8, 4"
+              />
+
+              {/* Connectors between nodes */}
+              {WORKFLOW_NODES.map((_, index) => {
+                const nextIndex = (index + 1) % WORKFLOW_NODES.length
+                const isActiveConnector = index === currentStep
+                return (
+                  <OrbitalConnector
+                    key={`connector-${index}`}
+                    fromAngle={getNodeAngle(index) + rotationOffset}
+                    toAngle={getNodeAngle(nextIndex) + rotationOffset}
+                    radius={ORBIT_RADIUS}
+                    isActive={isActiveConnector}
+                    color={`rgba(${WORKFLOW_NODES[index].colorRgb}, 0.8)`}
+                  />
+                )
+              })}
+            </svg>
+
+            {/* Central Core */}
+            <CentralCore currentNode={currentNode} progress={progress} />
+
+            {/* Orbital Nodes */}
             {WORKFLOW_NODES.map((node, index) => (
-              <div
+              <OrbitalNode
                 key={node.id}
-                className="relative flex-1 cursor-pointer"
+                node={node}
+                index={index}
+                totalNodes={WORKFLOW_NODES.length}
+                radius={ORBIT_RADIUS}
+                isActive={index === currentStep}
+                isCompleted={index < currentStep}
                 onClick={() => handleStepClick(index)}
-              >
-                <div
-                  className={clsx(
-                    'h-full transition-all duration-300',
-                    index < currentStep
-                      ? 'bg-emerald-500'
-                      : index === currentStep
-                      ? 'bg-blue-400'
-                      : 'bg-transparent'
-                  )}
-                  style={{
-                    width: index === currentStep ? `${progress}%` : index < currentStep ? '100%' : '0%'
-                  }}
-                />
-                {index < WORKFLOW_NODES.length - 1 && (
-                  <div className="absolute right-0 top-0 bottom-0 w-px bg-white/20" />
-                )}
-              </div>
+                rotationOffset={rotationOffset}
+              />
             ))}
           </div>
         </div>
 
-        {/* Schritt-Indikatoren */}
-        <div className="flex justify-between mb-8 px-2">
-          {WORKFLOW_NODES.map((node, index) => {
-            const Icon = node.icon
-            const isActive = index === currentStep
-            const isCompleted = index < currentStep
-
-            return (
-              <button
-                key={node.id}
-                onClick={() => handleStepClick(index)}
-                className={clsx(
-                  'flex flex-col items-center gap-1 transition-all duration-300',
-                  isActive && 'scale-110'
-                )}
-              >
-                <div className={clsx(
-                  'w-10 h-10 rounded-full flex items-center justify-center transition-all',
-                  isActive
-                    ? `bg-gradient-to-br ${node.color} ring-4 ring-white/30`
-                    : isCompleted
-                    ? 'bg-emerald-500'
-                    : 'bg-white/10 border border-white/20'
-                )}>
-                  {isCompleted ? (
-                    <CheckCircle className="w-5 h-5 text-white" />
-                  ) : (
-                    <Icon className={clsx('w-5 h-5', isActive ? 'text-white' : 'text-white/60')} />
-                  )}
-                </div>
-                <span className={clsx(
-                  'text-xs transition-colors',
-                  isActive ? 'text-white font-semibold' : 'text-white/50'
-                )}>
-                  {node.shortTitle}
-                </span>
-              </button>
-            )
-          })}
-        </div>
-
-        {/* Hauptbereich: Aktiver Schritt */}
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        {/* Detail Panel - unterhalb der Infografik */}
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mt-8 max-w-6xl mx-auto">
           {/* Schritt-Details */}
           <div className="lg:col-span-2">
-            <div className="bg-white/10 backdrop-blur-lg border border-white/20 rounded-2xl p-6 animate-slide-in" key={currentStep}>
+            <div className="glass-panel-strong rounded-2xl p-6 animate-slide-in" key={currentStep}>
               <div className="flex items-center gap-4 mb-6">
-                <div className={clsx('w-16 h-16 rounded-2xl bg-gradient-to-br flex items-center justify-center', currentNode.color)}>
-                  <currentNode.icon className="w-8 h-8 text-white" />
+                <div className={clsx('w-14 h-14 rounded-2xl bg-gradient-to-br flex items-center justify-center', currentNode.color)}>
+                  <currentNode.icon className="w-7 h-7 text-white" />
                 </div>
                 <div>
-                  <h2 className="text-2xl font-bold text-white">{currentStep + 1}. {currentNode.title}</h2>
-                  <p className="text-blue-200">{currentNode.description}</p>
+                  <h2 className="text-xl font-bold text-white">{currentStep + 1}. {currentNode.title}</h2>
+                  <p className="text-blue-200 text-sm">{currentNode.description}</p>
                 </div>
               </div>
 
               {/* Details des Schritts */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-6">
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-4">
                 {currentNode.details.map((detail, idx) => (
                   <div
                     key={idx}
-                    className="flex items-center gap-3 p-4 bg-white/5 rounded-xl border border-white/10 animate-slide-in"
+                    className="flex items-center gap-2 p-3 bg-white/5 rounded-xl border border-white/10 animate-slide-in"
                     style={{ animationDelay: `${idx * 100}ms` }}
                   >
-                    <ChevronRight className="w-5 h-5 text-emerald-400" />
-                    <span className="text-white">{detail}</span>
+                    <CheckCircle className="w-4 h-4 text-emerald-400 flex-shrink-0" />
+                    <span className="text-white text-sm">{detail}</span>
                   </div>
                 ))}
               </div>
@@ -564,10 +904,10 @@ export default function Training() {
 
           {/* Glossar-Begriffe für aktuellen Schritt */}
           <div className="lg:col-span-1">
-            <div className="bg-white/10 backdrop-blur-lg border border-white/20 rounded-2xl p-6">
+            <div className="glass-panel-strong rounded-2xl p-6 h-full">
               <div className="flex items-center gap-2 mb-4">
                 <Info className="w-5 h-5 text-blue-300" />
-                <h3 className="font-semibold text-white">Begriffe in diesem Schritt</h3>
+                <h3 className="font-semibold text-white">Begriffe</h3>
               </div>
 
               {currentNode.glossaryTerms.length > 0 ? (
@@ -575,28 +915,25 @@ export default function Training() {
                   {currentNode.glossaryTerms.map((term, idx) => (
                     <div
                       key={idx}
-                      className="p-4 bg-white/5 rounded-xl border border-white/10 animate-slide-in"
+                      className="p-3 bg-white/5 rounded-xl border border-white/10 animate-slide-in"
                       style={{ animationDelay: `${idx * 150}ms` }}
                     >
-                      <h4 className="font-semibold text-blue-300 mb-1">{term.term}</h4>
-                      <p className="text-sm text-white/80">{term.definition}</p>
+                      <h4 className="font-semibold text-blue-300 text-sm mb-1">{term.term}</h4>
+                      <p className="text-xs text-white/80">{term.definition}</p>
                     </div>
                   ))}
                 </div>
               ) : (
-                <p className="text-white/50 text-sm">Keine speziellen Begriffe in diesem Schritt.</p>
+                <p className="text-white/50 text-sm">Keine speziellen Begriffe.</p>
               )}
 
               {/* Musterprojekt-Kurzinfo */}
-              <div className="mt-6 p-4 bg-white/5 rounded-xl border border-white/10">
-                <div className="flex items-center gap-2 mb-2">
+              <div className="mt-4 p-3 bg-white/5 rounded-xl border border-white/10">
+                <div className="flex items-center gap-2 mb-1">
                   <FolderPlus className="w-4 h-4 text-blue-300" />
-                  <span className="text-sm font-medium text-white">Beispiel-Projekt</span>
+                  <span className="text-xs font-medium text-white">Beispiel</span>
                 </div>
-                <p className="text-xs text-white/70">{SAMPLE_PROJECT.title}</p>
-                <p className="text-xs text-white/50 mt-1">
-                  {SAMPLE_PROJECT.beneficiary.name}
-                </p>
+                <p className="text-xs text-white/70 truncate">{SAMPLE_PROJECT.title}</p>
               </div>
             </div>
           </div>
