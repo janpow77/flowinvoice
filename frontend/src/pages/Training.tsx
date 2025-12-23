@@ -636,7 +636,7 @@ export default function Training() {
   const currentNode = WORKFLOW_NODES[currentStep]
 
   const STEP_DURATION = 5000 // 5 Sekunden pro Schritt
-  const ORBIT_RADIUS = 180 // Radius der Umlaufbahn
+  const ORBIT_RADIUS = 220 // Radius der Umlaufbahn (größer für bessere Lesbarkeit)
 
   // Auto-Animation mit Orbital-Rotation
   useEffect(() => {
@@ -719,7 +719,8 @@ export default function Training() {
       <div className="relative z-20 p-6 pb-40">
         {/* Header */}
         <div className="flex items-center justify-between flex-wrap gap-4 mb-4">
-          <div className="flex items-center gap-4">
+          {/* Linke Seite: Logo, Titel und Auswahlfelder */}
+          <div className="flex items-center gap-4 flex-wrap">
             <div className="p-3 glass-panel rounded-xl">
               <img src="/auditlogo.png" alt="FlowAudit" className="w-10 h-10 object-contain" />
             </div>
@@ -731,34 +732,35 @@ export default function Training() {
                 {lang === 'de' ? '3D Workflow-Visualisierung' : '3D Workflow Visualization'}
               </p>
             </div>
-          </div>
 
-          <div className="flex items-center gap-3 flex-wrap">
-            <select
-              value={selectedRulesetId}
-              onChange={(e) => setSelectedRulesetId(e.target.value)}
-              className="px-4 py-2 glass-panel rounded-lg text-white text-sm focus:ring-2 focus:ring-blue-300"
-            >
-              {DEMO_RULESETS.map((rs) => (
-                <option key={rs.id} value={rs.id} className="bg-blue-900 text-white">{rs.titleShort}</option>
-              ))}
-            </select>
+            {/* Auswahlfelder - jetzt links */}
+            <div className="flex items-center gap-3 ml-4">
+              <select
+                value={selectedRulesetId}
+                onChange={(e) => setSelectedRulesetId(e.target.value)}
+                className="px-4 py-2 glass-panel rounded-lg text-white text-sm focus:ring-2 focus:ring-blue-300"
+              >
+                {DEMO_RULESETS.map((rs) => (
+                  <option key={rs.id} value={rs.id} className="bg-blue-900 text-white">{rs.titleShort}</option>
+                ))}
+              </select>
 
-            <button
-              onClick={() => setShowSampleProject(true)}
-              className="flex items-center gap-2 px-4 py-2 glass-panel text-white rounded-lg hover:bg-white/20 transition-colors text-sm"
-            >
-              <FolderPlus className="w-4 h-4" />
-              Musterprojekt
-            </button>
+              <button
+                onClick={() => setShowSampleProject(true)}
+                className="flex items-center gap-2 px-4 py-2 glass-panel text-white rounded-lg hover:bg-white/20 transition-colors text-sm"
+              >
+                <FolderPlus className="w-4 h-4" />
+                Musterprojekt
+              </button>
 
-            <button
-              onClick={() => setShowGlossary(true)}
-              className="flex items-center gap-2 px-4 py-2 glass-panel text-white rounded-lg hover:bg-white/20 transition-colors text-sm"
-            >
-              <Info className="w-4 h-4" />
-              Glossar
-            </button>
+              <button
+                onClick={() => setShowGlossary(true)}
+                className="flex items-center gap-2 px-4 py-2 glass-panel text-white rounded-lg hover:bg-white/20 transition-colors text-sm"
+              >
+                <Info className="w-4 h-4" />
+                Glossar
+              </button>
+            </div>
           </div>
         </div>
 
@@ -801,7 +803,7 @@ export default function Training() {
         </div>
 
         {/* 3D Orbital Infographic */}
-        <div className="perspective-container mx-auto" style={{ maxWidth: '800px' }}>
+        <div className="perspective-container mx-auto" style={{ maxWidth: '900px' }}>
           <div
             className="orbital-stage relative mx-auto"
             style={{
@@ -863,17 +865,17 @@ export default function Training() {
         </div>
 
         {/* Detail Panel - unterhalb der Infografik */}
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mt-8 max-w-6xl mx-auto">
+        <div className="grid grid-cols-1 lg:grid-cols-5 gap-6 mt-8 max-w-6xl mx-auto">
           {/* Schritt-Details */}
-          <div className="lg:col-span-2">
+          <div className="lg:col-span-3">
             <div className="glass-panel-strong rounded-2xl p-6 animate-slide-in" key={currentStep}>
               <div className="flex items-center gap-4 mb-6">
-                <div className={clsx('w-14 h-14 rounded-2xl bg-gradient-to-br flex items-center justify-center', currentNode.color)}>
-                  <currentNode.icon className="w-7 h-7 text-white" />
+                <div className={clsx('w-16 h-16 rounded-2xl bg-gradient-to-br flex items-center justify-center', currentNode.color)}>
+                  <currentNode.icon className="w-8 h-8 text-white" />
                 </div>
                 <div>
-                  <h2 className="text-xl font-bold text-white">{currentStep + 1}. {currentNode.title}</h2>
-                  <p className="text-blue-200 text-sm">{currentNode.description}</p>
+                  <h2 className="text-2xl font-bold text-white">{currentStep + 1}. {currentNode.title}</h2>
+                  <p className="text-blue-200 text-base">{currentNode.description}</p>
                 </div>
               </div>
 
@@ -885,8 +887,8 @@ export default function Training() {
                     className="flex items-center gap-2 p-3 bg-white/5 rounded-xl border border-white/10 animate-slide-in"
                     style={{ animationDelay: `${idx * 100}ms` }}
                   >
-                    <CheckCircle className="w-4 h-4 text-emerald-400 flex-shrink-0" />
-                    <span className="text-white text-sm">{detail}</span>
+                    <CheckCircle className="w-5 h-5 text-emerald-400 flex-shrink-0" />
+                    <span className="text-white text-base">{detail}</span>
                   </div>
                 ))}
               </div>
@@ -894,46 +896,46 @@ export default function Training() {
               {/* Regelwerk-Info bei Schritt 4 */}
               {currentNode.id === 'ruleset' && (
                 <div className="p-4 bg-orange-500/20 border border-orange-400/30 rounded-xl">
-                  <h4 className="font-semibold text-orange-300 mb-2">Ausgewähltes Regelwerk</h4>
-                  <p className="text-white">{selectedRuleset.title}</p>
+                  <h4 className="font-semibold text-orange-300 text-lg mb-2">Ausgewähltes Regelwerk</h4>
+                  <p className="text-white text-base">{selectedRuleset.title}</p>
                   <p className="text-orange-200/80 text-sm mt-1">{selectedRuleset.featuresCount} Pflichtmerkmale werden geprüft</p>
                 </div>
               )}
             </div>
           </div>
 
-          {/* Glossar-Begriffe für aktuellen Schritt */}
-          <div className="lg:col-span-1">
+          {/* Glossar-Begriffe für aktuellen Schritt - breiter */}
+          <div className="lg:col-span-2">
             <div className="glass-panel-strong rounded-2xl p-6 h-full">
               <div className="flex items-center gap-2 mb-4">
-                <Info className="w-5 h-5 text-blue-300" />
-                <h3 className="font-semibold text-white">Begriffe</h3>
+                <Info className="w-6 h-6 text-blue-300" />
+                <h3 className="font-semibold text-white text-lg">Begriffe</h3>
               </div>
 
               {currentNode.glossaryTerms.length > 0 ? (
-                <div className="space-y-3">
+                <div className="space-y-4">
                   {currentNode.glossaryTerms.map((term, idx) => (
                     <div
                       key={idx}
-                      className="p-3 bg-white/5 rounded-xl border border-white/10 animate-slide-in"
+                      className="p-4 bg-white/5 rounded-xl border border-white/10 animate-slide-in"
                       style={{ animationDelay: `${idx * 150}ms` }}
                     >
-                      <h4 className="font-semibold text-blue-300 text-sm mb-1">{term.term}</h4>
-                      <p className="text-xs text-white/80">{term.definition}</p>
+                      <h4 className="font-semibold text-blue-300 text-base mb-2">{term.term}</h4>
+                      <p className="text-sm text-white/90 leading-relaxed">{term.definition}</p>
                     </div>
                   ))}
                 </div>
               ) : (
-                <p className="text-white/50 text-sm">Keine speziellen Begriffe.</p>
+                <p className="text-white/50 text-base">Keine speziellen Begriffe.</p>
               )}
 
               {/* Musterprojekt-Kurzinfo */}
-              <div className="mt-4 p-3 bg-white/5 rounded-xl border border-white/10">
-                <div className="flex items-center gap-2 mb-1">
-                  <FolderPlus className="w-4 h-4 text-blue-300" />
-                  <span className="text-xs font-medium text-white">Beispiel</span>
+              <div className="mt-4 p-4 bg-white/5 rounded-xl border border-white/10">
+                <div className="flex items-center gap-2 mb-2">
+                  <FolderPlus className="w-5 h-5 text-blue-300" />
+                  <span className="text-sm font-medium text-white">Beispiel-Projekt</span>
                 </div>
-                <p className="text-xs text-white/70 truncate">{SAMPLE_PROJECT.title}</p>
+                <p className="text-sm text-white/80">{SAMPLE_PROJECT.title}</p>
               </div>
             </div>
           </div>
