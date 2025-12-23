@@ -394,8 +394,8 @@ async def get_template_sample_pdf(template_id: str):
     from app.worker.tasks import _format_invoice_pdf, _generate_invoice_data
     import tempfile
 
-    # Prüfe ob Template existiert
-    available_templates = ["T1_HANDWERK", "T2_CONSULTING", "T3_CORPORATE", "T4_FREELANCER", "T5_INTERNATIONAL"]
+    # Prüfe ob Template existiert (muss mit list_templates() übereinstimmen)
+    available_templates = ["T1_HANDWERK", "T2_SUPERMARKT", "T3_CORPORATE", "T4_FREELANCER", "T5_MINIMAL"]
     if template_id not in available_templates:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,

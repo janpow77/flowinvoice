@@ -280,7 +280,7 @@ export const de = {
   // Rulesets
   rulesets: {
     title: 'Regelwerke',
-    description: 'Verwalten Sie die Prüfregelwerke für verschiedene Steuersysteme',
+    description: 'Verwalten Sie die Prüfregeln und Merkmale',
     DE_USTG: 'Deutschland (UStG)',
     EU_VAT: 'EU (MwSt-Richtlinie)',
     UK_VAT: 'UK (HMRC VAT)',

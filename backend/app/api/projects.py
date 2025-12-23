@@ -107,6 +107,7 @@ async def list_projects(
                 project_title=p.project.get("project_title", ""),
                 file_reference=p.project.get("file_reference"),
                 beneficiary_name=p.beneficiary.get("name", ""),
+                beneficiary=p.beneficiary,
                 ruleset_id_hint=p.ruleset_id_hint,
                 is_active=p.is_active,
                 document_count=doc_count,

@@ -16,6 +16,7 @@ const Rulesets = lazy(() => import('./pages/Rulesets'))
 const Generator = lazy(() => import('./pages/Generator'))
 const Settings = lazy(() => import('./pages/Settings'))
 const Training = lazy(() => import('./pages/Training'))
+const Users = lazy(() => import('./pages/Users'))
 const Login = lazy(() => import('./pages/Login'))
 
 function App() {
@@ -43,6 +44,7 @@ function App() {
                     <Route path="/generator" element={<Generator />} />
                     <Route path="/statistics" element={<Statistics />} />
                     <Route path="/training" element={<Training />} />
+                    <Route path="/users" element={<Users />} />
                     <Route path="/settings" element={<Settings />} />
                   </Routes>
                 </Layout>

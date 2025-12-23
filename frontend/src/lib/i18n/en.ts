@@ -280,7 +280,7 @@ export const en = {
   // Rulesets
   rulesets: {
     title: 'Rulesets',
-    description: 'Manage audit rulesets for different tax systems',
+    description: 'Manage audit rules and features',
     DE_USTG: 'Germany (UStG)',
     EU_VAT: 'EU (VAT Directive)',
     UK_VAT: 'UK (HMRC VAT)',
