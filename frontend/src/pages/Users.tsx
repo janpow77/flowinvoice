@@ -2,7 +2,6 @@ import { useTranslation } from 'react-i18next'
 import {
   Users as UsersIcon,
   UserPlus,
-  Settings,
   Shield,
   Clock,
   Construction,
