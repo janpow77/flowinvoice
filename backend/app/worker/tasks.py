@@ -32,7 +32,7 @@ from app.models.document import Document
 from app.models.enums import DocumentStatus, Provider
 from app.models.export import ExportJob, GeneratorJob
 from app.models.project import Project
-from app.models.result import AnalysisResult
+from app.models.result import AnalysisResult, FinalResult
 from app.rag import get_rag_service
 from app.services.parser import get_parser
 from app.services.rule_engine import get_rule_engine
@@ -123,6 +123,27 @@ def _parse_project_period(project: Project | None) -> tuple[date | None, date | 
             pass
 
     return project_start, project_end
+
+
+def _assessment_to_traffic_light(assessment: str, confidence: float) -> str:
+    """
+    Converts LLM assessment to traffic light color.
+
+    Args:
+        assessment: Assessment string (ok, review_needed, rejected)
+        confidence: Confidence score (0-1)
+
+    Returns:
+        Traffic light color (GREEN, YELLOW, RED)
+    """
+    assessment_lower = assessment.lower()
+
+    if assessment_lower == "ok" and confidence >= 0.8:
+        return "GREEN"
+    elif assessment_lower == "rejected" or confidence < 0.5:
+        return "RED"
+    else:
+        return "YELLOW"
 
 
 @celery_app.task(bind=True, max_retries=3)
@@ -346,6 +367,31 @@ async def _analyze_document_async(
             )
 
             session.add(result)
+            await session.flush()  # Get result.id
+
+            # Create FinalResult for feedback workflow
+            traffic_light = _assessment_to_traffic_light(
+                analysis_result.overall_assessment,
+                analysis_result.confidence,
+            )
+            final_result = FinalResult(
+                document_id=document_id,
+                status="REVIEW_PENDING",
+                fields=[],
+                overall={
+                    "traffic_light": traffic_light,
+                    "assessment": analysis_result.overall_assessment,
+                    "confidence": analysis_result.confidence,
+                    "missing_required_features": [],
+                    "conflicts": [],
+                    "warnings": [
+                        w.get("message", str(w)) if isinstance(w, dict) else str(w)
+                        for w in analysis_result.warnings
+                    ],
+                },
+            )
+            session.add(final_result)
+
             document.status = DocumentStatus.ANALYZED
             await session.commit()
 
@@ -355,6 +401,7 @@ async def _analyze_document_async(
                 "status": "success",
                 "document_id": document_id,
                 "result_id": result.id,
+                "final_result_id": final_result.id,
                 "assessment": analysis_result.overall_assessment,
                 "confidence": analysis_result.confidence,
             }
