@@ -156,6 +156,35 @@ interface AnalysisSettings {
   maxRuns: number
 }
 
+interface CheckerSettings {
+  ruleset_id: string
+  risk_checker: {
+    enabled: boolean
+    severity_threshold: string
+    check_self_invoice: boolean
+    check_duplicate_invoice: boolean
+    check_round_amounts: boolean
+    check_weekend_dates: boolean
+    round_amount_threshold: number
+  }
+  semantic_checker: {
+    enabled: boolean
+    severity_threshold: string
+    check_project_relevance: boolean
+    check_description_quality: boolean
+    min_relevance_score: number
+    use_rag_context: boolean
+  }
+  economic_checker: {
+    enabled: boolean
+    severity_threshold: string
+    check_budget_limits: boolean
+    check_unit_prices: boolean
+    check_funding_rate: boolean
+    max_deviation_percent: number
+  }
+}
+
 interface EditFormData {
   beneficiary: {
     name: string
@@ -183,6 +212,9 @@ export default function ProjectDetail() {
 
   const [showTaxSelector, setShowTaxSelector] = useState(false)
   const [showFeatures, setShowFeatures] = useState(false)
+  const [showLegalRefs, setShowLegalRefs] = useState(false)
+  const [showSpecialRules, setShowSpecialRules] = useState(false)
+  const [showCheckers, setShowCheckers] = useState(false)
   const [showSettings, setShowSettings] = useState(false)
   const [isEditing, setIsEditing] = useState(false)
   const [uploadQueue, setUploadQueue] = useState<UploadedFile[]>([])
@@ -227,6 +259,13 @@ export default function ProjectDetail() {
     queryKey: ['llm-runs', selectedDocument],
     queryFn: () => api.getDocumentLlmRuns(selectedDocument!),
     enabled: !!selectedDocument,
+  })
+
+  // Query for checker settings
+  const { data: checkerSettings } = useQuery<CheckerSettings>({
+    queryKey: ['checker-settings', project?.ruleset_id_hint],
+    queryFn: () => api.getRulesetCheckerSettings(project!.ruleset_id_hint!),
+    enabled: !!project?.ruleset_id_hint,
   })
 
   const updateRulesetMutation = useMutation({
@@ -883,6 +922,193 @@ export default function ProjectDetail() {
                 </div>
               )}
             </div>
+
+            {/* Collapsible Legal References */}
+            {currentRuleset && currentRuleset.legal_references && currentRuleset.legal_references.length > 0 && (
+              <div className="bg-theme-card rounded-lg border border-theme-border-default">
+                <button
+                  onClick={() => setShowLegalRefs(!showLegalRefs)}
+                  className="w-full px-4 py-3 flex items-center justify-between text-left hover:bg-theme-hover"
+                >
+                  <span className="font-medium text-theme-text-primary">{t('projectDetail.showLegalReferences', 'Rechtsgrundlagen anzeigen')}</span>
+                  {showLegalRefs ? (
+                    <ChevronDown className="h-5 w-5 text-theme-text-muted" />
+                  ) : (
+                    <ChevronRight className="h-5 w-5 text-theme-text-muted" />
+                  )}
+                </button>
+                {showLegalRefs && (
+                  <div className="px-4 pb-4 border-t border-theme-border-subtle">
+                    <div className="mt-3 space-y-2 text-sm max-h-60 overflow-y-auto">
+                      {currentRuleset.legal_references.map((ref, idx) => (
+                        <div key={idx} className="flex items-start justify-between py-2 border-b border-theme-border-subtle last:border-0">
+                          <div className="flex-1">
+                            <span className="font-medium text-theme-text-primary">
+                              {ref.law} {ref.section}
+                            </span>
+                            <p className="text-theme-text-muted mt-0.5">
+                              {lang === 'de' ? ref.description_de : ref.description_en}
+                            </p>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* Collapsible Special Rules */}
+            {currentRuleset && currentRuleset.small_amount_threshold && (
+              <div className="bg-theme-card rounded-lg border border-theme-border-default">
+                <button
+                  onClick={() => setShowSpecialRules(!showSpecialRules)}
+                  className="w-full px-4 py-3 flex items-center justify-between text-left hover:bg-theme-hover"
+                >
+                  <span className="font-medium text-theme-text-primary">{t('projectDetail.showSpecialRules', 'Sonderregeln anzeigen')}</span>
+                  {showSpecialRules ? (
+                    <ChevronDown className="h-5 w-5 text-theme-text-muted" />
+                  ) : (
+                    <ChevronRight className="h-5 w-5 text-theme-text-muted" />
+                  )}
+                </button>
+                {showSpecialRules && (
+                  <div className="px-4 pb-4 border-t border-theme-border-subtle">
+                    <div className="mt-3 space-y-3 text-sm">
+                      {/* Kleinbetragsrechnung */}
+                      <div className="p-3 bg-theme-hover rounded-lg">
+                        <div className="flex items-center gap-2 mb-2">
+                          <AlertTriangle className="h-4 w-4 text-status-warning" />
+                          <span className="font-medium text-theme-text-primary">
+                            {t('projectDetail.smallAmountInvoice', 'Kleinbetragsrechnung')}
+                          </span>
+                        </div>
+                        <p className="text-theme-text-muted mb-2">
+                          {t('projectDetail.smallAmountThreshold', 'Schwellenwert')}: <span className="font-medium">{currentRuleset.small_amount_threshold} {currentRuleset.small_amount_currency || 'EUR'}</span>
+                        </p>
+                        <p className="text-theme-text-muted text-xs">
+                          {t('projectDetail.smallAmountDescription', 'Bei Rechnungen unter diesem Betrag gelten vereinfachte Anforderungen an Pflichtangaben.')}
+                        </p>
+                      </div>
+
+                      {/* Reduced fields info */}
+                      <div className="text-theme-text-muted">
+                        <p className="font-medium text-theme-text-secondary mb-1">
+                          {t('projectDetail.reducedFieldsLabel', 'Reduzierte Pflichtangaben bei Kleinbetragsrechnungen:')}
+                        </p>
+                        <ul className="list-disc list-inside space-y-0.5">
+                          {currentRuleset.features
+                            .filter(f => f.applies_to?.small_amount_invoice && f.required_level === 'REQUIRED')
+                            .map(f => (
+                              <li key={f.feature_id}>{lang === 'de' ? f.name_de : f.name_en}</li>
+                            ))
+                          }
+                        </ul>
+                      </div>
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* Collapsible Checkers (Prüfmodule) */}
+            {checkerSettings && (
+              <div className="bg-theme-card rounded-lg border border-theme-border-default">
+                <button
+                  onClick={() => setShowCheckers(!showCheckers)}
+                  className="w-full px-4 py-3 flex items-center justify-between text-left hover:bg-theme-hover"
+                >
+                  <span className="font-medium text-theme-text-primary">{t('projectDetail.showCheckers', 'Prüfmodule anzeigen')}</span>
+                  {showCheckers ? (
+                    <ChevronDown className="h-5 w-5 text-theme-text-muted" />
+                  ) : (
+                    <ChevronRight className="h-5 w-5 text-theme-text-muted" />
+                  )}
+                </button>
+                {showCheckers && (
+                  <div className="px-4 pb-4 border-t border-theme-border-subtle">
+                    <div className="mt-3 space-y-4 text-sm">
+                      {/* Projektzeitraum-Prüfung */}
+                      <div className="p-3 bg-theme-hover rounded-lg">
+                        <div className="flex items-center gap-2 mb-2">
+                          <Clock className="h-4 w-4 text-accent-primary" />
+                          <span className="font-medium text-theme-text-primary">
+                            {t('projectDetail.checkerPeriod', 'Projektzeitraum-Prüfung')}
+                          </span>
+                          <span className="px-2 py-0.5 text-xs bg-status-success-bg text-status-success rounded">
+                            {t('projectDetail.checkerActive', 'Aktiv')}
+                          </span>
+                        </div>
+                        <p className="text-theme-text-muted text-xs">
+                          {t('projectDetail.checkerPeriodDesc', 'Prüft ob das Leistungsdatum innerhalb des Projektzeitraums liegt.')}
+                        </p>
+                      </div>
+
+                      {/* Risk Checker */}
+                      <div className="p-3 bg-theme-hover rounded-lg">
+                        <div className="flex items-center gap-2 mb-2">
+                          <AlertTriangle className="h-4 w-4 text-status-warning" />
+                          <span className="font-medium text-theme-text-primary">
+                            {t('projectDetail.checkerRisk', 'Risiko-Prüfung')}
+                          </span>
+                          <span className={`px-2 py-0.5 text-xs rounded ${checkerSettings.risk_checker.enabled ? 'bg-status-success-bg text-status-success' : 'bg-theme-hover text-theme-text-muted'}`}>
+                            {checkerSettings.risk_checker.enabled ? t('projectDetail.checkerActive', 'Aktiv') : t('projectDetail.checkerInactive', 'Inaktiv')}
+                          </span>
+                        </div>
+                        {checkerSettings.risk_checker.enabled && (
+                          <ul className="text-theme-text-muted text-xs space-y-0.5 ml-6">
+                            {checkerSettings.risk_checker.check_self_invoice && <li>• {t('projectDetail.riskSelfInvoice', 'Selbstrechnung')}</li>}
+                            {checkerSettings.risk_checker.check_duplicate_invoice && <li>• {t('projectDetail.riskDuplicate', 'Doppelte Rechnungen')}</li>}
+                            {checkerSettings.risk_checker.check_round_amounts && <li>• {t('projectDetail.riskRoundAmounts', 'Runde Beträge')} (ab {checkerSettings.risk_checker.round_amount_threshold} EUR)</li>}
+                            {checkerSettings.risk_checker.check_weekend_dates && <li>• {t('projectDetail.riskWeekend', 'Wochenend-Daten')}</li>}
+                          </ul>
+                        )}
+                      </div>
+
+                      {/* Semantic Checker */}
+                      <div className="p-3 bg-theme-hover rounded-lg">
+                        <div className="flex items-center gap-2 mb-2">
+                          <FileText className="h-4 w-4 text-accent-primary" />
+                          <span className="font-medium text-theme-text-primary">
+                            {t('projectDetail.checkerSemantic', 'Semantik-Prüfung')}
+                          </span>
+                          <span className={`px-2 py-0.5 text-xs rounded ${checkerSettings.semantic_checker.enabled ? 'bg-status-success-bg text-status-success' : 'bg-theme-hover text-theme-text-muted'}`}>
+                            {checkerSettings.semantic_checker.enabled ? t('projectDetail.checkerActive', 'Aktiv') : t('projectDetail.checkerInactive', 'Inaktiv')}
+                          </span>
+                        </div>
+                        {checkerSettings.semantic_checker.enabled && (
+                          <ul className="text-theme-text-muted text-xs space-y-0.5 ml-6">
+                            {checkerSettings.semantic_checker.check_project_relevance && <li>• {t('projectDetail.semanticRelevance', 'Projektrelevanz')} (min. {Math.round(checkerSettings.semantic_checker.min_relevance_score * 100)}%)</li>}
+                            {checkerSettings.semantic_checker.check_description_quality && <li>• {t('projectDetail.semanticDescription', 'Beschreibungsqualität')}</li>}
+                            {checkerSettings.semantic_checker.use_rag_context && <li>• {t('projectDetail.semanticRag', 'RAG-Kontext verwenden')}</li>}
+                          </ul>
+                        )}
+                      </div>
+
+                      {/* Economic Checker */}
+                      <div className="p-3 bg-theme-hover rounded-lg">
+                        <div className="flex items-center gap-2 mb-2">
+                          <Settings className="h-4 w-4 text-status-success" />
+                          <span className="font-medium text-theme-text-primary">
+                            {t('projectDetail.checkerEconomic', 'Wirtschaftlichkeits-Prüfung')}
+                          </span>
+                          <span className={`px-2 py-0.5 text-xs rounded ${checkerSettings.economic_checker.enabled ? 'bg-status-success-bg text-status-success' : 'bg-theme-hover text-theme-text-muted'}`}>
+                            {checkerSettings.economic_checker.enabled ? t('projectDetail.checkerActive', 'Aktiv') : t('projectDetail.checkerInactive', 'Inaktiv')}
+                          </span>
+                        </div>
+                        {checkerSettings.economic_checker.enabled && (
+                          <ul className="text-theme-text-muted text-xs space-y-0.5 ml-6">
+                            {checkerSettings.economic_checker.check_budget_limits && <li>• {t('projectDetail.economicBudget', 'Budgetgrenzen')}</li>}
+                            {checkerSettings.economic_checker.check_unit_prices && <li>• {t('projectDetail.economicPrices', 'Einzelpreise')}</li>}
+                            {checkerSettings.economic_checker.check_funding_rate && <li>• {t('projectDetail.economicFunding', 'Förderquote')} (max. {checkerSettings.economic_checker.max_deviation_percent}% Abweichung)</li>}
+                          </ul>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
 
             {/* Belegliste (Processed Documents) */}
             <div className="bg-theme-card rounded-lg border border-theme-border-default">
