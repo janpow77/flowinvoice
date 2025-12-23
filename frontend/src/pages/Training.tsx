@@ -374,8 +374,12 @@ export default function Training() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-3">
-          <div className="p-3 bg-theme-primary/10 rounded-lg">
-            <GraduationCap className="w-8 h-8 text-theme-primary" />
+          <div className="p-2 bg-theme-primary/10 rounded-lg">
+            <img
+              src="/auditlogo.png"
+              alt="FlowAudit"
+              className="w-12 h-12 object-contain"
+            />
           </div>
           <div>
             <h1 className="text-2xl font-bold text-theme-text-primary">
@@ -610,6 +614,15 @@ export default function Training() {
 
             {/* Animated visualization based on current step */}
             <div className="aspect-square bg-theme-hover rounded-lg flex items-center justify-center relative overflow-hidden">
+              {/* Floating Fish Logo as Mascot */}
+              <div className="absolute top-2 right-2 z-10">
+                <img
+                  src="/auditlogo.png"
+                  alt="FlowAudit"
+                  className="w-10 h-10 object-contain animate-float"
+                />
+              </div>
+
               {/* Step 1: Project */}
               {currentWorkflowStep.key === 'project' && (
                 <div className="text-center space-y-4 animate-fade-in">
@@ -849,6 +862,15 @@ export default function Training() {
         }
         .animate-fade-in {
           animation: fade-in 0.5s ease-out;
+        }
+        @keyframes float {
+          0%, 100% { transform: translateY(0) rotate(0deg); }
+          25% { transform: translateY(-5px) rotate(3deg); }
+          50% { transform: translateY(-10px) rotate(0deg); }
+          75% { transform: translateY(-5px) rotate(-3deg); }
+        }
+        .animate-float {
+          animation: float 3s ease-in-out infinite;
         }
       `}</style>
     </div>
