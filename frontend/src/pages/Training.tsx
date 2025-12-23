@@ -1,7 +1,6 @@
 import { useState, useEffect, useCallback } from 'react'
 import { useTranslation } from 'react-i18next'
 import {
-  GraduationCap,
   FolderPlus,
   Upload,
   Scissors,
@@ -678,13 +677,13 @@ export default function Training() {
             {/* Step Details */}
             <div className="p-6 space-y-4">
               {/* Special content for Ruleset step */}
-              {currentWorkflowStep.key === 'ruleset' && rulesetDetail && (
+              {currentWorkflowStep.key === 'ruleset' && (
                 <div className="mb-6 p-4 bg-status-info-bg border border-status-info-border rounded-lg">
                   <h3 className="font-semibold text-status-info mb-2">
-                    Ausgewähltes Regelwerk: {lang === 'de' ? rulesetDetail.title_de : rulesetDetail.title_en}
+                    {lang === 'de' ? 'Ausgewähltes Regelwerk' : 'Selected Ruleset'}: {selectedRuleset.title}
                   </h3>
                   <p className="text-sm text-status-info">
-                    {requiredFeatures.length} Pflichtmerkmale, {conditionalFeatures.length} bedingte Merkmale definiert
+                    {selectedRuleset.featuresCount} {lang === 'de' ? 'Pflichtmerkmale definiert' : 'features defined'}
                   </p>
                 </div>
               )}
