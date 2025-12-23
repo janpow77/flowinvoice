@@ -170,7 +170,6 @@ interface EditFormData {
     file_reference: string
     project_description: string
     implementation_location: string
-    implementation_city: string
     period_start: string
     period_end: string
   }
@@ -317,10 +316,9 @@ export default function ProjectDetail() {
           project_title: data.project.project_title,
           file_reference: data.project.file_reference || undefined,
           project_description: data.project.project_description || undefined,
-          implementation: data.project.implementation_location || data.project.implementation_city
+          implementation: data.project.implementation_location
             ? {
                 location_name: data.project.implementation_location || undefined,
-                city: data.project.implementation_city || undefined,
               }
             : undefined,
           project_period: data.project.period_start && data.project.period_end
@@ -355,7 +353,6 @@ export default function ProjectDetail() {
           file_reference: project.project.file_reference || '',
           project_description: project.project.project_description || '',
           implementation_location: project.project.implementation?.location_name || '',
-          implementation_city: project.project.implementation?.city || '',
           period_start: project.project.project_period?.start || '',
           period_end: project.project.project_period?.end || '',
         },
@@ -651,20 +648,7 @@ export default function ProjectDetail() {
                   ...editForm,
                   project: { ...editForm.project, implementation_location: e.target.value }
                 })}
-                className="w-full px-2 py-1 border border-theme-border-default rounded bg-theme-input text-theme-text-primary focus:ring-1 focus:ring-accent-primary focus:border-accent-primary"
-              />
-            </div>
-
-            {/* Execution City */}
-            <div>
-              <label className="block text-theme-text-muted mb-1">{t('projectDetail.executionCity')}</label>
-              <input
-                type="text"
-                value={editForm.project.implementation_city}
-                onChange={e => setEditForm({
-                  ...editForm,
-                  project: { ...editForm.project, implementation_city: e.target.value }
-                })}
+                placeholder="z.B. Berlin, Musterstraße 1"
                 className="w-full px-2 py-1 border border-theme-border-default rounded bg-theme-input text-theme-text-primary focus:ring-1 focus:ring-accent-primary focus:border-accent-primary"
               />
             </div>
@@ -748,9 +732,7 @@ export default function ProjectDetail() {
             <div className="md:col-span-2">
               <span className="text-theme-text-muted">{t('projectDetail.executionLocation')}:</span>
               <span className="ml-2 font-medium text-theme-text-primary">
-                {project.project.implementation
-                  ? `${project.project.implementation.location_name || ''}${project.project.implementation.city ? `, ${project.project.implementation.city}` : ''}`
-                  : '-'}
+                {project.project.implementation?.location_name || '-'}
               </span>
             </div>
 
