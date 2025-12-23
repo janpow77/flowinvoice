@@ -133,6 +133,7 @@ class ProjectListItem(BaseModel):
     project_title: str = Field(..., description="Projekttitel")
     file_reference: str | None = Field(default=None, description="Aktenzeichen")
     beneficiary_name: str = Field(..., description="Begünstigter")
+    beneficiary: dict | None = Field(default=None, description="Begünstigten-Daten")
     ruleset_id_hint: str | None = Field(default=None, description="Ruleset")
     is_active: bool = Field(default=False, description="Aktiv")
     document_count: int = Field(default=0, description="Anzahl Dokumente")

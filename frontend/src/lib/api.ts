@@ -357,11 +357,12 @@ export const api = {
   // Rulesets
   getRulesets: async () => {
     const response = await apiClient.get('/rulesets')
-    // Transform API response to match RulesetInfo interface
-    return response.data.data.map((r: { ruleset_id: string; title: string; version?: string }) => ({
-      id: r.ruleset_id,
-      name: r.title,
-      version: r.version,
+    // Transform API response to match RulesetListItem interface in Rulesets.tsx
+    return response.data.data.map((r: { ruleset_id: string; title: string; version?: string; language_support?: string[] }) => ({
+      ruleset_id: r.ruleset_id,
+      title: r.title,
+      version: r.version || '1.0.0',
+      language_support: r.language_support,
     }))
   },
 
