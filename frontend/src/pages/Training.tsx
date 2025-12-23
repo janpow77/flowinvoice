@@ -88,14 +88,32 @@ const cssAnimations = `
     animation: dataFlow 25s linear infinite reverse;
   }
 
-  /* Binary Pulse */
+  /* Binary Pulse - verstärkt */
   @keyframes binaryPulse {
-    0%, 100% { opacity: 0.3; }
-    50% { opacity: 0.7; }
+    0%, 100% { opacity: 0.3; transform: scale(1); }
+    50% { opacity: 0.9; transform: scale(1.02); }
+  }
+
+  @keyframes binaryPulseSlow {
+    0%, 100% { opacity: 0.2; }
+    50% { opacity: 0.6; }
+  }
+
+  @keyframes binaryPulseFast {
+    0%, 100% { opacity: 0.4; transform: scale(1); }
+    50% { opacity: 1; transform: scale(1.03); }
   }
 
   .binary-pulse {
-    animation: binaryPulse 3s ease-in-out infinite;
+    animation: binaryPulse 2s ease-in-out infinite;
+  }
+
+  .binary-pulse-slow {
+    animation: binaryPulseSlow 4s ease-in-out infinite;
+  }
+
+  .binary-pulse-fast {
+    animation: binaryPulseFast 1.5s ease-in-out infinite;
   }
 
   /* Fish Swim */
@@ -371,20 +389,20 @@ const WORKFLOW_NODES: WorkflowNode[] = [
   },
 ]
 
-// Binäres Datenwasser Komponente
+// Binäres Datenwasser Komponente - dicker und mehr pulsierend
 const BinaryDataWater = () => (
-  <div className="absolute bottom-0 left-0 right-0 h-32 overflow-hidden pointer-events-none z-10">
-    <div className="absolute bottom-0 left-0 right-0 h-24 bg-gradient-to-t from-blue-950/80 via-blue-900/50 to-transparent">
-      <div className="data-flow-slow whitespace-nowrap font-mono text-xs pt-4">
-        <span className="text-blue-400/30">{BINARY_LINES[0]} {BINARY_LINES[0]}</span>
+  <div className="absolute bottom-0 left-0 right-0 h-40 overflow-hidden pointer-events-none z-10">
+    <div className="absolute bottom-0 left-0 right-0 h-32 bg-gradient-to-t from-blue-950/90 via-blue-900/60 to-transparent">
+      <div className="data-flow-slow whitespace-nowrap font-mono text-base font-bold pt-4 binary-pulse-slow">
+        <span className="text-blue-400/50">{BINARY_LINES[0]} {BINARY_LINES[0]}</span>
       </div>
-      <div className="data-flow whitespace-nowrap font-mono text-xs">
-        <span className="text-cyan-400/25">{BINARY_LINES[1]} {BINARY_LINES[1]}</span>
+      <div className="data-flow whitespace-nowrap font-mono text-base font-bold binary-pulse">
+        <span className="text-cyan-400/45">{BINARY_LINES[1]} {BINARY_LINES[1]}</span>
       </div>
     </div>
-    <div className="absolute bottom-0 left-0 right-0 h-16 bg-gradient-to-t from-blue-800/70 to-transparent">
-      <div className="data-flow-fast whitespace-nowrap font-mono text-sm binary-pulse">
-        <span className="text-blue-300/40">{BINARY_LINES[2]} {BINARY_LINES[2]}</span>
+    <div className="absolute bottom-0 left-0 right-0 h-20 bg-gradient-to-t from-blue-800/80 to-transparent">
+      <div className="data-flow-fast whitespace-nowrap font-mono text-lg font-bold binary-pulse-fast">
+        <span className="text-blue-300/60">{BINARY_LINES[2]} {BINARY_LINES[2]}</span>
       </div>
     </div>
   </div>
@@ -477,17 +495,17 @@ const OrbitalNode = ({
       {/* Pulse Ring for Active Node */}
       {isActive && (
         <div
-          className="absolute w-20 h-20 rounded-full pulse-ring"
+          className="absolute w-28 h-28 rounded-full pulse-ring"
           style={{
             background: `radial-gradient(circle, rgba(${node.colorRgb}, 0.4) 0%, transparent 70%)`
           }}
         />
       )}
 
-      {/* Node Circle */}
+      {/* Node Circle - größer */}
       <div
         className={clsx(
-          'w-16 h-16 rounded-full flex items-center justify-center transition-all duration-300',
+          'w-20 h-20 rounded-full flex items-center justify-center transition-all duration-300',
           'border-2 glass-panel-strong',
           isActive
             ? `bg-gradient-to-br ${node.color} border-white/40 node-glow`
@@ -497,26 +515,26 @@ const OrbitalNode = ({
         )}
         style={{
           boxShadow: isActive
-            ? `0 0 30px rgba(${node.colorRgb}, 0.5), 0 0 60px rgba(${node.colorRgb}, 0.3)`
+            ? `0 0 40px rgba(${node.colorRgb}, 0.5), 0 0 80px rgba(${node.colorRgb}, 0.3)`
             : isCompleted
-            ? '0 0 20px rgba(52, 211, 153, 0.4)'
+            ? '0 0 25px rgba(52, 211, 153, 0.4)'
             : '0 4px 20px rgba(0,0,0,0.2)'
         }}
       >
         {isCompleted && !isActive ? (
-          <CheckCircle className="w-7 h-7 text-white" />
+          <CheckCircle className="w-9 h-9 text-white" />
         ) : (
-          <Icon className="w-7 h-7 text-white" />
+          <Icon className="w-9 h-9 text-white" />
         )}
       </div>
 
-      {/* Label */}
+      {/* Label - größer */}
       <div
         className={clsx(
-          'mt-2 px-3 py-1 rounded-lg text-xs font-medium transition-all duration-300',
+          'mt-3 px-4 py-1.5 rounded-lg text-sm font-semibold transition-all duration-300',
           isActive
             ? 'bg-white/20 text-white backdrop-blur-sm'
-            : 'text-white/70'
+            : 'text-white/80'
         )}
       >
         {node.shortTitle}
@@ -536,52 +554,52 @@ const CentralCore = ({ currentNode, progress }: CentralCoreProps) => {
 
   return (
     <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 z-20">
-      {/* Outer Glow Ring */}
+      {/* Outer Glow Ring - größer */}
       <div
-        className="absolute -inset-8 rounded-full opacity-30"
+        className="absolute -inset-12 rounded-full opacity-40"
         style={{
-          background: `radial-gradient(circle, rgba(${currentNode.colorRgb}, 0.4) 0%, transparent 70%)`
+          background: `radial-gradient(circle, rgba(${currentNode.colorRgb}, 0.5) 0%, transparent 70%)`
         }}
       />
 
-      {/* Progress Ring */}
-      <svg className="absolute -inset-4 w-[calc(100%+32px)] h-[calc(100%+32px)]" viewBox="0 0 120 120">
+      {/* Progress Ring - größer */}
+      <svg className="absolute -inset-6 w-[calc(100%+48px)] h-[calc(100%+48px)]" viewBox="0 0 160 160">
         <circle
-          cx="60"
-          cy="60"
-          r="54"
+          cx="80"
+          cy="80"
+          r="72"
           fill="none"
           stroke="rgba(255,255,255,0.1)"
-          strokeWidth="4"
+          strokeWidth="5"
         />
         <circle
-          cx="60"
-          cy="60"
-          r="54"
+          cx="80"
+          cy="80"
+          r="72"
           fill="none"
           stroke={`rgba(${currentNode.colorRgb}, 0.8)`}
-          strokeWidth="4"
+          strokeWidth="5"
           strokeLinecap="round"
-          strokeDasharray={`${2 * Math.PI * 54}`}
-          strokeDashoffset={`${2 * Math.PI * 54 * (1 - progress / 100)}`}
-          transform="rotate(-90 60 60)"
+          strokeDasharray={`${2 * Math.PI * 72}`}
+          strokeDashoffset={`${2 * Math.PI * 72 * (1 - progress / 100)}`}
+          transform="rotate(-90 80 80)"
           style={{ transition: 'stroke-dashoffset 0.1s linear' }}
         />
       </svg>
 
-      {/* Core Circle */}
+      {/* Core Circle - größer */}
       <div
         className={clsx(
-          'w-24 h-24 rounded-full flex flex-col items-center justify-center',
+          'w-32 h-32 rounded-full flex flex-col items-center justify-center',
           'glass-panel-strong core-pulse'
         )}
         style={{
           background: `linear-gradient(135deg, rgba(${currentNode.colorRgb}, 0.3) 0%, rgba(${currentNode.colorRgb}, 0.1) 100%)`,
-          boxShadow: `0 0 40px rgba(${currentNode.colorRgb}, 0.4), 0 0 80px rgba(${currentNode.colorRgb}, 0.2), inset 0 0 30px rgba(255,255,255,0.1)`
+          boxShadow: `0 0 50px rgba(${currentNode.colorRgb}, 0.5), 0 0 100px rgba(${currentNode.colorRgb}, 0.3), inset 0 0 40px rgba(255,255,255,0.1)`
         }}
       >
-        <Icon className="w-10 h-10 text-white mb-1" />
-        <span className="text-white/80 text-xs font-medium">Flow</span>
+        <Icon className="w-14 h-14 text-white mb-1" />
+        <span className="text-white/90 text-sm font-semibold">Flow</span>
       </div>
     </div>
   )
@@ -636,7 +654,7 @@ export default function Training() {
   const currentNode = WORKFLOW_NODES[currentStep]
 
   const STEP_DURATION = 5000 // 5 Sekunden pro Schritt
-  const ORBIT_RADIUS = 280 // Radius der Umlaufbahn (größer da Panels seitlich)
+  const ORBIT_RADIUS = 340 // Radius der Umlaufbahn (maximiert für großen Kreis)
 
   // Auto-Animation mit Orbital-Rotation
   useEffect(() => {
@@ -803,10 +821,10 @@ export default function Training() {
         </div>
 
         {/* Hauptbereich: Links Panel | Orbital | Rechts Panel */}
-        <div className="flex flex-col xl:flex-row gap-6 items-start justify-center">
+        <div className="flex flex-col xl:flex-row gap-4 items-start justify-between max-w-[1600px] mx-auto">
 
-          {/* Linkes Panel - Schritt-Details */}
-          <div className="w-full xl:w-80 flex-shrink-0 order-2 xl:order-1">
+          {/* Linkes Panel - Schritt-Details - ganz links */}
+          <div className="w-full xl:w-72 flex-shrink-0 order-2 xl:order-1 xl:self-center">
             <div className="glass-panel-strong rounded-2xl p-5 animate-slide-in" key={currentStep}>
               <div className="flex items-center gap-3 mb-4">
                 <div className={clsx('w-12 h-12 rounded-xl bg-gradient-to-br flex items-center justify-center', currentNode.color)}>
@@ -905,8 +923,8 @@ export default function Training() {
             </div>
           </div>
 
-          {/* Rechtes Panel - Glossar/Begriffe */}
-          <div className="w-full xl:w-80 flex-shrink-0 order-3">
+          {/* Rechtes Panel - Glossar/Begriffe - ganz rechts */}
+          <div className="w-full xl:w-72 flex-shrink-0 order-3 xl:self-center">
             <div className="glass-panel-strong rounded-2xl p-5 h-full">
               <div className="flex items-center gap-2 mb-4">
                 <Info className="w-5 h-5 text-blue-300" />
