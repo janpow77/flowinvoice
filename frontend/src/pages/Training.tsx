@@ -636,7 +636,7 @@ export default function Training() {
   const currentNode = WORKFLOW_NODES[currentStep]
 
   const STEP_DURATION = 5000 // 5 Sekunden pro Schritt
-  const ORBIT_RADIUS = 220 // Radius der Umlaufbahn (größer für bessere Lesbarkeit)
+  const ORBIT_RADIUS = 280 // Radius der Umlaufbahn (größer da Panels seitlich)
 
   // Auto-Animation mit Orbital-Rotation
   useEffect(() => {
@@ -802,140 +802,141 @@ export default function Training() {
           </div>
         </div>
 
-        {/* 3D Orbital Infographic */}
-        <div className="perspective-container mx-auto" style={{ maxWidth: '900px' }}>
-          <div
-            className="orbital-stage relative mx-auto"
-            style={{
-              width: ORBIT_RADIUS * 2 + 160,
-              height: ORBIT_RADIUS * 2 + 160
-            }}
-          >
-            {/* SVG Connectors Layer */}
-            <svg
-              className="absolute inset-0 w-full h-full pointer-events-none"
-              viewBox={`${-ORBIT_RADIUS - 80} ${-ORBIT_RADIUS - 80} ${(ORBIT_RADIUS + 80) * 2} ${(ORBIT_RADIUS + 80) * 2}`}
-            >
-              {/* Orbital Ring */}
-              <circle
-                cx="0"
-                cy="0"
-                r={ORBIT_RADIUS}
-                fill="none"
-                stroke="rgba(255,255,255,0.1)"
-                strokeWidth="2"
-                strokeDasharray="8, 4"
-              />
+        {/* Hauptbereich: Links Panel | Orbital | Rechts Panel */}
+        <div className="flex flex-col xl:flex-row gap-6 items-start justify-center">
 
-              {/* Connectors between nodes */}
-              {WORKFLOW_NODES.map((_, index) => {
-                const nextIndex = (index + 1) % WORKFLOW_NODES.length
-                const isActiveConnector = index === currentStep
-                return (
-                  <OrbitalConnector
-                    key={`connector-${index}`}
-                    fromAngle={getNodeAngle(index) + rotationOffset}
-                    toAngle={getNodeAngle(nextIndex) + rotationOffset}
-                    radius={ORBIT_RADIUS}
-                    isActive={isActiveConnector}
-                    color={`rgba(${WORKFLOW_NODES[index].colorRgb}, 0.8)`}
-                  />
-                )
-              })}
-            </svg>
-
-            {/* Central Core */}
-            <CentralCore currentNode={currentNode} progress={progress} />
-
-            {/* Orbital Nodes */}
-            {WORKFLOW_NODES.map((node, index) => (
-              <OrbitalNode
-                key={node.id}
-                node={node}
-                index={index}
-                totalNodes={WORKFLOW_NODES.length}
-                radius={ORBIT_RADIUS}
-                isActive={index === currentStep}
-                isCompleted={index < currentStep}
-                onClick={() => handleStepClick(index)}
-                rotationOffset={rotationOffset}
-              />
-            ))}
-          </div>
-        </div>
-
-        {/* Detail Panel - unterhalb der Infografik */}
-        <div className="grid grid-cols-1 lg:grid-cols-5 gap-6 mt-8 max-w-6xl mx-auto">
-          {/* Schritt-Details */}
-          <div className="lg:col-span-3">
-            <div className="glass-panel-strong rounded-2xl p-6 animate-slide-in" key={currentStep}>
-              <div className="flex items-center gap-4 mb-6">
-                <div className={clsx('w-16 h-16 rounded-2xl bg-gradient-to-br flex items-center justify-center', currentNode.color)}>
-                  <currentNode.icon className="w-8 h-8 text-white" />
+          {/* Linkes Panel - Schritt-Details */}
+          <div className="w-full xl:w-80 flex-shrink-0 order-2 xl:order-1">
+            <div className="glass-panel-strong rounded-2xl p-5 animate-slide-in" key={currentStep}>
+              <div className="flex items-center gap-3 mb-4">
+                <div className={clsx('w-12 h-12 rounded-xl bg-gradient-to-br flex items-center justify-center', currentNode.color)}>
+                  <currentNode.icon className="w-6 h-6 text-white" />
                 </div>
                 <div>
-                  <h2 className="text-2xl font-bold text-white">{currentStep + 1}. {currentNode.title}</h2>
-                  <p className="text-blue-200 text-base">{currentNode.description}</p>
+                  <h2 className="text-lg font-bold text-white">{currentStep + 1}. {currentNode.title}</h2>
+                  <p className="text-blue-200 text-sm">{currentNode.description}</p>
                 </div>
               </div>
 
               {/* Details des Schritts */}
-              <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-4">
+              <div className="space-y-2">
                 {currentNode.details.map((detail, idx) => (
                   <div
                     key={idx}
-                    className="flex items-center gap-2 p-3 bg-white/5 rounded-xl border border-white/10 animate-slide-in"
+                    className="flex items-center gap-2 p-2 bg-white/5 rounded-lg border border-white/10 animate-slide-in"
                     style={{ animationDelay: `${idx * 100}ms` }}
                   >
-                    <CheckCircle className="w-5 h-5 text-emerald-400 flex-shrink-0" />
-                    <span className="text-white text-base">{detail}</span>
+                    <CheckCircle className="w-4 h-4 text-emerald-400 flex-shrink-0" />
+                    <span className="text-white text-sm">{detail}</span>
                   </div>
                 ))}
               </div>
 
               {/* Regelwerk-Info bei Schritt 4 */}
               {currentNode.id === 'ruleset' && (
-                <div className="p-4 bg-orange-500/20 border border-orange-400/30 rounded-xl">
-                  <h4 className="font-semibold text-orange-300 text-lg mb-2">Ausgewähltes Regelwerk</h4>
-                  <p className="text-white text-base">{selectedRuleset.title}</p>
-                  <p className="text-orange-200/80 text-sm mt-1">{selectedRuleset.featuresCount} Pflichtmerkmale werden geprüft</p>
+                <div className="mt-4 p-3 bg-orange-500/20 border border-orange-400/30 rounded-xl">
+                  <h4 className="font-semibold text-orange-300 text-sm mb-1">Ausgewähltes Regelwerk</h4>
+                  <p className="text-white text-sm">{selectedRuleset.title}</p>
+                  <p className="text-orange-200/80 text-xs mt-1">{selectedRuleset.featuresCount} Pflichtmerkmale</p>
                 </div>
               )}
             </div>
           </div>
 
-          {/* Glossar-Begriffe für aktuellen Schritt - breiter */}
-          <div className="lg:col-span-2">
-            <div className="glass-panel-strong rounded-2xl p-6 h-full">
+          {/* 3D Orbital Infographic - Mitte */}
+          <div className="perspective-container flex-shrink-0 order-1 xl:order-2">
+            <div
+              className="orbital-stage relative"
+              style={{
+                width: ORBIT_RADIUS * 2 + 160,
+                height: ORBIT_RADIUS * 2 + 160
+              }}
+            >
+              {/* SVG Connectors Layer */}
+              <svg
+                className="absolute inset-0 w-full h-full pointer-events-none"
+                viewBox={`${-ORBIT_RADIUS - 80} ${-ORBIT_RADIUS - 80} ${(ORBIT_RADIUS + 80) * 2} ${(ORBIT_RADIUS + 80) * 2}`}
+              >
+                {/* Orbital Ring */}
+                <circle
+                  cx="0"
+                  cy="0"
+                  r={ORBIT_RADIUS}
+                  fill="none"
+                  stroke="rgba(255,255,255,0.1)"
+                  strokeWidth="2"
+                  strokeDasharray="8, 4"
+                />
+
+                {/* Connectors between nodes */}
+                {WORKFLOW_NODES.map((_, index) => {
+                  const nextIndex = (index + 1) % WORKFLOW_NODES.length
+                  const isActiveConnector = index === currentStep
+                  return (
+                    <OrbitalConnector
+                      key={`connector-${index}`}
+                      fromAngle={getNodeAngle(index) + rotationOffset}
+                      toAngle={getNodeAngle(nextIndex) + rotationOffset}
+                      radius={ORBIT_RADIUS}
+                      isActive={isActiveConnector}
+                      color={`rgba(${WORKFLOW_NODES[index].colorRgb}, 0.8)`}
+                    />
+                  )
+                })}
+              </svg>
+
+              {/* Central Core */}
+              <CentralCore currentNode={currentNode} progress={progress} />
+
+              {/* Orbital Nodes */}
+              {WORKFLOW_NODES.map((node, index) => (
+                <OrbitalNode
+                  key={node.id}
+                  node={node}
+                  index={index}
+                  totalNodes={WORKFLOW_NODES.length}
+                  radius={ORBIT_RADIUS}
+                  isActive={index === currentStep}
+                  isCompleted={index < currentStep}
+                  onClick={() => handleStepClick(index)}
+                  rotationOffset={rotationOffset}
+                />
+              ))}
+            </div>
+          </div>
+
+          {/* Rechtes Panel - Glossar/Begriffe */}
+          <div className="w-full xl:w-80 flex-shrink-0 order-3">
+            <div className="glass-panel-strong rounded-2xl p-5 h-full">
               <div className="flex items-center gap-2 mb-4">
-                <Info className="w-6 h-6 text-blue-300" />
-                <h3 className="font-semibold text-white text-lg">Begriffe</h3>
+                <Info className="w-5 h-5 text-blue-300" />
+                <h3 className="font-semibold text-white text-base">Begriffe</h3>
               </div>
 
               {currentNode.glossaryTerms.length > 0 ? (
-                <div className="space-y-4">
+                <div className="space-y-3">
                   {currentNode.glossaryTerms.map((term, idx) => (
                     <div
                       key={idx}
-                      className="p-4 bg-white/5 rounded-xl border border-white/10 animate-slide-in"
+                      className="p-3 bg-white/5 rounded-xl border border-white/10 animate-slide-in"
                       style={{ animationDelay: `${idx * 150}ms` }}
                     >
-                      <h4 className="font-semibold text-blue-300 text-base mb-2">{term.term}</h4>
-                      <p className="text-sm text-white/90 leading-relaxed">{term.definition}</p>
+                      <h4 className="font-semibold text-blue-300 text-sm mb-1">{term.term}</h4>
+                      <p className="text-xs text-white/90 leading-relaxed">{term.definition}</p>
                     </div>
                   ))}
                 </div>
               ) : (
-                <p className="text-white/50 text-base">Keine speziellen Begriffe.</p>
+                <p className="text-white/50 text-sm">Keine speziellen Begriffe.</p>
               )}
 
               {/* Musterprojekt-Kurzinfo */}
-              <div className="mt-4 p-4 bg-white/5 rounded-xl border border-white/10">
-                <div className="flex items-center gap-2 mb-2">
-                  <FolderPlus className="w-5 h-5 text-blue-300" />
-                  <span className="text-sm font-medium text-white">Beispiel-Projekt</span>
+              <div className="mt-4 p-3 bg-white/5 rounded-xl border border-white/10">
+                <div className="flex items-center gap-2 mb-1">
+                  <FolderPlus className="w-4 h-4 text-blue-300" />
+                  <span className="text-xs font-medium text-white">Beispiel-Projekt</span>
                 </div>
-                <p className="text-sm text-white/80">{SAMPLE_PROJECT.title}</p>
+                <p className="text-xs text-white/80">{SAMPLE_PROJECT.title}</p>
               </div>
             </div>
           </div>
