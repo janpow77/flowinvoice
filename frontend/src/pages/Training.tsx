@@ -442,7 +442,7 @@ export default function Training() {
           </div>
           <div>
             <h1 className="text-2xl font-bold text-theme-text-primary">
-              {lang === 'de' ? '🎓 Interaktive Schulung (NEU)' : '🎓 Interactive Training (NEW)'}
+              {lang === 'de' ? 'Interaktive Schulung' : 'Interactive Training'}
             </h1>
             <p className="text-theme-text-muted">
               {lang === 'de'
