@@ -287,6 +287,12 @@ export const en = {
     legalBasis: 'Legal Basis',
     requiredFeatures: 'Required Features',
     conditionalFeatures: 'Conditional Features',
+    requiredLevel: {
+      REQUIRED: 'Required',
+      CONDITIONAL: 'Conditional',
+      OPTIONAL: 'Optional',
+      RECOMMENDED: 'Recommended',
+    },
     smallAmountInvoice: 'Small Amount Invoice',
     reducedRequirements: 'Reduced Requirements',
     // Actions

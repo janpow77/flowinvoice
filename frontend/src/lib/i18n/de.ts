@@ -287,6 +287,12 @@ export const de = {
     legalBasis: 'Rechtsgrundlage',
     requiredFeatures: 'Pflichtmerkmale',
     conditionalFeatures: 'Bedingte Merkmale',
+    requiredLevel: {
+      REQUIRED: 'Pflicht',
+      CONDITIONAL: 'Bedingt',
+      OPTIONAL: 'Optional',
+      RECOMMENDED: 'Empfohlen',
+    },
     smallAmountInvoice: 'Kleinbetragsrechnung',
     reducedRequirements: 'Reduzierte Anforderungen',
     // Actions

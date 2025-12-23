@@ -875,7 +875,7 @@ export default function ProjectDetail() {
                               : 'bg-theme-hover text-theme-text-muted'
                           }`}
                         >
-                          {feature.required_level}
+                          {t(`rulesets.requiredLevel.${feature.required_level}`, feature.required_level)}
                         </span>
                       </div>
                     ))}
