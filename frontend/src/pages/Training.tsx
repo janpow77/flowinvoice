@@ -9,115 +9,138 @@ import {
   Shield,
   CheckCircle,
   FileText,
-  Play,
-  Pause,
-  ChevronLeft,
-  ChevronRight,
   Info,
   X,
-  AlertTriangle,
-  Search,
-  Calculator,
-  Clock,
-  FileCheck,
-  Zap,
-  Database,
-  MessageSquare,
   Building,
   Calendar,
   ListChecks,
   MapPin,
   Euro,
+  FileCheck,
+  AlertTriangle,
+  Play,
+  Pause,
+  RotateCcw,
+  ChevronRight,
 } from 'lucide-react'
 import clsx from 'clsx'
 
-interface WorkflowStep {
-  id: number
-  key: string
+// --- CSS Animationen (wie Login-Seite) ---
+const cssAnimations = `
+  @keyframes fishSwim {
+    0%, 100% {
+      transform: translateX(0) translateY(0) rotate(0deg);
+    }
+    25% {
+      transform: translateX(20px) translateY(-10px) rotate(5deg);
+    }
+    50% {
+      transform: translateX(0) translateY(-20px) rotate(0deg);
+    }
+    75% {
+      transform: translateX(-20px) translateY(-10px) rotate(-5deg);
+    }
+  }
+
+  .animate-fish-swim {
+    animation: fishSwim 8s ease-in-out infinite;
+    filter: drop-shadow(0 0 20px rgba(96, 165, 250, 0.6));
+  }
+
+  @keyframes dataFlow {
+    0% { transform: translateX(0); }
+    100% { transform: translateX(-50%); }
+  }
+
+  .data-flow {
+    animation: dataFlow 20s linear infinite;
+  }
+
+  .data-flow-fast {
+    animation: dataFlow 15s linear infinite;
+  }
+
+  .data-flow-slow {
+    animation: dataFlow 25s linear infinite reverse;
+  }
+
+  @keyframes binaryPulse {
+    0%, 100% { opacity: 0.3; }
+    50% { opacity: 0.7; }
+  }
+
+  .binary-pulse {
+    animation: binaryPulse 3s ease-in-out infinite;
+  }
+
+  @keyframes nodeGlow {
+    0%, 100% { box-shadow: 0 0 20px rgba(96, 165, 250, 0.3); }
+    50% { box-shadow: 0 0 40px rgba(96, 165, 250, 0.6); }
+  }
+
+  .node-glow {
+    animation: nodeGlow 2s ease-in-out infinite;
+  }
+
+  @keyframes float {
+    0%, 100% { transform: translateY(0); }
+    50% { transform: translateY(-10px); }
+  }
+
+  .animate-float {
+    animation: float 3s ease-in-out infinite;
+  }
+
+  @keyframes pulse-ring {
+    0% { transform: scale(1); opacity: 1; }
+    100% { transform: scale(1.5); opacity: 0; }
+  }
+
+  .pulse-ring {
+    animation: pulse-ring 2s ease-out infinite;
+  }
+
+  @keyframes slideIn {
+    from { opacity: 0; transform: translateX(20px); }
+    to { opacity: 1; transform: translateX(0); }
+  }
+
+  .animate-slide-in {
+    animation: slideIn 0.5s ease-out forwards;
+  }
+
+  @keyframes progress {
+    from { width: 0%; }
+    to { width: 100%; }
+  }
+`
+
+// Statische Binärsequenzen für das Datenwasser
+const BINARY_LINES = [
+  '0 1 1 0 0 1 0 1 1 0 1 0 0 1 1 0 1 1 0 0 1 0 1 0 1 1 0 0 1 0 1 1 0 1 0 0 1 1 0 1 0 1 0 0 1 1 0 1 0 1 1 0 0 1 0 1 1 0 1 0',
+  '1 0 0 1 1 0 1 0 0 1 0 1 1 0 0 1 0 0 1 1 0 1 0 1 0 0 1 1 0 1 0 0 1 0 1 1 0 0 1 0 1 0 1 1 0 0 1 0 1 0 0 1 1 0 1 0 0 1 0 1',
+  '0 0 1 0 1 1 0 1 0 0 1 0 1 1 0 1 0 1 0 0 1 1 0 1 0 1 0 0 1 1 0 0 1 0 1 1 0 1 0 0 1 0 1 1 0 1 0 1 0 0 1 1 0 1 0 1 0 0 1 1',
+]
+
+interface WorkflowNode {
+  id: string
   title: string
+  shortTitle: string
   description: string
   icon: React.ComponentType<{ className?: string }>
   color: string
-  details: StepDetail[]
+  details: string[]
+  glossaryTerms: { term: string; definition: string }[]
 }
 
-interface StepDetail {
-  title: string
-  description: string
-  items?: string[]
-}
-
-interface GlossaryTerm {
-  term: string
-  definition: string
-  category: string
-}
-
-// Statische Regelwerke für die Schulung (keine API-Aufrufe)
+// Statische Regelwerke
 const DEMO_RULESETS = [
-  {
-    id: 'DE_USTG',
-    title: 'Deutschland – Umsatzsteuergesetz',
-    titleShort: 'DE (UStG)',
-    version: '1.0.0',
-    featuresCount: 14,
-    description: 'Deutsches Umsatzsteuergesetz mit 14 Pflichtmerkmalen nach §14 UStG',
-    features: [
-      'Name/Anschrift Leistender',
-      'Name/Anschrift Empfänger',
-      'Steuernummer/USt-IdNr.',
-      'Ausstellungsdatum',
-      'Rechnungsnummer',
-      'Leistungsbeschreibung',
-      'Leistungszeitpunkt',
-      'Nettobetrag',
-      'Steuersatz',
-      'Steuerbetrag',
-    ],
-  },
-  {
-    id: 'EU_VAT',
-    title: 'EU – Mehrwertsteuer-Richtlinie',
-    titleShort: 'EU (MwSt)',
-    version: '1.0.0',
-    featuresCount: 12,
-    description: 'EU-Mehrwertsteuer-Richtlinie 2006/112/EG',
-    features: [
-      'Supplier identification',
-      'Customer identification',
-      'VAT number',
-      'Invoice date',
-      'Sequential number',
-      'Description of goods/services',
-      'Date of supply',
-      'Taxable amount',
-      'VAT rate',
-      'VAT amount',
-    ],
-  },
-  {
-    id: 'AT_USTG',
-    title: 'Österreich – Umsatzsteuergesetz',
-    titleShort: 'AT (UStG)',
-    version: '1.0.0',
-    featuresCount: 11,
-    description: 'Österreichisches Umsatzsteuergesetz',
-    features: [
-      'Name/Anschrift Lieferant',
-      'Name/Anschrift Abnehmer',
-      'UID-Nummer',
-      'Rechnungsdatum',
-      'Fortlaufende Nummer',
-      'Leistungsbezeichnung',
-      'Lieferdatum',
-      'Entgelt',
-      'Steuersatz',
-      'Steuerbetrag',
-    ],
-  },
+  { id: 'DE_USTG', title: 'Deutschland – UStG', titleShort: 'DE (UStG)', version: '1.0.0', featuresCount: 14 },
+  { id: 'EU_VAT', title: 'EU – MwSt-Richtlinie', titleShort: 'EU (MwSt)', version: '1.0.0', featuresCount: 12 },
+  { id: 'AT_USTG', title: 'Österreich – UStG', titleShort: 'AT (UStG)', version: '1.0.0', featuresCount: 11 },
 ]
 
-// Statisches Musterprojekt für die Schulung
+// Musterprojekt
 const SAMPLE_PROJECT = {
   title: 'Digitalisierung Stadtbücherei Musterstadt',
   fileReference: 'FKZ 2024-DIG-0815',
@@ -136,784 +159,443 @@ const SAMPLE_PROJECT = {
   ],
 }
 
-const WORKFLOW_STEPS: WorkflowStep[] = [
+// Workflow-Knoten mit Glossar-Begriffen
+const WORKFLOW_NODES: WorkflowNode[] = [
   {
-    id: 1,
-    key: 'project',
-    title: 'Projekt erstellen',
-    description: 'Ein Förderprojekt mit Begünstigten und Zeitraum anlegen',
+    id: 'project',
+    title: 'Projekt anlegen',
+    shortTitle: 'Projekt',
+    description: 'Förderprojekt mit Begünstigten erstellen',
     icon: FolderPlus,
-    color: 'text-blue-500 bg-blue-500/10',
-    details: [
-      {
-        title: 'Projektstruktur',
-        description: 'Jedes Projekt enthält grundlegende Metadaten',
-        items: ['Projekttitel', 'Aktenzeichen', 'Projektzeitraum (Start/Ende)', 'Durchführungsort'],
-      },
-      {
-        title: 'Begünstigter',
-        description: 'Der Zuwendungsempfänger wird mit allen relevanten Daten erfasst',
-        items: ['Name/Firma', 'Adresse', 'USt-IdNr.', 'Vorsteuerabzugsberechtigung', 'Alias-Namen'],
-      },
-      {
-        title: 'Regelwerk-Zuordnung',
-        description: 'Das passende Prüfregelwerk wird ausgewählt (z.B. DE_USTG)',
-      },
+    color: 'from-blue-400 to-blue-600',
+    details: ['Projekttitel', 'Aktenzeichen', 'Zeitraum', 'Begünstigter', 'Regelwerk'],
+    glossaryTerms: [
+      { term: 'Begünstigter', definition: 'Der Zuwendungsempfänger des Förderprojekts, dessen Rechnungen geprüft werden.' },
+      { term: 'Projektzeitraum', definition: 'Der Bewilligungszeitraum, in dem förderfähige Ausgaben anfallen dürfen.' },
     ],
   },
   {
-    id: 2,
-    key: 'upload',
+    id: 'upload',
     title: 'Belege hochladen',
-    description: 'PDF-Rechnungen in das Projekt hochladen',
+    shortTitle: 'Upload',
+    description: 'PDF-Rechnungen ins System laden',
     icon: Upload,
-    color: 'text-green-500 bg-green-500/10',
-    details: [
-      {
-        title: 'Unterstützte Formate',
-        description: 'Das System akzeptiert verschiedene Dokumenttypen',
-        items: ['PDF-Dokumente', 'Gescannte Rechnungen (OCR)', 'Digitale Rechnungen'],
-      },
-      {
-        title: 'Upload-Prozess',
-        description: 'Dokumente werden validiert und vorbereitet',
-        items: ['Dateivalidierung', 'PDF-Parsing', 'Text-Extraktion', 'Metadaten-Erfassung'],
-      },
+    color: 'from-green-400 to-green-600',
+    details: ['PDF-Upload', 'OCR-Erkennung', 'Batch-Upload', 'Validierung'],
+    glossaryTerms: [
+      { term: 'OCR', definition: 'Optical Character Recognition - Texterkennung aus gescannten Dokumenten.' },
     ],
   },
   {
-    id: 3,
-    key: 'chunking',
-    title: 'Chunking & Vorverarbeitung',
-    description: 'Dokumente werden in verarbeitbare Teile zerlegt',
+    id: 'chunking',
+    title: 'Vorverarbeitung',
+    shortTitle: 'Chunking',
+    description: 'Dokumente für KI aufbereiten',
     icon: Scissors,
-    color: 'text-purple-500 bg-purple-500/10',
-    details: [
-      {
-        title: 'Was ist Chunking?',
-        description: 'Große Dokumente werden in kleinere "Chunks" aufgeteilt, damit sie vom LLM verarbeitet werden können.',
-      },
-      {
-        title: 'Token-Grenzen',
-        description: 'LLMs haben begrenzte Kontextfenster (z.B. 4096 oder 8192 Token). Chunks müssen kleiner sein.',
-        items: ['Typische Chunk-Größe: 500-1000 Token', 'Überlappung für Kontext: 50-100 Token', 'Intelligente Trennung an Absätzen'],
-      },
-      {
-        title: 'Chunk-Strategien',
-        description: 'Verschiedene Strategien je nach Dokumenttyp',
-        items: ['FIXED_SIZE: Feste Token-Anzahl', 'SEMANTIC: Nach inhaltlichen Abschnitten', 'PAGE_BASED: Seitenweise'],
-      },
+    color: 'from-purple-400 to-purple-600',
+    details: ['Text-Extraktion', 'Token-Chunking', 'Embeddings', 'Vektorspeicher'],
+    glossaryTerms: [
+      { term: 'Chunk', definition: 'Ein Textabschnitt aus einem Dokument, aufgeteilt für LLM-Verarbeitung.' },
+      { term: 'Token', definition: 'Die kleinste Einheit für LLM-Verarbeitung. Ein Wort ≈ 1-3 Token.' },
+      { term: 'Embedding', definition: 'Numerische Vektordarstellung von Text für semantische Suche.' },
     ],
   },
   {
-    id: 4,
-    key: 'ruleset',
-    title: 'Regelwerk-Anwendung',
-    description: 'Prüfung gegen steuerliche Pflichtmerkmale',
+    id: 'ruleset',
+    title: 'Regelwerk',
+    shortTitle: 'Regeln',
+    description: 'Pflichtmerkmale nach §14 UStG',
     icon: BookOpen,
-    color: 'text-orange-500 bg-orange-500/10',
-    details: [
-      {
-        title: '14 Pflichtmerkmale nach §14 UStG',
-        description: 'Eine ordnungsgemäße Rechnung muss folgende Angaben enthalten:',
-        items: [
-          '1. Vollständiger Name und Anschrift des leistenden Unternehmers',
-          '2. Vollständiger Name und Anschrift des Leistungsempfängers',
-          '3. Steuernummer oder USt-IdNr. des leistenden Unternehmers',
-          '4. Ausstellungsdatum der Rechnung',
-          '5. Fortlaufende Rechnungsnummer',
-          '6. Menge und Art der Lieferung/Leistung',
-          '7. Zeitpunkt der Lieferung/Leistung',
-          '8. Entgelt (Nettobetrag)',
-          '9. Anzuwendender Steuersatz',
-          '10. Auf das Entgelt entfallender Steuerbetrag',
-          '11. Ggf. Hinweis auf Steuerbefreiung',
-          '12. Bei Gutschriften: Hinweis "Gutschrift"',
-          '13. Bei innergemeinschaftlicher Lieferung: USt-IdNr. des Empfängers',
-          '14. Bei Reverse-Charge: Hinweis "Steuerschuldnerschaft des Leistungsempfängers"',
-        ],
-      },
-      {
-        title: 'Rechtsgrundlagen',
-        description: 'Relevante Paragraphen im Umsatzsteuergesetz',
-        items: ['§14 UStG - Ausstellung von Rechnungen', '§14a UStG - Zusätzliche Pflichten', '§15 UStG - Vorsteuerabzug'],
-      },
-      {
-        title: 'Sonderregel: Kleinbetragsrechnung',
-        description: 'Rechnungen bis 250 EUR brutto haben reduzierte Anforderungen (§33 UStDV)',
-        items: ['Name/Anschrift des Leistenden', 'Menge und Art der Leistung', 'Bruttobetrag', 'Steuersatz'],
-      },
+    color: 'from-orange-400 to-orange-600',
+    details: ['14 Pflichtmerkmale', 'Kleinbetragsrechnung', 'Reverse-Charge', 'EU-Lieferung'],
+    glossaryTerms: [
+      { term: 'Pflichtmerkmal', definition: 'Gesetzlich vorgeschriebene Angabe auf einer Rechnung nach §14 UStG.' },
+      { term: 'Kleinbetragsrechnung', definition: 'Rechnung bis 250€ brutto mit reduzierten Pflichtangaben (§33 UStDV).' },
     ],
   },
   {
-    id: 5,
-    key: 'llm',
-    title: 'LLM-Analyse',
-    description: 'KI-gestützte Extraktion und semantische Prüfung',
+    id: 'llm',
+    title: 'KI-Analyse',
+    shortTitle: 'LLM',
+    description: 'Intelligente Extraktion & Bewertung',
     icon: Brain,
-    color: 'text-pink-500 bg-pink-500/10',
-    details: [
-      {
-        title: 'Prompt-Aufbau',
-        description: 'Das LLM erhält einen strukturierten Prompt mit:',
-        items: ['System-Prompt mit Regelwerk-Definition', 'Extrahierte Rechnungsdaten', 'Projektkontext (Begünstigter, Zeitraum)', 'RAG-Beispiele ähnlicher Rechnungen'],
-      },
-      {
-        title: 'RAG (Retrieval-Augmented Generation)',
-        description: 'Ähnliche, bereits geprüfte Rechnungen werden als Referenz herangezogen',
-        items: ['Embedding-Vektoren der Rechnungstexte', 'Semantische Ähnlichkeitssuche in ChromaDB', 'Few-Shot-Learning durch Beispiele'],
-      },
-      {
-        title: 'LLM-Output',
-        description: 'Das Modell liefert strukturierte JSON-Antworten',
-        items: ['Extrahierte Merkmalswerte', 'Semantische Bewertung', 'Konfidenzwerte', 'Warnungen und Hinweise'],
-      },
+    color: 'from-pink-400 to-pink-600',
+    details: ['RAG-System', 'Few-Shot Learning', 'Semantik-Analyse', 'Konfidenz'],
+    glossaryTerms: [
+      { term: 'LLM', definition: 'Large Language Model - KI-Modell für Sprachverarbeitung (GPT, Claude, Llama).' },
+      { term: 'RAG', definition: 'Retrieval-Augmented Generation - Kontext aus Datenbank für bessere LLM-Antworten.' },
+      { term: 'Konfidenz', definition: 'Maß für die Sicherheit des LLM bei einer Extraktion (0-100%).' },
     ],
   },
   {
-    id: 6,
-    key: 'checkers',
+    id: 'checkers',
     title: 'Prüfmodule',
-    description: 'Spezialisierte Prüfungen für verschiedene Aspekte',
+    shortTitle: 'Checker',
+    description: 'Spezialisierte Validierungen',
     icon: Shield,
-    color: 'text-red-500 bg-red-500/10',
-    details: [
-      {
-        title: 'Projektzeitraum-Prüfung',
-        description: 'Prüft ob das Leistungsdatum im Projektzeitraum liegt',
-        items: ['Vergleich Leistungsdatum vs. Projektzeitraum', 'Toleranz für Vor-/Nachbereitungskosten', 'Warnungen bei Grenzfällen'],
-      },
-      {
-        title: 'Risiko-Prüfung',
-        description: 'Erkennung potenzieller Unregelmäßigkeiten',
-        items: ['Selbstrechnung (Begünstigter = Rechnungssteller)', 'Duplikat-Erkennung', 'Runde Pauschalbeträge', 'Wochenend-/Feiertagsrechnungen'],
-      },
-      {
-        title: 'Semantik-Prüfung',
-        description: 'Inhaltliche Plausibilität der Leistungsbeschreibung',
-        items: ['Projektrelevanz der Leistung', 'Qualität der Leistungsbeschreibung', 'RAG-Kontext-Abgleich'],
-      },
-      {
-        title: 'Wirtschaftlichkeits-Prüfung',
-        description: 'Finanzielle Plausibilität',
-        items: ['Budgetgrenzen-Einhaltung', 'Marktübliche Einzelpreise', 'Förderquoten-Konformität'],
-      },
+    color: 'from-red-400 to-red-600',
+    details: ['Zeitraum-Check', 'Risiko-Erkennung', 'Semantik-Prüfung', 'Wirtschaftlichkeit'],
+    glossaryTerms: [
+      { term: 'Selbstrechnung', definition: 'Risiko: Der Begünstigte stellt sich selbst eine Rechnung aus.' },
+      { term: 'Duplikat', definition: 'Rechnung wurde möglicherweise mehrfach eingereicht.' },
     ],
   },
   {
-    id: 7,
-    key: 'result',
-    title: 'Ergebnis & Feedback',
+    id: 'result',
+    title: 'Ergebnis',
+    shortTitle: 'Feedback',
     description: 'Bewertung und Lernschleife',
     icon: CheckCircle,
-    color: 'text-emerald-500 bg-emerald-500/10',
-    details: [
-      {
-        title: 'Gesamtbewertung',
-        description: 'Jede Rechnung erhält eine Gesamtbewertung',
-        items: ['OK - Rechnung ist konform', 'PRÜFUNG ERFORDERLICH - Manuelle Nachprüfung nötig', 'ABGELEHNT - Schwerwiegende Mängel'],
-      },
-      {
-        title: 'Feedback-Loop',
-        description: 'Nutzer können das Ergebnis korrigieren',
-        items: ['Bestätigung oder Korrektur der Bewertung', 'Anpassung einzelner Merkmalswerte', 'Kommentare und Begründungen'],
-      },
-      {
-        title: 'RAG-Lernen',
-        description: 'Validierte Rechnungen verbessern zukünftige Analysen',
-        items: ['Speicherung in ChromaDB als Referenz', 'Automatisches Few-Shot-Learning', 'Kontinuierliche Qualitätsverbesserung'],
-      },
+    color: 'from-emerald-400 to-emerald-600',
+    details: ['Gesamtbewertung', 'Fehlerhinweise', 'Korrektur', 'RAG-Lernen'],
+    glossaryTerms: [
+      { term: 'Feedback-Loop', definition: 'Nutzer-Korrekturen verbessern zukünftige KI-Analysen.' },
     ],
   },
   {
-    id: 8,
-    key: 'list',
-    title: 'Belegliste',
-    description: 'Übersicht aller geprüften Dokumente',
+    id: 'export',
+    title: 'Export',
+    shortTitle: 'Report',
+    description: 'Dokumentation und Ausgabe',
     icon: FileText,
-    color: 'text-cyan-500 bg-cyan-500/10',
-    details: [
-      {
-        title: 'Dokumenten-Übersicht',
-        description: 'Alle Belege eines Projekts auf einen Blick',
-        items: ['Rechnungssteller', 'Datum und Betrag', 'Prüfstatus', 'Fehleranzahl'],
-      },
-      {
-        title: 'Filter & Sortierung',
-        description: 'Schnelles Auffinden relevanter Belege',
-        items: ['Nach Status filtern', 'Nach Betrag sortieren', 'Zeitraumfilter', 'Volltextsuche'],
-      },
-      {
-        title: 'Export-Optionen',
-        description: 'Ergebnisse für externe Verwendung',
-        items: ['PDF-Prüfbericht', 'Excel-Export', 'CSV für Weiterverarbeitung'],
-      },
+    color: 'from-cyan-400 to-cyan-600',
+    details: ['Belegliste', 'PDF-Report', 'Excel-Export', 'Archivierung'],
+    glossaryTerms: [
+      { term: 'Prüfbericht', definition: 'Dokumentation aller Prüfergebnisse als PDF oder Excel.' },
     ],
   },
 ]
 
-const GLOSSARY_TERMS: GlossaryTerm[] = [
-  { term: 'Chunk', definition: 'Ein Textabschnitt, der aus einem größeren Dokument extrahiert wurde, um ihn für das LLM verarbeitbar zu machen.', category: 'Technisch' },
-  { term: 'Token', definition: 'Die kleinste Einheit, die ein LLM verarbeitet. Ein Wort entspricht ca. 1-3 Token. Deutsche Wörter sind oft länger.', category: 'Technisch' },
-  { term: 'RAG', definition: 'Retrieval-Augmented Generation - Technik, bei der relevante Dokumente aus einer Datenbank abgerufen und dem LLM als Kontext mitgegeben werden.', category: 'Technisch' },
-  { term: 'Embedding', definition: 'Numerische Vektordarstellung von Text, die semantische Ähnlichkeit erfasst. Ähnliche Texte haben ähnliche Vektoren.', category: 'Technisch' },
-  { term: 'Prompt', definition: 'Die Eingabe/Anweisung an das LLM, die definiert was es tun soll und welchen Kontext es hat.', category: 'Technisch' },
-  { term: 'Pflichtmerkmal', definition: 'Eine gesetzlich vorgeschriebene Angabe auf einer Rechnung nach §14 UStG.', category: 'Steuerrecht' },
-  { term: 'Vorsteuerabzug', definition: 'Das Recht eines Unternehmers, die ihm in Rechnung gestellte Umsatzsteuer von seiner Steuerschuld abzuziehen (§15 UStG).', category: 'Steuerrecht' },
-  { term: 'Kleinbetragsrechnung', definition: 'Rechnung bis 250 EUR brutto mit reduzierten Pflichtangaben nach §33 UStDV.', category: 'Steuerrecht' },
-  { term: 'USt-IdNr.', definition: 'Umsatzsteuer-Identifikationsnummer - EU-weit eindeutige Kennung für Unternehmer.', category: 'Steuerrecht' },
-  { term: 'Begünstigter', definition: 'Der Zuwendungsempfänger eines Förderprojekts, dessen Rechnungen geprüft werden.', category: 'Förderung' },
-  { term: 'Projektzeitraum', definition: 'Der Bewilligungszeitraum, in dem förderfähige Ausgaben anfallen dürfen.', category: 'Förderung' },
-  { term: 'LLM', definition: 'Large Language Model - KI-Modell, das natürliche Sprache versteht und generiert (z.B. GPT, Claude, Llama).', category: 'Technisch' },
-  { term: 'ChromaDB', definition: 'Vektordatenbank zum Speichern und Suchen von Embeddings für RAG.', category: 'Technisch' },
-  { term: 'Konfidenz', definition: 'Maß für die Sicherheit des LLM bei einer Extraktion oder Bewertung (0-100%).', category: 'Technisch' },
-]
+// Binäres Datenwasser Komponente
+const BinaryDataWater = () => (
+  <div className="absolute bottom-0 left-0 right-0 h-32 overflow-hidden pointer-events-none">
+    <div className="absolute bottom-0 left-0 right-0 h-24 bg-gradient-to-t from-blue-950/80 via-blue-900/50 to-transparent">
+      <div className="data-flow-slow whitespace-nowrap font-mono text-xs pt-4">
+        <span className="text-blue-400/30">{BINARY_LINES[0]} {BINARY_LINES[0]}</span>
+      </div>
+      <div className="data-flow whitespace-nowrap font-mono text-xs">
+        <span className="text-cyan-400/25">{BINARY_LINES[1]} {BINARY_LINES[1]}</span>
+      </div>
+    </div>
+    <div className="absolute bottom-0 left-0 right-0 h-16 bg-gradient-to-t from-blue-800/70 to-transparent">
+      <div className="data-flow-fast whitespace-nowrap font-mono text-sm binary-pulse">
+        <span className="text-blue-300/40">{BINARY_LINES[2]} {BINARY_LINES[2]}</span>
+      </div>
+    </div>
+  </div>
+)
 
 export default function Training() {
   const { i18n } = useTranslation()
   const lang = i18n.language
 
   const [selectedRulesetId, setSelectedRulesetId] = useState<string>('DE_USTG')
-  const [currentStep, setCurrentStep] = useState(0)
-  const [isPlaying, setIsPlaying] = useState(false)
+  const [currentStep, setCurrentStep] = useState<number>(0)
+  const [isPlaying, setIsPlaying] = useState<boolean>(false)
   const [showGlossary, setShowGlossary] = useState(false)
   const [showSampleProject, setShowSampleProject] = useState(false)
-  const [expandedDetail, setExpandedDetail] = useState<number | null>(null)
-  const [glossaryFilter, setGlossaryFilter] = useState<string>('all')
+  const [progress, setProgress] = useState<number>(0)
 
-  // Aktuell ausgewähltes Regelwerk (aus statischen Daten)
   const selectedRuleset = DEMO_RULESETS.find(r => r.id === selectedRulesetId) || DEMO_RULESETS[0]
+  const currentNode = WORKFLOW_NODES[currentStep]
 
-  // Auto-play animation
+  const STEP_DURATION = 5000 // 5 Sekunden pro Schritt
+
+  // Auto-Animation
   useEffect(() => {
     if (!isPlaying) return
 
-    const timer = setInterval(() => {
-      setCurrentStep((prev) => {
-        if (prev >= WORKFLOW_STEPS.length - 1) {
-          setIsPlaying(false)
-          return prev
+    const progressInterval = setInterval(() => {
+      setProgress(prev => {
+        if (prev >= 100) {
+          // Nächster Schritt
+          setCurrentStep(step => {
+            if (step >= WORKFLOW_NODES.length - 1) {
+              setIsPlaying(false)
+              return step
+            }
+            return step + 1
+          })
+          return 0
         }
-        return prev + 1
+        return prev + (100 / (STEP_DURATION / 100))
       })
-    }, 4000)
+    }, 100)
 
-    return () => clearInterval(timer)
+    return () => clearInterval(progressInterval)
   }, [isPlaying])
 
-  const handlePrevStep = useCallback(() => {
-    setCurrentStep((prev) => Math.max(0, prev - 1))
+  // Reset progress wenn Schritt manuell gewechselt wird
+  useEffect(() => {
+    setProgress(0)
+  }, [currentStep])
+
+  const handlePlay = useCallback(() => {
+    setIsPlaying(true)
+    setProgress(0)
+  }, [])
+
+  const handlePause = useCallback(() => {
     setIsPlaying(false)
   }, [])
 
-  const handleNextStep = useCallback(() => {
-    setCurrentStep((prev) => Math.min(WORKFLOW_STEPS.length - 1, prev + 1))
+  const handleReset = useCallback(() => {
     setIsPlaying(false)
+    setCurrentStep(0)
+    setProgress(0)
   }, [])
 
   const handleStepClick = useCallback((index: number) => {
     setCurrentStep(index)
     setIsPlaying(false)
+    setProgress(0)
   }, [])
-
-  const togglePlay = useCallback(() => {
-    setIsPlaying((prev) => !prev)
-  }, [])
-
-  const currentWorkflowStep = WORKFLOW_STEPS[currentStep]
-
-  const filteredGlossary = glossaryFilter === 'all'
-    ? GLOSSARY_TERMS
-    : GLOSSARY_TERMS.filter(t => t.category === glossaryFilter)
-
-  const glossaryCategories = ['all', ...new Set(GLOSSARY_TERMS.map(t => t.category))]
 
   return (
-    <div className="space-y-6">
-      {/* Header */}
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-3">
-          <div className="p-2 bg-theme-primary/10 rounded-lg">
-            <img
-              src="/auditlogo.png"
-              alt="FlowAudit"
-              className="w-12 h-12 object-contain"
-            />
-          </div>
-          <div>
-            <h1 className="text-2xl font-bold text-theme-text-primary">
-              {lang === 'de' ? 'Interaktive Schulung' : 'Interactive Training'}
-            </h1>
-            <p className="text-theme-text-muted">
-              {lang === 'de'
-                ? 'Verstehen Sie den Prüfprozess Schritt für Schritt'
-                : 'Understand the audit process step by step'}
-            </p>
-          </div>
-        </div>
+    <div className="min-h-screen bg-gradient-to-b from-blue-900 via-blue-700 to-blue-500 relative overflow-hidden">
+      <style>{cssAnimations}</style>
 
-        <div className="flex items-center gap-3">
-          {/* Ruleset Selector */}
-          <div className="flex items-center gap-2">
-            <BookOpen className="w-5 h-5 text-theme-text-muted" />
+      {/* Binäres Datenwasser am unteren Rand */}
+      <BinaryDataWater />
+
+      {/* Schwimmender Fisch */}
+      <div className="absolute top-20 right-10 z-10 animate-fish-swim pointer-events-none">
+        <img src="/auditlogo.png" alt="FlowAudit" className="w-20 h-20 object-contain" />
+      </div>
+
+      {/* Deko-Blasen */}
+      <div className="absolute top-1/4 left-10 w-4 h-4 bg-blue-300/20 rounded-full animate-bounce" style={{ animationDuration: '4s' }} />
+      <div className="absolute top-1/3 right-1/4 w-3 h-3 bg-blue-200/15 rounded-full animate-bounce" style={{ animationDelay: '1s', animationDuration: '5s' }} />
+
+      {/* Hauptinhalt */}
+      <div className="relative z-20 p-6 pb-40">
+        {/* Header */}
+        <div className="flex items-center justify-between flex-wrap gap-4 mb-6">
+          <div className="flex items-center gap-4">
+            <div className="p-3 bg-white/10 backdrop-blur-sm rounded-xl border border-white/20">
+              <img src="/auditlogo.png" alt="FlowAudit" className="w-10 h-10 object-contain" />
+            </div>
+            <div>
+              <h1 className="text-2xl font-bold text-white drop-shadow-lg">
+                {lang === 'de' ? 'Interaktive Schulung' : 'Interactive Training'}
+              </h1>
+              <p className="text-blue-200 text-sm">
+                {lang === 'de' ? 'Wählen Sie ein Regelwerk und starten Sie die Animation' : 'Select a ruleset and start the animation'}
+              </p>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-3 flex-wrap">
             <select
               value={selectedRulesetId}
               onChange={(e) => setSelectedRulesetId(e.target.value)}
-              className="px-3 py-2 bg-theme-input border border-theme-border rounded-lg text-theme-text-primary focus:ring-2 focus:ring-theme-primary"
+              className="px-4 py-2 bg-white/10 backdrop-blur-sm border border-white/20 rounded-lg text-white text-sm focus:ring-2 focus:ring-blue-300"
             >
               {DEMO_RULESETS.map((rs) => (
-                <option key={rs.id} value={rs.id}>
-                  {rs.titleShort} (v{rs.version})
-                </option>
+                <option key={rs.id} value={rs.id} className="bg-blue-900 text-white">{rs.titleShort}</option>
               ))}
             </select>
-          </div>
 
-          {/* Sample Project Button */}
-          <button
-            onClick={() => setShowSampleProject(true)}
-            className="flex items-center gap-2 px-4 py-2 bg-theme-primary/10 text-theme-primary rounded-lg hover:bg-theme-primary/20 transition-colors"
-          >
-            <FolderPlus className="w-5 h-5" />
-            {lang === 'de' ? 'Musterprojekt' : 'Sample Project'}
-          </button>
-
-          {/* Glossary Button */}
-          <button
-            onClick={() => setShowGlossary(true)}
-            className="flex items-center gap-2 px-4 py-2 bg-theme-hover text-theme-text-secondary rounded-lg hover:bg-theme-selected transition-colors"
-          >
-            <Info className="w-5 h-5" />
-            {lang === 'de' ? 'Glossar' : 'Glossary'}
-          </button>
-        </div>
-      </div>
-
-      {/* Sample Project + Selected Ruleset Info Card */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-        {/* Musterprojekt */}
-        <div className="bg-gradient-to-r from-blue-500/10 to-blue-500/5 rounded-xl border border-blue-500/20 p-4">
-          <div className="flex items-start gap-3">
-            <div className="p-2 bg-blue-500/10 rounded-lg">
-              <FolderPlus className="w-5 h-5 text-blue-500" />
-            </div>
-            <div className="flex-1 min-w-0">
-              <div className="flex items-center gap-2 mb-1">
-                <h3 className="font-medium text-theme-text-primary text-sm">
-                  {lang === 'de' ? 'Musterprojekt' : 'Sample Project'}
-                </h3>
-              </div>
-              <p className="text-sm font-semibold text-theme-text-primary truncate">
-                {SAMPLE_PROJECT.title}
-              </p>
-              <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-theme-text-muted mt-1">
-                <span className="flex items-center gap-1">
-                  <Building className="w-3 h-3" />
-                  {SAMPLE_PROJECT.beneficiary.name}
-                </span>
-                <span className="flex items-center gap-1">
-                  <Calendar className="w-3 h-3" />
-                  {SAMPLE_PROJECT.period.start} - {SAMPLE_PROJECT.period.end}
-                </span>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        {/* Ausgewähltes Regelwerk */}
-        <div className="bg-gradient-to-r from-orange-500/10 to-orange-500/5 rounded-xl border border-orange-500/20 p-4">
-          <div className="flex items-start gap-3">
-            <div className="p-2 bg-orange-500/10 rounded-lg">
-              <BookOpen className="w-5 h-5 text-orange-500" />
-            </div>
-            <div className="flex-1 min-w-0">
-              <div className="flex items-center gap-2 mb-1">
-                <h3 className="font-medium text-theme-text-primary text-sm">
-                  {lang === 'de' ? 'Regelwerk' : 'Ruleset'}
-                </h3>
-              </div>
-              <p className="text-sm font-semibold text-theme-text-primary truncate">
-                {selectedRuleset.title}
-              </p>
-              <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-theme-text-muted mt-1">
-                <span className="flex items-center gap-1">
-                  <ListChecks className="w-3 h-3" />
-                  {selectedRuleset.featuresCount} {lang === 'de' ? 'Pflichtmerkmale' : 'Features'}
-                </span>
-                <span>v{selectedRuleset.version}</span>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      {/* Progress Bar */}
-      <div className="bg-theme-card rounded-lg border border-theme-border p-4">
-        <div className="flex items-center justify-between mb-3">
-          <span className="text-sm font-medium text-theme-text-secondary">
-            {lang === 'de' ? 'Workflow-Fortschritt' : 'Workflow Progress'}
-          </span>
-          <span className="text-sm text-theme-text-muted">
-            {currentStep + 1} / {WORKFLOW_STEPS.length}
-          </span>
-        </div>
-
-        {/* Step indicators */}
-        <div className="flex items-center gap-1">
-          {WORKFLOW_STEPS.map((step, index) => (
             <button
-              key={step.id}
-              onClick={() => handleStepClick(index)}
-              className={clsx(
-                'flex-1 h-2 rounded-full transition-all duration-300',
-                index === currentStep
-                  ? 'bg-theme-primary'
-                  : index < currentStep
-                  ? 'bg-theme-primary/50'
-                  : 'bg-theme-border'
-              )}
-              title={step.title}
-            />
-          ))}
+              onClick={() => setShowSampleProject(true)}
+              className="flex items-center gap-2 px-4 py-2 bg-white/10 backdrop-blur-sm border border-white/20 text-white rounded-lg hover:bg-white/20 transition-colors text-sm"
+            >
+              <FolderPlus className="w-4 h-4" />
+              Musterprojekt
+            </button>
+
+            <button
+              onClick={() => setShowGlossary(true)}
+              className="flex items-center gap-2 px-4 py-2 bg-white/10 backdrop-blur-sm border border-white/20 text-white rounded-lg hover:bg-white/20 transition-colors text-sm"
+            >
+              <Info className="w-4 h-4" />
+              Glossar
+            </button>
+          </div>
         </div>
 
-        {/* Step labels */}
-        <div className="flex items-center justify-between mt-2 overflow-x-auto">
-          {WORKFLOW_STEPS.map((step, index) => {
-            const Icon = step.icon
+        {/* Steuerung */}
+        <div className="flex items-center justify-center gap-4 mb-6">
+          <button
+            onClick={handleReset}
+            className="p-3 bg-white/10 backdrop-blur-sm border border-white/20 rounded-full hover:bg-white/20 transition-colors"
+            title="Zurücksetzen"
+          >
+            <RotateCcw className="w-5 h-5 text-white" />
+          </button>
+
+          <button
+            onClick={isPlaying ? handlePause : handlePlay}
+            className={clsx(
+              'flex items-center gap-2 px-8 py-3 rounded-full font-semibold transition-all text-lg',
+              isPlaying
+                ? 'bg-yellow-500 hover:bg-yellow-400 text-yellow-900'
+                : 'bg-emerald-500 hover:bg-emerald-400 text-white'
+            )}
+          >
+            {isPlaying ? (
+              <>
+                <Pause className="w-6 h-6" />
+                Pause
+              </>
+            ) : (
+              <>
+                <Play className="w-6 h-6" />
+                {currentStep === 0 ? 'Animation starten' : 'Fortsetzen'}
+              </>
+            )}
+          </button>
+
+          <div className="text-white/70 text-sm">
+            Schritt {currentStep + 1} / {WORKFLOW_NODES.length}
+          </div>
+        </div>
+
+        {/* Fortschrittsbalken */}
+        <div className="bg-white/10 backdrop-blur-sm rounded-full h-3 mb-6 overflow-hidden border border-white/20">
+          <div className="flex h-full">
+            {WORKFLOW_NODES.map((node, index) => (
+              <div
+                key={node.id}
+                className="relative flex-1 cursor-pointer"
+                onClick={() => handleStepClick(index)}
+              >
+                <div
+                  className={clsx(
+                    'h-full transition-all duration-300',
+                    index < currentStep
+                      ? 'bg-emerald-500'
+                      : index === currentStep
+                      ? 'bg-blue-400'
+                      : 'bg-transparent'
+                  )}
+                  style={{
+                    width: index === currentStep ? `${progress}%` : index < currentStep ? '100%' : '0%'
+                  }}
+                />
+                {index < WORKFLOW_NODES.length - 1 && (
+                  <div className="absolute right-0 top-0 bottom-0 w-px bg-white/20" />
+                )}
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {/* Schritt-Indikatoren */}
+        <div className="flex justify-between mb-8 px-2">
+          {WORKFLOW_NODES.map((node, index) => {
+            const Icon = node.icon
+            const isActive = index === currentStep
+            const isCompleted = index < currentStep
+
             return (
               <button
-                key={step.id}
+                key={node.id}
                 onClick={() => handleStepClick(index)}
                 className={clsx(
-                  'flex flex-col items-center gap-1 px-2 py-1 rounded-lg transition-colors min-w-[80px]',
-                  index === currentStep
-                    ? 'bg-theme-primary/10'
-                    : 'hover:bg-theme-hover'
+                  'flex flex-col items-center gap-1 transition-all duration-300',
+                  isActive && 'scale-110'
                 )}
               >
-                <Icon className={clsx(
-                  'w-5 h-5',
-                  index === currentStep ? 'text-theme-primary' : 'text-theme-text-muted'
-                )} />
-                <span className={clsx(
-                  'text-xs whitespace-nowrap',
-                  index === currentStep ? 'text-theme-primary font-medium' : 'text-theme-text-muted'
+                <div className={clsx(
+                  'w-10 h-10 rounded-full flex items-center justify-center transition-all',
+                  isActive
+                    ? `bg-gradient-to-br ${node.color} ring-4 ring-white/30`
+                    : isCompleted
+                    ? 'bg-emerald-500'
+                    : 'bg-white/10 border border-white/20'
                 )}>
-                  {step.title}
+                  {isCompleted ? (
+                    <CheckCircle className="w-5 h-5 text-white" />
+                  ) : (
+                    <Icon className={clsx('w-5 h-5', isActive ? 'text-white' : 'text-white/60')} />
+                  )}
+                </div>
+                <span className={clsx(
+                  'text-xs transition-colors',
+                  isActive ? 'text-white font-semibold' : 'text-white/50'
+                )}>
+                  {node.shortTitle}
                 </span>
               </button>
             )
           })}
         </div>
-      </div>
 
-      {/* Play Controls */}
-      <div className="flex items-center justify-center gap-4">
-        <button
-          onClick={handlePrevStep}
-          disabled={currentStep === 0}
-          className="p-2 bg-theme-hover rounded-lg hover:bg-theme-selected disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-        >
-          <ChevronLeft className="w-6 h-6 text-theme-text-secondary" />
-        </button>
-
-        <button
-          onClick={togglePlay}
-          className={clsx(
-            'flex items-center gap-2 px-6 py-3 rounded-lg font-medium transition-colors',
-            isPlaying
-              ? 'bg-status-warning text-white'
-              : 'bg-theme-primary text-white hover:bg-theme-primary-hover'
-          )}
-        >
-          {isPlaying ? (
-            <>
-              <Pause className="w-5 h-5" />
-              {lang === 'de' ? 'Pause' : 'Pause'}
-            </>
-          ) : (
-            <>
-              <Play className="w-5 h-5" />
-              {lang === 'de' ? 'Abspielen' : 'Play'}
-            </>
-          )}
-        </button>
-
-        <button
-          onClick={handleNextStep}
-          disabled={currentStep === WORKFLOW_STEPS.length - 1}
-          className="p-2 bg-theme-hover rounded-lg hover:bg-theme-selected disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-        >
-          <ChevronRight className="w-6 h-6 text-theme-text-secondary" />
-        </button>
-      </div>
-
-      {/* Current Step Detail */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Main Content */}
-        <div className="lg:col-span-2">
-          <div className={clsx(
-            'bg-theme-card rounded-xl border border-theme-border overflow-hidden transition-all duration-500',
-            isPlaying && 'ring-2 ring-theme-primary ring-offset-2 ring-offset-theme-bg'
-          )}>
-            {/* Step Header */}
-            <div className={clsx('p-6', currentWorkflowStep.color.replace('text-', 'bg-').replace('-500', '-500/20'))}>
-              <div className="flex items-center gap-4">
-                <div className={clsx('p-4 rounded-xl', currentWorkflowStep.color)}>
-                  <currentWorkflowStep.icon className="w-8 h-8" />
+        {/* Hauptbereich: Aktiver Schritt */}
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          {/* Schritt-Details */}
+          <div className="lg:col-span-2">
+            <div className="bg-white/10 backdrop-blur-lg border border-white/20 rounded-2xl p-6 animate-slide-in" key={currentStep}>
+              <div className="flex items-center gap-4 mb-6">
+                <div className={clsx('w-16 h-16 rounded-2xl bg-gradient-to-br flex items-center justify-center', currentNode.color)}>
+                  <currentNode.icon className="w-8 h-8 text-white" />
                 </div>
                 <div>
-                  <h2 className="text-2xl font-bold text-theme-text-primary">
-                    {currentStep + 1}. {currentWorkflowStep.title}
-                  </h2>
-                  <p className="text-theme-text-secondary mt-1">
-                    {currentWorkflowStep.description}
-                  </p>
+                  <h2 className="text-2xl font-bold text-white">{currentStep + 1}. {currentNode.title}</h2>
+                  <p className="text-blue-200">{currentNode.description}</p>
                 </div>
               </div>
-            </div>
 
-            {/* Step Details */}
-            <div className="p-6 space-y-4">
-              {/* Special content for Ruleset step */}
-              {currentWorkflowStep.key === 'ruleset' && (
-                <div className="mb-6 p-4 bg-status-info-bg border border-status-info-border rounded-lg">
-                  <h3 className="font-semibold text-status-info mb-2">
-                    {lang === 'de' ? 'Ausgewähltes Regelwerk' : 'Selected Ruleset'}: {selectedRuleset.title}
-                  </h3>
-                  <p className="text-sm text-status-info">
-                    {selectedRuleset.featuresCount} {lang === 'de' ? 'Pflichtmerkmale definiert' : 'features defined'}
-                  </p>
+              {/* Details des Schritts */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-6">
+                {currentNode.details.map((detail, idx) => (
+                  <div
+                    key={idx}
+                    className="flex items-center gap-3 p-4 bg-white/5 rounded-xl border border-white/10 animate-slide-in"
+                    style={{ animationDelay: `${idx * 100}ms` }}
+                  >
+                    <ChevronRight className="w-5 h-5 text-emerald-400" />
+                    <span className="text-white">{detail}</span>
+                  </div>
+                ))}
+              </div>
+
+              {/* Regelwerk-Info bei Schritt 4 */}
+              {currentNode.id === 'ruleset' && (
+                <div className="p-4 bg-orange-500/20 border border-orange-400/30 rounded-xl">
+                  <h4 className="font-semibold text-orange-300 mb-2">Ausgewähltes Regelwerk</h4>
+                  <p className="text-white">{selectedRuleset.title}</p>
+                  <p className="text-orange-200/80 text-sm mt-1">{selectedRuleset.featuresCount} Pflichtmerkmale werden geprüft</p>
                 </div>
               )}
-
-              {currentWorkflowStep.details.map((detail, idx) => (
-                <div
-                  key={idx}
-                  className="border border-theme-border rounded-lg overflow-hidden"
-                >
-                  <button
-                    onClick={() => setExpandedDetail(expandedDetail === idx ? null : idx)}
-                    className="w-full flex items-center justify-between p-4 hover:bg-theme-hover transition-colors"
-                  >
-                    <div className="flex items-center gap-3">
-                      <div className="w-8 h-8 rounded-full bg-theme-primary/10 flex items-center justify-center text-theme-primary font-bold">
-                        {idx + 1}
-                      </div>
-                      <div className="text-left">
-                        <h3 className="font-semibold text-theme-text-primary">{detail.title}</h3>
-                        <p className="text-sm text-theme-text-muted">{detail.description}</p>
-                      </div>
-                    </div>
-                    <ChevronRight className={clsx(
-                      'w-5 h-5 text-theme-text-muted transition-transform',
-                      expandedDetail === idx && 'rotate-90'
-                    )} />
-                  </button>
-
-                  {expandedDetail === idx && detail.items && (
-                    <div className="px-4 pb-4 bg-theme-hover border-t border-theme-border">
-                      <ul className="mt-3 space-y-2">
-                        {detail.items.map((item, itemIdx) => (
-                          <li key={itemIdx} className="flex items-start gap-2 text-sm text-theme-text-secondary">
-                            <CheckCircle className="w-4 h-4 text-status-success mt-0.5 flex-shrink-0" />
-                            <span>{item}</span>
-                          </li>
-                        ))}
-                      </ul>
-                    </div>
-                  )}
-                </div>
-              ))}
             </div>
           </div>
-        </div>
 
-        {/* Side Panel - Visual Animation */}
-        <div className="lg:col-span-1">
-          <div className="bg-theme-card rounded-xl border border-theme-border p-6 sticky top-4">
-            <h3 className="font-semibold text-theme-text-primary mb-4">
-              {lang === 'de' ? 'Visualisierung' : 'Visualization'}
-            </h3>
-
-            {/* Animated visualization based on current step */}
-            <div className="aspect-square bg-theme-hover rounded-lg flex items-center justify-center relative overflow-hidden">
-              {/* Floating Fish Logo as Mascot */}
-              <div className="absolute top-2 right-2 z-10">
-                <img
-                  src="/auditlogo.png"
-                  alt="FlowAudit"
-                  className="w-10 h-10 object-contain animate-float"
-                />
+          {/* Glossar-Begriffe für aktuellen Schritt */}
+          <div className="lg:col-span-1">
+            <div className="bg-white/10 backdrop-blur-lg border border-white/20 rounded-2xl p-6">
+              <div className="flex items-center gap-2 mb-4">
+                <Info className="w-5 h-5 text-blue-300" />
+                <h3 className="font-semibold text-white">Begriffe in diesem Schritt</h3>
               </div>
 
-              {/* Step 1: Project */}
-              {currentWorkflowStep.key === 'project' && (
-                <div className="text-center space-y-4 animate-fade-in">
-                  <FolderPlus className="w-16 h-16 text-blue-500 mx-auto animate-bounce" />
-                  <div className="space-y-2">
-                    <div className="flex items-center gap-2 justify-center text-sm text-theme-text-secondary">
-                      <Building className="w-4 h-4" />
-                      <span>Begünstigter</span>
+              {currentNode.glossaryTerms.length > 0 ? (
+                <div className="space-y-3">
+                  {currentNode.glossaryTerms.map((term, idx) => (
+                    <div
+                      key={idx}
+                      className="p-4 bg-white/5 rounded-xl border border-white/10 animate-slide-in"
+                      style={{ animationDelay: `${idx * 150}ms` }}
+                    >
+                      <h4 className="font-semibold text-blue-300 mb-1">{term.term}</h4>
+                      <p className="text-sm text-white/80">{term.definition}</p>
                     </div>
-                    <div className="flex items-center gap-2 justify-center text-sm text-theme-text-secondary">
-                      <Calendar className="w-4 h-4" />
-                      <span>Projektzeitraum</span>
-                    </div>
-                    <div className="flex items-center gap-2 justify-center text-sm text-theme-text-secondary">
-                      <BookOpen className="w-4 h-4" />
-                      <span>Regelwerk</span>
-                    </div>
-                  </div>
+                  ))}
                 </div>
+              ) : (
+                <p className="text-white/50 text-sm">Keine speziellen Begriffe in diesem Schritt.</p>
               )}
 
-              {/* Step 2: Upload */}
-              {currentWorkflowStep.key === 'upload' && (
-                <div className="text-center space-y-4">
-                  <div className="relative">
-                    <Upload className="w-16 h-16 text-green-500 mx-auto" />
-                    <div className="absolute -top-2 -right-2 flex gap-1">
-                      <FileText className="w-6 h-6 text-status-danger animate-bounce" style={{ animationDelay: '0ms' }} />
-                      <FileText className="w-6 h-6 text-status-danger animate-bounce" style={{ animationDelay: '200ms' }} />
-                      <FileText className="w-6 h-6 text-status-danger animate-bounce" style={{ animationDelay: '400ms' }} />
-                    </div>
-                  </div>
-                  <p className="text-sm text-theme-text-muted">PDFs hochladen</p>
+              {/* Musterprojekt-Kurzinfo */}
+              <div className="mt-6 p-4 bg-white/5 rounded-xl border border-white/10">
+                <div className="flex items-center gap-2 mb-2">
+                  <FolderPlus className="w-4 h-4 text-blue-300" />
+                  <span className="text-sm font-medium text-white">Beispiel-Projekt</span>
                 </div>
-              )}
-
-              {/* Step 3: Chunking */}
-              {currentWorkflowStep.key === 'chunking' && (
-                <div className="text-center space-y-4">
-                  <div className="flex items-center justify-center gap-2">
-                    <FileText className="w-12 h-12 text-purple-500" />
-                    <Scissors className="w-8 h-8 text-purple-500 animate-pulse" />
-                    <div className="flex flex-col gap-1">
-                      <div className="w-8 h-3 bg-purple-500/30 rounded animate-pulse" />
-                      <div className="w-8 h-3 bg-purple-500/50 rounded animate-pulse" style={{ animationDelay: '100ms' }} />
-                      <div className="w-8 h-3 bg-purple-500/70 rounded animate-pulse" style={{ animationDelay: '200ms' }} />
-                    </div>
-                  </div>
-                  <p className="text-sm text-theme-text-muted">Chunks erstellen</p>
-                </div>
-              )}
-
-              {/* Step 4: Ruleset - zeigt Merkmale des gewählten Regelwerks */}
-              {currentWorkflowStep.key === 'ruleset' && (
-                <div className="text-center space-y-3 p-2">
-                  <BookOpen className="w-12 h-12 text-orange-500 mx-auto" />
-                  <p className="text-xs font-medium text-orange-500">{selectedRuleset.titleShort}</p>
-                  <div className="flex flex-wrap gap-1 justify-center">
-                    {selectedRuleset.features.slice(0, 7).map((feature, n) => (
-                      <div
-                        key={n}
-                        className="px-2 py-1 bg-orange-500/20 rounded text-[10px] text-orange-600 font-medium animate-pulse truncate max-w-[80px]"
-                        style={{ animationDelay: `${n * 100}ms` }}
-                        title={feature}
-                      >
-                        {feature.split(' ')[0]}
-                      </div>
-                    ))}
-                    {selectedRuleset.features.length > 7 && (
-                      <div className="px-2 py-1 bg-orange-500/10 rounded text-[10px] text-orange-500">
-                        +{selectedRuleset.features.length - 7}
-                      </div>
-                    )}
-                  </div>
-                  <p className="text-xs text-theme-text-muted">
-                    {selectedRuleset.featuresCount} {lang === 'de' ? 'Merkmale prüfen' : 'features to check'}
-                  </p>
-                </div>
-              )}
-
-              {/* Step 5: LLM */}
-              {currentWorkflowStep.key === 'llm' && (
-                <div className="text-center space-y-4">
-                  <Brain className="w-16 h-16 text-pink-500 mx-auto animate-pulse" />
-                  <div className="flex items-center justify-center gap-2">
-                    <Database className="w-6 h-6 text-theme-text-muted" />
-                    <Zap className="w-4 h-4 text-yellow-500 animate-ping" />
-                    <MessageSquare className="w-6 h-6 text-theme-text-muted" />
-                  </div>
-                  <p className="text-sm text-theme-text-muted">RAG + LLM-Analyse</p>
-                </div>
-              )}
-
-              {/* Step 6: Checkers */}
-              {currentWorkflowStep.key === 'checkers' && (
-                <div className="grid grid-cols-2 gap-3 p-4">
-                  <div className="p-3 bg-theme-card rounded-lg text-center">
-                    <Clock className="w-6 h-6 text-blue-500 mx-auto mb-1" />
-                    <span className="text-xs">Zeitraum</span>
-                  </div>
-                  <div className="p-3 bg-theme-card rounded-lg text-center">
-                    <AlertTriangle className="w-6 h-6 text-yellow-500 mx-auto mb-1" />
-                    <span className="text-xs">Risiko</span>
-                  </div>
-                  <div className="p-3 bg-theme-card rounded-lg text-center">
-                    <Search className="w-6 h-6 text-purple-500 mx-auto mb-1" />
-                    <span className="text-xs">Semantik</span>
-                  </div>
-                  <div className="p-3 bg-theme-card rounded-lg text-center">
-                    <Calculator className="w-6 h-6 text-green-500 mx-auto mb-1" />
-                    <span className="text-xs">Wirtschaft</span>
-                  </div>
-                </div>
-              )}
-
-              {/* Step 7: Result */}
-              {currentWorkflowStep.key === 'result' && (
-                <div className="text-center space-y-4">
-                  <div className="flex items-center justify-center gap-4">
-                    <div className="w-12 h-12 rounded-full bg-status-success-bg flex items-center justify-center">
-                      <CheckCircle className="w-6 h-6 text-status-success" />
-                    </div>
-                    <div className="w-12 h-12 rounded-full bg-status-warning-bg flex items-center justify-center">
-                      <AlertTriangle className="w-6 h-6 text-status-warning" />
-                    </div>
-                    <div className="w-12 h-12 rounded-full bg-status-danger-bg flex items-center justify-center">
-                      <X className="w-6 h-6 text-status-danger" />
-                    </div>
-                  </div>
-                  <p className="text-sm text-theme-text-muted">Bewertung & Feedback</p>
-                </div>
-              )}
-
-              {/* Step 8: List */}
-              {currentWorkflowStep.key === 'list' && (
-                <div className="text-center space-y-3 px-4">
-                  <ListChecks className="w-12 h-12 text-cyan-500 mx-auto" />
-                  <div className="space-y-1">
-                    <div className="flex items-center gap-2 p-2 bg-status-success-bg rounded text-xs">
-                      <FileCheck className="w-4 h-4 text-status-success" />
-                      <span className="flex-1 text-left">Rechnung-001.pdf</span>
-                      <CheckCircle className="w-4 h-4 text-status-success" />
-                    </div>
-                    <div className="flex items-center gap-2 p-2 bg-status-warning-bg rounded text-xs">
-                      <FileCheck className="w-4 h-4 text-status-warning" />
-                      <span className="flex-1 text-left">Rechnung-002.pdf</span>
-                      <AlertTriangle className="w-4 h-4 text-status-warning" />
-                    </div>
-                  </div>
-                </div>
-              )}
-            </div>
-
-            {/* Quick info about current step */}
-            <div className="mt-4 p-3 bg-status-info-bg border border-status-info-border rounded-lg">
-              <div className="flex items-start gap-2">
-                <Info className="w-4 h-4 text-status-info mt-0.5 flex-shrink-0" />
-                <p className="text-xs text-status-info">
-                  {currentWorkflowStep.key === 'project' && 'Projekte bilden den Container für alle Belege und definieren den Prüfkontext.'}
-                  {currentWorkflowStep.key === 'upload' && 'Mehrere PDFs können gleichzeitig hochgeladen werden.'}
-                  {currentWorkflowStep.key === 'chunking' && 'Chunking ermöglicht die Verarbeitung beliebig langer Dokumente.'}
-                  {currentWorkflowStep.key === 'ruleset' && 'Das Regelwerk definiert alle zu prüfenden Merkmale.'}
-                  {currentWorkflowStep.key === 'llm' && 'RAG verbessert die Genauigkeit durch Beispiele aus der Vergangenheit.'}
-                  {currentWorkflowStep.key === 'checkers' && 'Jedes Prüfmodul kann individuell konfiguriert werden.'}
-                  {currentWorkflowStep.key === 'result' && 'Feedback verbessert kontinuierlich die Erkennungsqualität.'}
-                  {currentWorkflowStep.key === 'list' && 'Export ermöglicht die Integration in andere Systeme.'}
+                <p className="text-xs text-white/70">{SAMPLE_PROJECT.title}</p>
+                <p className="text-xs text-white/50 mt-1">
+                  {SAMPLE_PROJECT.beneficiary.name}
                 </p>
               </div>
             </div>
@@ -921,133 +603,110 @@ export default function Training() {
         </div>
       </div>
 
-      {/* Sample Project Modal */}
+      {/* Musterprojekt Modal */}
       {showSampleProject && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-          <div className="bg-theme-elevated rounded-xl shadow-xl max-w-2xl w-full max-h-[80vh] overflow-hidden flex flex-col">
-            <div className="flex items-center justify-between px-6 py-4 border-b border-theme-border">
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+          <div className="bg-gradient-to-b from-blue-800 to-blue-900 rounded-2xl shadow-2xl max-w-2xl w-full max-h-[80vh] overflow-hidden flex flex-col border border-white/20">
+            <div className="flex items-center justify-between px-6 py-4 border-b border-white/10">
               <div className="flex items-center gap-3">
-                <FolderPlus className="w-6 h-6 text-blue-500" />
-                <h3 className="text-lg font-semibold text-theme-text-primary">
-                  {lang === 'de' ? 'Musterprojekt-Details' : 'Sample Project Details'}
-                </h3>
+                <FolderPlus className="w-6 h-6 text-blue-300" />
+                <h3 className="text-lg font-semibold text-white">Musterprojekt</h3>
               </div>
-              <button
-                onClick={() => setShowSampleProject(false)}
-                className="p-2 hover:bg-theme-hover rounded-lg transition-colors"
-              >
-                <X className="w-5 h-5 text-theme-text-muted" />
+              <button onClick={() => setShowSampleProject(false)} className="p-2 hover:bg-white/10 rounded-lg">
+                <X className="w-5 h-5 text-white/70" />
               </button>
             </div>
 
             <div className="flex-1 overflow-auto p-6 space-y-6">
-              {/* Projekt-Info */}
-              <div>
-                <h4 className="font-semibold text-theme-text-primary mb-3">
-                  {lang === 'de' ? 'Projektdaten' : 'Project Data'}
-                </h4>
-                <div className="bg-theme-card border border-theme-border rounded-lg p-4 space-y-3">
-                  <div className="flex items-center gap-3">
-                    <FileText className="w-5 h-5 text-theme-text-muted" />
+              <div className="bg-white/5 border border-white/10 rounded-xl p-4">
+                <h4 className="font-semibold text-white mb-3">Projektdaten</h4>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-sm">
+                  <div className="flex items-center gap-2">
+                    <FileText className="w-4 h-4 text-blue-300" />
                     <div>
-                      <p className="text-xs text-theme-text-muted">{lang === 'de' ? 'Projekttitel' : 'Project Title'}</p>
-                      <p className="font-medium text-theme-text-primary">{SAMPLE_PROJECT.title}</p>
+                      <p className="text-blue-200/60 text-xs">Titel</p>
+                      <p className="text-white">{SAMPLE_PROJECT.title}</p>
                     </div>
                   </div>
-                  <div className="flex items-center gap-3">
-                    <FileCheck className="w-5 h-5 text-theme-text-muted" />
+                  <div className="flex items-center gap-2">
+                    <FileCheck className="w-4 h-4 text-blue-300" />
                     <div>
-                      <p className="text-xs text-theme-text-muted">{lang === 'de' ? 'Aktenzeichen' : 'File Reference'}</p>
-                      <p className="font-medium text-theme-text-primary">{SAMPLE_PROJECT.fileReference}</p>
+                      <p className="text-blue-200/60 text-xs">Aktenzeichen</p>
+                      <p className="text-white">{SAMPLE_PROJECT.fileReference}</p>
                     </div>
                   </div>
-                  <div className="flex items-center gap-3">
-                    <Calendar className="w-5 h-5 text-theme-text-muted" />
+                  <div className="flex items-center gap-2">
+                    <Calendar className="w-4 h-4 text-blue-300" />
                     <div>
-                      <p className="text-xs text-theme-text-muted">{lang === 'de' ? 'Projektzeitraum' : 'Project Period'}</p>
-                      <p className="font-medium text-theme-text-primary">{SAMPLE_PROJECT.period.start} – {SAMPLE_PROJECT.period.end}</p>
+                      <p className="text-blue-200/60 text-xs">Zeitraum</p>
+                      <p className="text-white">{SAMPLE_PROJECT.period.start} – {SAMPLE_PROJECT.period.end}</p>
                     </div>
                   </div>
-                  <div className="flex items-center gap-3">
-                    <MapPin className="w-5 h-5 text-theme-text-muted" />
+                  <div className="flex items-center gap-2">
+                    <MapPin className="w-4 h-4 text-blue-300" />
                     <div>
-                      <p className="text-xs text-theme-text-muted">{lang === 'de' ? 'Durchführungsort' : 'Location'}</p>
-                      <p className="font-medium text-theme-text-primary">{SAMPLE_PROJECT.location}</p>
+                      <p className="text-blue-200/60 text-xs">Ort</p>
+                      <p className="text-white">{SAMPLE_PROJECT.location}</p>
                     </div>
                   </div>
                 </div>
               </div>
 
-              {/* Begünstigter */}
-              <div>
-                <h4 className="font-semibold text-theme-text-primary mb-3">
-                  {lang === 'de' ? 'Begünstigter' : 'Beneficiary'}
-                </h4>
-                <div className="bg-theme-card border border-theme-border rounded-lg p-4 space-y-3">
-                  <div className="flex items-center gap-3">
-                    <Building className="w-5 h-5 text-theme-text-muted" />
+              <div className="bg-white/5 border border-white/10 rounded-xl p-4">
+                <h4 className="font-semibold text-white mb-3">Begünstigter</h4>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-sm">
+                  <div className="flex items-center gap-2">
+                    <Building className="w-4 h-4 text-blue-300" />
                     <div>
-                      <p className="text-xs text-theme-text-muted">{lang === 'de' ? 'Name' : 'Name'}</p>
-                      <p className="font-medium text-theme-text-primary">{SAMPLE_PROJECT.beneficiary.name}</p>
+                      <p className="text-blue-200/60 text-xs">Name</p>
+                      <p className="text-white">{SAMPLE_PROJECT.beneficiary.name}</p>
                     </div>
                   </div>
-                  <div className="flex items-center gap-3">
-                    <MapPin className="w-5 h-5 text-theme-text-muted" />
+                  <div className="flex items-center gap-2">
+                    <ListChecks className="w-4 h-4 text-blue-300" />
                     <div>
-                      <p className="text-xs text-theme-text-muted">{lang === 'de' ? 'Adresse' : 'Address'}</p>
-                      <p className="font-medium text-theme-text-primary">{SAMPLE_PROJECT.beneficiary.address}</p>
+                      <p className="text-blue-200/60 text-xs">USt-IdNr.</p>
+                      <p className="text-white">{SAMPLE_PROJECT.beneficiary.vatId}</p>
                     </div>
                   </div>
-                  <div className="flex items-center gap-3">
-                    <FileText className="w-5 h-5 text-theme-text-muted" />
+                  <div className="flex items-center gap-2">
+                    <MapPin className="w-4 h-4 text-blue-300" />
                     <div>
-                      <p className="text-xs text-theme-text-muted">USt-IdNr.</p>
-                      <p className="font-medium text-theme-text-primary">{SAMPLE_PROJECT.beneficiary.vatId}</p>
+                      <p className="text-blue-200/60 text-xs">Adresse</p>
+                      <p className="text-white">{SAMPLE_PROJECT.beneficiary.address}</p>
                     </div>
                   </div>
-                  <div className="flex items-center gap-3">
-                    <Euro className="w-5 h-5 text-theme-text-muted" />
+                  <div className="flex items-center gap-2">
+                    <Euro className="w-4 h-4 text-blue-300" />
                     <div>
-                      <p className="text-xs text-theme-text-muted">{lang === 'de' ? 'Vorsteuerabzug' : 'Input Tax Deduction'}</p>
-                      <p className="font-medium text-theme-text-primary">
-                        {SAMPLE_PROJECT.beneficiary.inputTaxDeductible
-                          ? (lang === 'de' ? 'Ja' : 'Yes')
-                          : (lang === 'de' ? 'Nein' : 'No')}
-                      </p>
+                      <p className="text-blue-200/60 text-xs">Vorsteuerabzug</p>
+                      <p className="text-white">{SAMPLE_PROJECT.beneficiary.inputTaxDeductible ? 'Ja' : 'Nein'}</p>
                     </div>
                   </div>
                 </div>
               </div>
 
-              {/* Musterrechnungen */}
               <div>
-                <h4 className="font-semibold text-theme-text-primary mb-3">
-                  {lang === 'de' ? 'Beispiel-Rechnungen' : 'Sample Invoices'}
-                </h4>
+                <h4 className="font-semibold text-white mb-3">Beispiel-Rechnungen</h4>
                 <div className="space-y-2">
                   {SAMPLE_PROJECT.sampleInvoices.map((inv, idx) => (
                     <div
                       key={idx}
                       className={clsx(
                         'flex items-center justify-between p-3 rounded-lg border',
-                        inv.status === 'ok'
-                          ? 'bg-status-success-bg border-status-success-border'
-                          : 'bg-status-warning-bg border-status-warning-border'
+                        inv.status === 'ok' ? 'bg-emerald-500/10 border-emerald-500/30' : 'bg-yellow-500/10 border-yellow-500/30'
                       )}
                     >
-                      <div className="flex items-center gap-3">
-                        <FileText className={clsx(
-                          'w-5 h-5',
-                          inv.status === 'ok' ? 'text-status-success' : 'text-status-warning'
-                        )} />
-                        <span className="font-medium text-theme-text-primary">{inv.name}</span>
+                      <div className="flex items-center gap-2">
+                        <FileText className={inv.status === 'ok' ? 'w-4 h-4 text-emerald-400' : 'w-4 h-4 text-yellow-400'} />
+                        <span className="text-sm text-white">{inv.name}</span>
                       </div>
-                      <div className="flex items-center gap-3">
-                        <span className="text-theme-text-secondary">{inv.amount}</span>
+                      <div className="flex items-center gap-2">
+                        <span className="text-sm text-blue-200">{inv.amount}</span>
                         {inv.status === 'ok' ? (
-                          <CheckCircle className="w-5 h-5 text-status-success" />
+                          <CheckCircle className="w-4 h-4 text-emerald-400" />
                         ) : (
-                          <AlertTriangle className="w-5 h-5 text-status-warning" />
+                          <AlertTriangle className="w-4 h-4 text-yellow-400" />
                         )}
                       </div>
                     </div>
@@ -1056,104 +715,66 @@ export default function Training() {
               </div>
             </div>
 
-            <div className="px-6 py-4 border-t border-theme-border bg-theme-hover">
+            <div className="px-6 py-4 border-t border-white/10">
               <button
                 onClick={() => setShowSampleProject(false)}
-                className="w-full px-4 py-2 bg-theme-primary text-white rounded-lg hover:bg-theme-primary-hover transition-colors"
+                className="w-full px-4 py-2 bg-blue-500 hover:bg-blue-400 text-white rounded-lg transition-colors font-medium"
               >
-                {lang === 'de' ? 'Schließen' : 'Close'}
+                Schließen
               </button>
             </div>
           </div>
         </div>
       )}
 
-      {/* Glossary Modal */}
+      {/* Glossar Modal */}
       {showGlossary && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-          <div className="bg-theme-elevated rounded-xl shadow-xl max-w-2xl w-full max-h-[80vh] overflow-hidden flex flex-col">
-            <div className="flex items-center justify-between px-6 py-4 border-b border-theme-border">
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+          <div className="bg-gradient-to-b from-blue-800 to-blue-900 rounded-2xl shadow-2xl max-w-2xl w-full max-h-[80vh] overflow-hidden flex flex-col border border-white/20">
+            <div className="flex items-center justify-between px-6 py-4 border-b border-white/10">
               <div className="flex items-center gap-3">
-                <Info className="w-6 h-6 text-theme-primary" />
-                <h3 className="text-lg font-semibold text-theme-text-primary">
-                  {lang === 'de' ? 'Fachbegriffe-Glossar' : 'Glossary'}
-                </h3>
+                <Info className="w-6 h-6 text-blue-300" />
+                <h3 className="text-lg font-semibold text-white">Alle Begriffe</h3>
               </div>
-              <button
-                onClick={() => setShowGlossary(false)}
-                className="p-2 hover:bg-theme-hover rounded-lg transition-colors"
-              >
-                <X className="w-5 h-5 text-theme-text-muted" />
+              <button onClick={() => setShowGlossary(false)} className="p-2 hover:bg-white/10 rounded-lg">
+                <X className="w-5 h-5 text-white/70" />
               </button>
-            </div>
-
-            {/* Filter */}
-            <div className="px-6 py-3 border-b border-theme-border bg-theme-hover">
-              <div className="flex gap-2 flex-wrap">
-                {glossaryCategories.map((cat) => (
-                  <button
-                    key={cat}
-                    onClick={() => setGlossaryFilter(cat)}
-                    className={clsx(
-                      'px-3 py-1 text-sm rounded-full transition-colors',
-                      glossaryFilter === cat
-                        ? 'bg-theme-primary text-white'
-                        : 'bg-theme-card text-theme-text-secondary hover:bg-theme-selected'
-                    )}
-                  >
-                    {cat === 'all' ? (lang === 'de' ? 'Alle' : 'All') : cat}
-                  </button>
-                ))}
-              </div>
             </div>
 
             <div className="flex-1 overflow-auto p-6">
-              <div className="space-y-3">
-                {filteredGlossary.map((term, idx) => (
-                  <div key={idx} className="p-4 bg-theme-card border border-theme-border rounded-lg">
-                    <div className="flex items-start justify-between gap-2">
-                      <h4 className="font-semibold text-theme-text-primary">{term.term}</h4>
-                      <span className="text-xs px-2 py-0.5 bg-theme-hover rounded-full text-theme-text-muted">
-                        {term.category}
-                      </span>
+              <div className="space-y-4">
+                {WORKFLOW_NODES.map((node) => (
+                  node.glossaryTerms.length > 0 && (
+                    <div key={node.id}>
+                      <h4 className="text-sm font-semibold text-white/60 mb-2 flex items-center gap-2">
+                        <node.icon className="w-4 h-4" />
+                        {node.title}
+                      </h4>
+                      <div className="space-y-2">
+                        {node.glossaryTerms.map((term, idx) => (
+                          <div key={idx} className="p-4 bg-white/5 border border-white/10 rounded-lg">
+                            <h5 className="font-semibold text-blue-300">{term.term}</h5>
+                            <p className="text-sm text-white/80 mt-1">{term.definition}</p>
+                          </div>
+                        ))}
+                      </div>
                     </div>
-                    <p className="text-sm text-theme-text-secondary mt-2">{term.definition}</p>
-                  </div>
+                  )
                 ))}
               </div>
             </div>
 
-            <div className="px-6 py-4 border-t border-theme-border bg-theme-hover">
+            <div className="px-6 py-4 border-t border-white/10">
               <button
                 onClick={() => setShowGlossary(false)}
-                className="w-full px-4 py-2 bg-theme-primary text-white rounded-lg hover:bg-theme-primary-hover transition-colors"
+                className="w-full px-4 py-2 bg-blue-500 hover:bg-blue-400 text-white rounded-lg transition-colors font-medium"
               >
-                {lang === 'de' ? 'Schließen' : 'Close'}
+                Schließen
               </button>
             </div>
           </div>
         </div>
       )}
-
-      {/* CSS for animations */}
-      <style>{`
-        @keyframes fade-in {
-          from { opacity: 0; transform: translateY(10px); }
-          to { opacity: 1; transform: translateY(0); }
-        }
-        .animate-fade-in {
-          animation: fade-in 0.5s ease-out;
-        }
-        @keyframes float {
-          0%, 100% { transform: translateY(0) rotate(0deg); }
-          25% { transform: translateY(-5px) rotate(3deg); }
-          50% { transform: translateY(-10px) rotate(0deg); }
-          75% { transform: translateY(-5px) rotate(-3deg); }
-        }
-        .animate-float {
-          animation: float 3s ease-in-out infinite;
-        }
-      `}</style>
     </div>
   )
 }
