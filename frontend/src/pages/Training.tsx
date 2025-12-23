@@ -22,6 +22,7 @@ import {
   Pause,
   RotateCcw,
   Zap,
+  Database,
 } from 'lucide-react'
 import clsx from 'clsx'
 
@@ -238,14 +239,14 @@ const BINARY_LINES = [
 
 interface WorkflowNode {
   id: string
-  title: string
-  shortTitle: string
-  description: string
+  title: { de: string; en: string }
+  shortTitle: { de: string; en: string }
+  description: { de: string; en: string }
   icon: React.ComponentType<{ className?: string }>
   color: string
   colorRgb: string
-  details: string[]
-  glossaryTerms: { term: string; definition: string }[]
+  details: { de: string; en: string }[]
+  glossaryTerms: { term: { de: string; en: string }; definition: { de: string; en: string } }[]
 }
 
 // Statische Regelwerke
@@ -274,117 +275,165 @@ const SAMPLE_PROJECT = {
   ],
 }
 
-// Workflow-Knoten mit Glossar-Begriffen und RGB-Farben für Glow-Effekte
+// Workflow-Knoten mit Glossar-Begriffen und RGB-Farben für Glow-Effekte (DE/EN)
 const WORKFLOW_NODES: WorkflowNode[] = [
   {
     id: 'project',
-    title: 'Projekt anlegen',
-    shortTitle: 'Projekt',
-    description: 'Förderprojekt mit Begünstigten erstellen',
+    title: { de: 'Projekt anlegen', en: 'Create Project' },
+    shortTitle: { de: 'Projekt', en: 'Project' },
+    description: { de: 'Förderprojekt mit Begünstigten erstellen', en: 'Create funding project with beneficiary' },
     icon: FolderPlus,
     color: 'from-blue-400 to-blue-600',
     colorRgb: '96, 165, 250',
-    details: ['Projekttitel', 'Aktenzeichen', 'Zeitraum', 'Begünstigter', 'Regelwerk'],
+    details: [
+      { de: 'Projekttitel', en: 'Project Title' },
+      { de: 'Aktenzeichen', en: 'File Reference' },
+      { de: 'Förderzeitraum', en: 'Funding Period' },
+      { de: 'Begünstigter', en: 'Beneficiary' },
+      { de: 'Regelwerk', en: 'Ruleset' },
+    ],
     glossaryTerms: [
-      { term: 'Begünstigter', definition: 'Der Zuwendungsempfänger des Förderprojekts, dessen Rechnungen geprüft werden.' },
-      { term: 'Projektzeitraum', definition: 'Der Bewilligungszeitraum, in dem förderfähige Ausgaben anfallen dürfen.' },
+      { term: { de: 'Begünstigter', en: 'Beneficiary' }, definition: { de: 'Der Zuwendungsempfänger des Fördervorhabens, dessen Ausgaben geprüft werden.', en: 'The grant recipient of the funded project whose expenses are being audited.' } },
+      { term: { de: 'Förderzeitraum', en: 'Funding Period' }, definition: { de: 'Der Zeitraum, in dem förderfähige Ausgaben entstehen dürfen.', en: 'The period during which eligible expenses may be incurred.' } },
+      { term: { de: 'Regelwerk', en: 'Ruleset' }, definition: { de: 'Die rechtlichen und förderrechtlichen Vorgaben, nach denen die Prüfung erfolgt.', en: 'The legal and funding regulations according to which the audit is conducted.' } },
     ],
   },
   {
     id: 'upload',
-    title: 'Belege hochladen',
-    shortTitle: 'Upload',
-    description: 'PDF-Rechnungen ins System laden',
+    title: { de: 'Upload der Unterlagen', en: 'Upload Documents' },
+    shortTitle: { de: 'Upload', en: 'Upload' },
+    description: { de: 'Prüfrelevante Unterlagen hochladen', en: 'Upload audit-relevant documents' },
     icon: Upload,
     color: 'from-green-400 to-green-600',
     colorRgb: '74, 222, 128',
-    details: ['PDF-Upload', 'OCR-Erkennung', 'Batch-Upload', 'Validierung'],
+    details: [
+      { de: 'PDF-Upload', en: 'PDF Upload' },
+      { de: 'Originaldokumente', en: 'Original Documents' },
+      { de: 'Batch-Upload', en: 'Batch Upload' },
+      { de: 'Vollständigkeit', en: 'Completeness' },
+    ],
     glossaryTerms: [
-      { term: 'OCR', definition: 'Optical Character Recognition - Texterkennung aus gescannten Dokumenten.' },
+      { term: { de: 'Originaldokumente', en: 'Original Documents' }, definition: { de: 'Vom Begünstigten vorgelegte Unterlagen, z.B. Rechnungen, Kontoauszüge oder Vergabeunterlagen.', en: 'Documents submitted by the beneficiary, e.g., invoices, bank statements, or procurement documents.' } },
+      { term: { de: 'Vollständigkeit', en: 'Completeness' }, definition: { de: 'Alle für die Prüfung erforderlichen Unterlagen liegen vor.', en: 'All documents required for the audit are available.' } },
     ],
   },
   {
     id: 'chunking',
-    title: 'Vorverarbeitung',
-    shortTitle: 'Chunking',
-    description: 'Dokumente für KI aufbereiten',
+    title: { de: 'Vorverarbeitung', en: 'Preprocessing' },
+    shortTitle: { de: 'Chunking', en: 'Chunking' },
+    description: { de: 'Dokumente technisch aufbereiten', en: 'Technically prepare documents' },
     icon: Scissors,
     color: 'from-purple-400 to-purple-600',
     colorRgb: '192, 132, 252',
-    details: ['Text-Extraktion', 'Token-Chunking', 'Embeddings', 'Vektorspeicher'],
+    details: [
+      { de: 'Text-Extraktion', en: 'Text Extraction' },
+      { de: 'Token-Chunking', en: 'Token Chunking' },
+      { de: 'Embeddings', en: 'Embeddings' },
+      { de: 'Chunk-Overlap', en: 'Chunk Overlap' },
+    ],
     glossaryTerms: [
-      { term: 'Chunk', definition: 'Ein Textabschnitt aus einem Dokument, aufgeteilt für LLM-Verarbeitung.' },
-      { term: 'Token', definition: 'Die kleinste Einheit für LLM-Verarbeitung. Ein Wort ≈ 1-3 Token.' },
-      { term: 'Embedding', definition: 'Numerische Vektordarstellung von Text für semantische Suche.' },
+      { term: { de: 'Chunk', en: 'Chunk' }, definition: { de: 'Ein in sich geschlossener Textabschnitt eines Dokuments, der gezielt geprüft werden kann.', en: 'A self-contained text section of a document that can be specifically audited.' } },
+      { term: { de: 'Überlappung', en: 'Overlap' }, definition: { de: 'Chunks können sich überlappen, damit zusammenhängende Informationen nicht getrennt bewertet werden.', en: 'Chunks can overlap so that related information is not evaluated separately.' } },
+      { term: { de: 'Embedding', en: 'Embedding' }, definition: { de: 'Ermöglicht den inhaltlichen Vergleich von Texten, unabhängig von Wortlaut oder Reihenfolge.', en: 'Enables content comparison of texts, regardless of wording or order.' } },
+      { term: { de: 'Token', en: 'Token' }, definition: { de: 'Die kleinste Verarbeitungseinheit für die KI-Analyse.', en: 'The smallest processing unit for AI analysis.' } },
     ],
   },
   {
     id: 'ruleset',
-    title: 'Regelwerk',
-    shortTitle: 'Regeln',
-    description: 'Pflichtmerkmale nach §14 UStG',
+    title: { de: 'Regelwerk', en: 'Ruleset' },
+    shortTitle: { de: 'Regeln', en: 'Rules' },
+    description: { de: 'Rechtliche Vorgaben anwenden', en: 'Apply legal requirements' },
     icon: BookOpen,
     color: 'from-orange-400 to-orange-600',
     colorRgb: '251, 146, 60',
-    details: ['14 Pflichtmerkmale', 'Kleinbetragsrechnung', 'Reverse-Charge', 'EU-Lieferung'],
+    details: [
+      { de: 'Pflichtangaben', en: 'Mandatory Info' },
+      { de: 'Kleinbetragsrechnung', en: 'Small Invoice' },
+      { de: 'Reverse-Charge', en: 'Reverse Charge' },
+      { de: '§14 UStG', en: '§14 UStG' },
+    ],
     glossaryTerms: [
-      { term: 'Pflichtmerkmal', definition: 'Gesetzlich vorgeschriebene Angabe auf einer Rechnung nach §14 UStG.' },
-      { term: 'Kleinbetragsrechnung', definition: 'Rechnung bis 250€ brutto mit reduzierten Pflichtangaben (§33 UStDV).' },
+      { term: { de: 'Pflichtangaben', en: 'Mandatory Information' }, definition: { de: 'Gesetzlich vorgeschriebene Angaben auf Rechnungen, z.B. nach §14 UStG.', en: 'Legally required information on invoices, e.g., according to §14 UStG.' } },
+      { term: { de: 'Kleinbetragsrechnung', en: 'Small Amount Invoice' }, definition: { de: 'Rechnung mit vereinfachten Pflichtangaben bei einem Gesamtbetrag bis 250€.', en: 'Invoice with simplified mandatory information for a total amount up to €250.' } },
+      { term: { de: 'Reverse-Charge', en: 'Reverse Charge' }, definition: { de: 'Verfahren, bei dem die Umsatzsteuer vom Leistungsempfänger geschuldet wird.', en: 'Procedure where VAT is owed by the service recipient.' } },
     ],
   },
   {
     id: 'llm',
-    title: 'KI-Analyse',
-    shortTitle: 'LLM',
-    description: 'Intelligente Extraktion & Bewertung',
+    title: { de: 'KI-Analyse', en: 'AI Analysis' },
+    shortTitle: { de: 'LLM', en: 'LLM' },
+    description: { de: 'Strukturierte Dokumentenanalyse', en: 'Structured document analysis' },
     icon: Brain,
     color: 'from-pink-400 to-pink-600',
     colorRgb: '244, 114, 182',
-    details: ['RAG-System', 'Few-Shot Learning', 'Semantik-Analyse', 'Konfidenz'],
+    details: [
+      { de: 'Lokales LLM', en: 'Local LLM' },
+      { de: 'RAG-System', en: 'RAG System' },
+      { de: 'Semantik-Analyse', en: 'Semantic Analysis' },
+      { de: 'Konfidenz', en: 'Confidence' },
+    ],
     glossaryTerms: [
-      { term: 'LLM', definition: 'Large Language Model - KI-Modell für Sprachverarbeitung (GPT, Claude, Llama).' },
-      { term: 'RAG', definition: 'Retrieval-Augmented Generation - Kontext aus Datenbank für bessere LLM-Antworten.' },
-      { term: 'Konfidenz', definition: 'Maß für die Sicherheit des LLM bei einer Extraktion (0-100%).' },
+      { term: { de: 'LLM', en: 'LLM' }, definition: { de: 'Das lokale Sprachmodell analysiert Dokumente direkt im System ohne externe Dienste.', en: 'The local language model analyzes documents directly in the system without external services.' } },
+      { term: { de: 'RAG', en: 'RAG' }, definition: { de: 'Verfahren, bei dem das Sprachmodell auf gespeicherte Prüfinformationen zugreift und frühere bestätigte Prüfungen heranzieht.', en: 'Method where the language model accesses stored audit information and uses previous confirmed audits.' } },
+      { term: { de: 'Konfidenz', en: 'Confidence' }, definition: { de: 'Maß für die Sicherheit, mit der ein Merkmal erkannt wurde. Niedrige Konfidenz = erhöhter Prüfbedarf.', en: 'Measure of certainty with which a feature was recognized. Low confidence = increased audit need.' } },
     ],
   },
   {
     id: 'checkers',
-    title: 'Prüfmodule',
-    shortTitle: 'Checker',
-    description: 'Spezialisierte Validierungen',
+    title: { de: 'Prüfmodule', en: 'Audit Modules' },
+    shortTitle: { de: 'Checker', en: 'Checker' },
+    description: { de: 'Spezialisierte Validierungen', en: 'Specialized validations' },
     icon: Shield,
     color: 'from-red-400 to-red-600',
     colorRgb: '248, 113, 113',
-    details: ['Zeitraum-Check', 'Risiko-Erkennung', 'Semantik-Prüfung', 'Wirtschaftlichkeit'],
+    details: [
+      { de: 'Zeitraum-Check', en: 'Period Check' },
+      { de: 'Risiko-Erkennung', en: 'Risk Detection' },
+      { de: 'Semantik-Prüfung', en: 'Semantic Check' },
+      { de: 'Duplikat-Check', en: 'Duplicate Check' },
+    ],
     glossaryTerms: [
-      { term: 'Selbstrechnung', definition: 'Risiko: Der Begünstigte stellt sich selbst eine Rechnung aus.' },
-      { term: 'Duplikat', definition: 'Rechnung wurde möglicherweise mehrfach eingereicht.' },
+      { term: { de: 'Zeitraum-Check', en: 'Period Check' }, definition: { de: 'Prüfung, ob Ausgaben innerhalb des förderfähigen Zeitraums angefallen sind.', en: 'Check whether expenses occurred within the eligible period.' } },
+      { term: { de: 'Risiko-Erkennung', en: 'Risk Detection' }, definition: { de: 'Identifikation auffälliger Muster oder Abweichungen.', en: 'Identification of suspicious patterns or deviations.' } },
+      { term: { de: 'Semantische Prüfung', en: 'Semantic Check' }, definition: { de: 'Inhaltlicher Abgleich zwischen Rechnung, Leistung und Förderzweck.', en: 'Content comparison between invoice, service, and funding purpose.' } },
     ],
   },
   {
     id: 'result',
-    title: 'Ergebnis',
-    shortTitle: 'Feedback',
-    description: 'Bewertung und Lernschleife',
+    title: { de: 'Ergebnis & Feedback', en: 'Result & Feedback' },
+    shortTitle: { de: 'Ergebnis', en: 'Result' },
+    description: { de: 'Bewertung und Lernschleife', en: 'Evaluation and learning loop' },
     icon: CheckCircle,
     color: 'from-emerald-400 to-emerald-600',
     colorRgb: '52, 211, 153',
-    details: ['Gesamtbewertung', 'Fehlerhinweise', 'Korrektur', 'RAG-Lernen'],
+    details: [
+      { de: 'Gesamtbewertung', en: 'Overall Assessment' },
+      { de: 'Fehlerhinweise', en: 'Error Notes' },
+      { de: 'Korrektur', en: 'Correction' },
+      { de: 'RAG-Lernen', en: 'RAG Learning' },
+    ],
     glossaryTerms: [
-      { term: 'Feedback-Loop', definition: 'Nutzer-Korrekturen verbessern zukünftige KI-Analysen.' },
+      { term: { de: 'Gesamtbewertung', en: 'Overall Assessment' }, definition: { de: 'Zusammenfassende Beurteilung der geprüften Ausgaben.', en: 'Summary evaluation of the audited expenses.' } },
+      { term: { de: 'Feedback-Loop', en: 'Feedback Loop' }, definition: { de: 'Rückmeldung aus der fachlichen Prüfung zur Verbesserung künftiger Analysen.', en: 'Feedback from technical review to improve future analyses.' } },
+      { term: { de: 'RAG-Lernen', en: 'RAG Learning' }, definition: { de: 'Bestätigte Bewertungen erweitern die Wissensbasis für vergleichbare Fälle.', en: 'Confirmed assessments expand the knowledge base for comparable cases.' } },
     ],
   },
   {
     id: 'export',
-    title: 'Export',
-    shortTitle: 'Report',
-    description: 'Dokumentation und Ausgabe',
+    title: { de: 'Export', en: 'Export' },
+    shortTitle: { de: 'Report', en: 'Report' },
+    description: { de: 'Dokumentation und Ausgabe', en: 'Documentation and output' },
     icon: FileText,
     color: 'from-cyan-400 to-cyan-600',
     colorRgb: '34, 211, 238',
-    details: ['Belegliste', 'PDF-Report', 'Excel-Export', 'Archivierung'],
+    details: [
+      { de: 'Belegliste', en: 'Document List' },
+      { de: 'PDF-Report', en: 'PDF Report' },
+      { de: 'Excel-Export', en: 'Excel Export' },
+      { de: 'Archivierung', en: 'Archiving' },
+    ],
     glossaryTerms: [
-      { term: 'Prüfbericht', definition: 'Dokumentation aller Prüfergebnisse als PDF oder Excel.' },
+      { term: { de: 'Prüfbericht', en: 'Audit Report' }, definition: { de: 'Dokumentation aller Prüfergebnisse als PDF oder Excel.', en: 'Documentation of all audit results as PDF or Excel.' } },
     ],
   },
 ]
@@ -458,6 +507,7 @@ interface OrbitalNodeProps {
   isCompleted: boolean
   onClick: () => void
   rotationOffset: number
+  lang: 'de' | 'en'
 }
 
 const OrbitalNode = ({
@@ -468,7 +518,8 @@ const OrbitalNode = ({
   isActive,
   isCompleted,
   onClick,
-  rotationOffset
+  rotationOffset,
+  lang
 }: OrbitalNodeProps) => {
   const baseAngle = (360 / totalNodes) * index - 90 // Start from top
   const angle = baseAngle + rotationOffset
@@ -537,7 +588,7 @@ const OrbitalNode = ({
             : 'text-white/80'
         )}
       >
-        {node.shortTitle}
+        {node.shortTitle[lang]}
       </div>
     </div>
   )
@@ -605,6 +656,119 @@ const CentralCore = ({ currentNode, progress }: CentralCoreProps) => {
   )
 }
 
+// RAG Database Visualization Component
+interface RAGDatabaseProps {
+  isActive: boolean
+  lang: 'de' | 'en'
+}
+
+const RAGDatabase = ({ isActive, lang }: RAGDatabaseProps) => {
+  return (
+    <div
+      className={clsx(
+        'absolute z-15 transition-all duration-500',
+        isActive ? 'opacity-100 scale-100' : 'opacity-60 scale-95'
+      )}
+      style={{
+        left: 'calc(50% + 180px)',
+        top: 'calc(50% - 20px)',
+        transform: 'translate(-50%, -50%)'
+      }}
+    >
+      {/* RAG Database Container */}
+      <div className="relative">
+        {/* Glow effect when active */}
+        {isActive && (
+          <div
+            className="absolute -inset-4 rounded-2xl opacity-50 animate-pulse"
+            style={{
+              background: 'radial-gradient(circle, rgba(244, 114, 182, 0.4) 0%, transparent 70%)'
+            }}
+          />
+        )}
+
+        {/* Database Icon Container */}
+        <div
+          className={clsx(
+            'w-16 h-20 rounded-xl flex flex-col items-center justify-center glass-panel-strong border-2 transition-all duration-300',
+            isActive
+              ? 'border-pink-400/60 bg-pink-500/20'
+              : 'border-white/20 bg-white/5'
+          )}
+          style={{
+            boxShadow: isActive
+              ? '0 0 30px rgba(244, 114, 182, 0.4), 0 0 60px rgba(244, 114, 182, 0.2)'
+              : '0 4px 20px rgba(0,0,0,0.2)'
+          }}
+        >
+          <Database className={clsx('w-8 h-8', isActive ? 'text-pink-300' : 'text-white/70')} />
+          <span className="text-xs font-semibold text-white/80 mt-1">RAG</span>
+        </div>
+
+        {/* Input Arrow (data coming in - learning) */}
+        <div className="absolute -left-16 top-1/2 -translate-y-1/2 flex items-center gap-1">
+          <span className="text-xs text-cyan-300/80 font-medium whitespace-nowrap">
+            {lang === 'de' ? 'Lernen' : 'Learn'}
+          </span>
+          <svg width="40" height="20" className="overflow-visible">
+            <defs>
+              <linearGradient id="arrowGradientIn" x1="0%" y1="0%" x2="100%" y2="0%">
+                <stop offset="0%" stopColor="rgba(34, 211, 238, 0.3)" />
+                <stop offset="100%" stopColor="rgba(34, 211, 238, 0.8)" />
+              </linearGradient>
+            </defs>
+            <path
+              d="M 0 10 L 30 10"
+              stroke="url(#arrowGradientIn)"
+              strokeWidth="2"
+              fill="none"
+              className={isActive ? 'connector-flow' : ''}
+            />
+            <polygon
+              points="30,5 40,10 30,15"
+              fill="rgba(34, 211, 238, 0.8)"
+            />
+          </svg>
+        </div>
+
+        {/* Output Arrow (data going out - retrieval) */}
+        <div className="absolute -right-16 top-1/2 -translate-y-1/2 flex items-center gap-1">
+          <svg width="40" height="20" className="overflow-visible">
+            <defs>
+              <linearGradient id="arrowGradientOut" x1="0%" y1="0%" x2="100%" y2="0%">
+                <stop offset="0%" stopColor="rgba(52, 211, 153, 0.8)" />
+                <stop offset="100%" stopColor="rgba(52, 211, 153, 0.3)" />
+              </linearGradient>
+            </defs>
+            <path
+              d="M 10 10 L 40 10"
+              stroke="url(#arrowGradientOut)"
+              strokeWidth="2"
+              fill="none"
+              className={isActive ? 'connector-flow' : ''}
+            />
+            <polygon
+              points="0,5 10,10 0,15"
+              fill="rgba(52, 211, 153, 0.8)"
+              transform="rotate(180 5 10)"
+            />
+          </svg>
+          <span className="text-xs text-emerald-300/80 font-medium whitespace-nowrap">
+            {lang === 'de' ? 'Abrufen' : 'Retrieve'}
+          </span>
+        </div>
+
+        {/* Label */}
+        <div className="absolute -bottom-6 left-1/2 -translate-x-1/2 whitespace-nowrap">
+          <span className="text-xs text-white/60 font-medium">
+            {lang === 'de' ? 'Wissensbasis' : 'Knowledge Base'}
+          </span>
+        </div>
+      </div>
+    </div>
+  )
+}
+
 // Floating Particles
 const FloatingParticles = () => {
   const particles = useMemo(() =>
@@ -640,7 +804,7 @@ const FloatingParticles = () => {
 
 export default function Training() {
   const { i18n } = useTranslation()
-  const lang = i18n.language
+  const lang = (i18n.language === 'de' ? 'de' : 'en') as 'de' | 'en'
 
   const [selectedRulesetId, setSelectedRulesetId] = useState<string>('DE_USTG')
   const [currentStep, setCurrentStep] = useState<number>(0)
@@ -768,7 +932,7 @@ export default function Training() {
                 className="flex items-center gap-2 px-4 py-2 glass-panel text-white rounded-lg hover:bg-white/20 transition-colors text-sm"
               >
                 <FolderPlus className="w-4 h-4" />
-                Musterprojekt
+                {lang === 'de' ? 'Musterprojekt' : 'Sample Project'}
               </button>
 
               <button
@@ -776,7 +940,7 @@ export default function Training() {
                 className="flex items-center gap-2 px-4 py-2 glass-panel text-white rounded-lg hover:bg-white/20 transition-colors text-sm"
               >
                 <Info className="w-4 h-4" />
-                Glossar
+                {lang === 'de' ? 'Glossar' : 'Glossary'}
               </button>
             </div>
           </div>
@@ -787,7 +951,7 @@ export default function Training() {
           <button
             onClick={handleReset}
             className="p-3 glass-panel rounded-full hover:bg-white/20 transition-colors"
-            title="Zurücksetzen"
+            title={lang === 'de' ? 'Zurücksetzen' : 'Reset'}
           >
             <RotateCcw className="w-5 h-5 text-white" />
           </button>
@@ -804,19 +968,22 @@ export default function Training() {
             {isPlaying ? (
               <>
                 <Pause className="w-6 h-6" />
-                Pause
+                {lang === 'de' ? 'Pause' : 'Pause'}
               </>
             ) : (
               <>
                 <Play className="w-6 h-6" />
-                {currentStep === 0 ? 'Animation starten' : 'Fortsetzen'}
+                {currentStep === 0
+                  ? (lang === 'de' ? 'Animation starten' : 'Start Animation')
+                  : (lang === 'de' ? 'Fortsetzen' : 'Continue')
+                }
               </>
             )}
           </button>
 
           <div className="text-white/70 text-sm flex items-center gap-2">
             <Zap className="w-4 h-4" />
-            Schritt {currentStep + 1} / {WORKFLOW_NODES.length}
+            {lang === 'de' ? 'Schritt' : 'Step'} {currentStep + 1} / {WORKFLOW_NODES.length}
           </div>
         </div>
 
@@ -831,8 +998,8 @@ export default function Training() {
                   <currentNode.icon className="w-6 h-6 text-white" />
                 </div>
                 <div>
-                  <h2 className="text-lg font-bold text-white">{currentStep + 1}. {currentNode.title}</h2>
-                  <p className="text-blue-200 text-sm">{currentNode.description}</p>
+                  <h2 className="text-lg font-bold text-white">{currentStep + 1}. {currentNode.title[lang]}</h2>
+                  <p className="text-blue-200 text-sm">{currentNode.description[lang]}</p>
                 </div>
               </div>
 
@@ -845,7 +1012,7 @@ export default function Training() {
                     style={{ animationDelay: `${idx * 100}ms` }}
                   >
                     <CheckCircle className="w-4 h-4 text-emerald-400 flex-shrink-0" />
-                    <span className="text-white text-sm">{detail}</span>
+                    <span className="text-white text-sm">{detail[lang]}</span>
                   </div>
                 ))}
               </div>
@@ -853,9 +1020,13 @@ export default function Training() {
               {/* Regelwerk-Info bei Schritt 4 */}
               {currentNode.id === 'ruleset' && (
                 <div className="mt-4 p-3 bg-orange-500/20 border border-orange-400/30 rounded-xl">
-                  <h4 className="font-semibold text-orange-300 text-sm mb-1">Ausgewähltes Regelwerk</h4>
+                  <h4 className="font-semibold text-orange-300 text-sm mb-1">
+                    {lang === 'de' ? 'Ausgewähltes Regelwerk' : 'Selected Ruleset'}
+                  </h4>
                   <p className="text-white text-sm">{selectedRuleset.title}</p>
-                  <p className="text-orange-200/80 text-xs mt-1">{selectedRuleset.featuresCount} Pflichtmerkmale</p>
+                  <p className="text-orange-200/80 text-xs mt-1">
+                    {selectedRuleset.featuresCount} {lang === 'de' ? 'Pflichtmerkmale' : 'mandatory fields'}
+                  </p>
                 </div>
               )}
             </div>
@@ -906,6 +1077,12 @@ export default function Training() {
               {/* Central Core */}
               <CentralCore currentNode={currentNode} progress={progress} />
 
+              {/* RAG Database - shows for LLM and Result/Feedback steps */}
+              <RAGDatabase
+                isActive={currentStep === 4 || currentStep === 6}
+                lang={lang}
+              />
+
               {/* Orbital Nodes */}
               {WORKFLOW_NODES.map((node, index) => (
                 <OrbitalNode
@@ -918,6 +1095,7 @@ export default function Training() {
                   isCompleted={index < currentStep}
                   onClick={() => handleStepClick(index)}
                   rotationOffset={rotationOffset}
+                  lang={lang}
                 />
               ))}
             </div>
@@ -928,7 +1106,9 @@ export default function Training() {
             <div className="glass-panel-strong rounded-2xl p-5 h-full">
               <div className="flex items-center gap-2 mb-4">
                 <Info className="w-5 h-5 text-blue-300" />
-                <h3 className="font-semibold text-white text-base">Begriffe</h3>
+                <h3 className="font-semibold text-white text-base">
+                  {lang === 'de' ? 'Begriffe' : 'Terms'}
+                </h3>
               </div>
 
               {currentNode.glossaryTerms.length > 0 ? (
@@ -939,20 +1119,24 @@ export default function Training() {
                       className="p-3 bg-white/5 rounded-xl border border-white/10 animate-slide-in"
                       style={{ animationDelay: `${idx * 150}ms` }}
                     >
-                      <h4 className="font-semibold text-blue-300 text-sm mb-1">{term.term}</h4>
-                      <p className="text-xs text-white/90 leading-relaxed">{term.definition}</p>
+                      <h4 className="font-semibold text-blue-300 text-sm mb-1">{term.term[lang]}</h4>
+                      <p className="text-xs text-white/90 leading-relaxed">{term.definition[lang]}</p>
                     </div>
                   ))}
                 </div>
               ) : (
-                <p className="text-white/50 text-sm">Keine speziellen Begriffe.</p>
+                <p className="text-white/50 text-sm">
+                  {lang === 'de' ? 'Keine speziellen Begriffe.' : 'No special terms.'}
+                </p>
               )}
 
               {/* Musterprojekt-Kurzinfo */}
               <div className="mt-4 p-3 bg-white/5 rounded-xl border border-white/10">
                 <div className="flex items-center gap-2 mb-1">
                   <FolderPlus className="w-4 h-4 text-blue-300" />
-                  <span className="text-xs font-medium text-white">Beispiel-Projekt</span>
+                  <span className="text-xs font-medium text-white">
+                    {lang === 'de' ? 'Beispiel-Projekt' : 'Sample Project'}
+                  </span>
                 </div>
                 <p className="text-xs text-white/80">{SAMPLE_PROJECT.title}</p>
               </div>
@@ -968,7 +1152,9 @@ export default function Training() {
             <div className="flex items-center justify-between px-6 py-4 border-b border-white/10">
               <div className="flex items-center gap-3">
                 <FolderPlus className="w-6 h-6 text-blue-300" />
-                <h3 className="text-lg font-semibold text-white">Musterprojekt</h3>
+                <h3 className="text-lg font-semibold text-white">
+                  {lang === 'de' ? 'Musterprojekt' : 'Sample Project'}
+                </h3>
               </div>
               <button onClick={() => setShowSampleProject(false)} className="p-2 hover:bg-white/10 rounded-lg">
                 <X className="w-5 h-5 text-white/70" />
@@ -977,33 +1163,35 @@ export default function Training() {
 
             <div className="flex-1 overflow-auto p-6 space-y-6">
               <div className="bg-white/5 border border-white/10 rounded-xl p-4">
-                <h4 className="font-semibold text-white mb-3">Projektdaten</h4>
+                <h4 className="font-semibold text-white mb-3">
+                  {lang === 'de' ? 'Projektdaten' : 'Project Data'}
+                </h4>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-sm">
                   <div className="flex items-center gap-2">
                     <FileText className="w-4 h-4 text-blue-300" />
                     <div>
-                      <p className="text-blue-200/60 text-xs">Titel</p>
+                      <p className="text-blue-200/60 text-xs">{lang === 'de' ? 'Titel' : 'Title'}</p>
                       <p className="text-white">{SAMPLE_PROJECT.title}</p>
                     </div>
                   </div>
                   <div className="flex items-center gap-2">
                     <FileCheck className="w-4 h-4 text-blue-300" />
                     <div>
-                      <p className="text-blue-200/60 text-xs">Aktenzeichen</p>
+                      <p className="text-blue-200/60 text-xs">{lang === 'de' ? 'Aktenzeichen' : 'File Reference'}</p>
                       <p className="text-white">{SAMPLE_PROJECT.fileReference}</p>
                     </div>
                   </div>
                   <div className="flex items-center gap-2">
                     <Calendar className="w-4 h-4 text-blue-300" />
                     <div>
-                      <p className="text-blue-200/60 text-xs">Zeitraum</p>
+                      <p className="text-blue-200/60 text-xs">{lang === 'de' ? 'Zeitraum' : 'Period'}</p>
                       <p className="text-white">{SAMPLE_PROJECT.period.start} – {SAMPLE_PROJECT.period.end}</p>
                     </div>
                   </div>
                   <div className="flex items-center gap-2">
                     <MapPin className="w-4 h-4 text-blue-300" />
                     <div>
-                      <p className="text-blue-200/60 text-xs">Ort</p>
+                      <p className="text-blue-200/60 text-xs">{lang === 'de' ? 'Ort' : 'Location'}</p>
                       <p className="text-white">{SAMPLE_PROJECT.location}</p>
                     </div>
                   </div>
@@ -1011,41 +1199,41 @@ export default function Training() {
               </div>
 
               <div className="bg-white/5 border border-white/10 rounded-xl p-4">
-                <h4 className="font-semibold text-white mb-3">Begünstigter</h4>
+                <h4 className="font-semibold text-white mb-3">{lang === 'de' ? 'Begünstigter' : 'Beneficiary'}</h4>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-sm">
                   <div className="flex items-center gap-2">
                     <Building className="w-4 h-4 text-blue-300" />
                     <div>
-                      <p className="text-blue-200/60 text-xs">Name</p>
+                      <p className="text-blue-200/60 text-xs">{lang === 'de' ? 'Name' : 'Name'}</p>
                       <p className="text-white">{SAMPLE_PROJECT.beneficiary.name}</p>
                     </div>
                   </div>
                   <div className="flex items-center gap-2">
                     <ListChecks className="w-4 h-4 text-blue-300" />
                     <div>
-                      <p className="text-blue-200/60 text-xs">USt-IdNr.</p>
+                      <p className="text-blue-200/60 text-xs">{lang === 'de' ? 'USt-IdNr.' : 'VAT ID'}</p>
                       <p className="text-white">{SAMPLE_PROJECT.beneficiary.vatId}</p>
                     </div>
                   </div>
                   <div className="flex items-center gap-2">
                     <MapPin className="w-4 h-4 text-blue-300" />
                     <div>
-                      <p className="text-blue-200/60 text-xs">Adresse</p>
+                      <p className="text-blue-200/60 text-xs">{lang === 'de' ? 'Adresse' : 'Address'}</p>
                       <p className="text-white">{SAMPLE_PROJECT.beneficiary.address}</p>
                     </div>
                   </div>
                   <div className="flex items-center gap-2">
                     <Euro className="w-4 h-4 text-blue-300" />
                     <div>
-                      <p className="text-blue-200/60 text-xs">Vorsteuerabzug</p>
-                      <p className="text-white">{SAMPLE_PROJECT.beneficiary.inputTaxDeductible ? 'Ja' : 'Nein'}</p>
+                      <p className="text-blue-200/60 text-xs">{lang === 'de' ? 'Vorsteuerabzug' : 'Input Tax Deductible'}</p>
+                      <p className="text-white">{SAMPLE_PROJECT.beneficiary.inputTaxDeductible ? (lang === 'de' ? 'Ja' : 'Yes') : (lang === 'de' ? 'Nein' : 'No')}</p>
                     </div>
                   </div>
                 </div>
               </div>
 
               <div>
-                <h4 className="font-semibold text-white mb-3">Beispiel-Rechnungen</h4>
+                <h4 className="font-semibold text-white mb-3">{lang === 'de' ? 'Beispiel-Rechnungen' : 'Sample Invoices'}</h4>
                 <div className="space-y-2">
                   {SAMPLE_PROJECT.sampleInvoices.map((inv, idx) => (
                     <div
@@ -1078,7 +1266,7 @@ export default function Training() {
                 onClick={() => setShowSampleProject(false)}
                 className="w-full px-4 py-2 bg-blue-500 hover:bg-blue-400 text-white rounded-lg transition-colors font-medium"
               >
-                Schließen
+                {lang === 'de' ? 'Schließen' : 'Close'}
               </button>
             </div>
           </div>
@@ -1092,7 +1280,9 @@ export default function Training() {
             <div className="flex items-center justify-between px-6 py-4 border-b border-white/10">
               <div className="flex items-center gap-3">
                 <Info className="w-6 h-6 text-blue-300" />
-                <h3 className="text-lg font-semibold text-white">Alle Begriffe</h3>
+                <h3 className="text-lg font-semibold text-white">
+                  {lang === 'de' ? 'Alle Begriffe' : 'All Terms'}
+                </h3>
               </div>
               <button onClick={() => setShowGlossary(false)} className="p-2 hover:bg-white/10 rounded-lg">
                 <X className="w-5 h-5 text-white/70" />
@@ -1106,13 +1296,13 @@ export default function Training() {
                     <div key={node.id}>
                       <h4 className="text-sm font-semibold text-white/60 mb-2 flex items-center gap-2">
                         <node.icon className="w-4 h-4" />
-                        {node.title}
+                        {node.title[lang]}
                       </h4>
                       <div className="space-y-2">
                         {node.glossaryTerms.map((term, idx) => (
                           <div key={idx} className="p-4 bg-white/5 border border-white/10 rounded-lg">
-                            <h5 className="font-semibold text-blue-300">{term.term}</h5>
-                            <p className="text-sm text-white/80 mt-1">{term.definition}</p>
+                            <h5 className="font-semibold text-blue-300">{term.term[lang]}</h5>
+                            <p className="text-sm text-white/80 mt-1">{term.definition[lang]}</p>
                           </div>
                         ))}
                       </div>
@@ -1127,7 +1317,7 @@ export default function Training() {
                 onClick={() => setShowGlossary(false)}
                 className="w-full px-4 py-2 bg-blue-500 hover:bg-blue-400 text-white rounded-lg transition-colors font-medium"
               >
-                Schließen
+                {lang === 'de' ? 'Schließen' : 'Close'}
               </button>
             </div>
           </div>
