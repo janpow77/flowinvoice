@@ -357,7 +357,12 @@ export const api = {
   // Rulesets
   getRulesets: async () => {
     const response = await apiClient.get('/rulesets')
-    return response.data.data
+    // Transform API response to match RulesetInfo interface
+    return response.data.data.map((r: { ruleset_id: string; title: string; version?: string }) => ({
+      id: r.ruleset_id,
+      name: r.title,
+      version: r.version,
+    }))
   },
 
   getRuleset: async (id: string) => {
