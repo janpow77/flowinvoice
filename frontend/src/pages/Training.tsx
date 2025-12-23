@@ -1,5 +1,4 @@
 import { useState, useEffect, useCallback } from 'react'
-import { useQuery } from '@tanstack/react-query'
 import { useTranslation } from 'react-i18next'
 import {
   GraduationCap,
@@ -16,9 +15,7 @@ import {
   ChevronLeft,
   ChevronRight,
   Info,
-  Loader2,
   X,
-  Scale,
   AlertTriangle,
   Search,
   Calculator,
@@ -27,13 +24,13 @@ import {
   Zap,
   Database,
   MessageSquare,
-  Users,
   Building,
   Calendar,
   ListChecks,
+  MapPin,
+  Euro,
 } from 'lucide-react'
 import clsx from 'clsx'
-import { api } from '@/lib/api'
 
 interface WorkflowStep {
   id: number
@@ -51,16 +48,93 @@ interface StepDetail {
   items?: string[]
 }
 
-interface RulesetListItem {
-  ruleset_id: string
-  title: string
-  version: string
-}
-
 interface GlossaryTerm {
   term: string
   definition: string
   category: string
+}
+
+// Statische Regelwerke für die Schulung (keine API-Aufrufe)
+const DEMO_RULESETS = [
+  {
+    id: 'DE_USTG',
+    title: 'Deutschland – Umsatzsteuergesetz',
+    titleShort: 'DE (UStG)',
+    version: '1.0.0',
+    featuresCount: 14,
+    description: 'Deutsches Umsatzsteuergesetz mit 14 Pflichtmerkmalen nach §14 UStG',
+    features: [
+      'Name/Anschrift Leistender',
+      'Name/Anschrift Empfänger',
+      'Steuernummer/USt-IdNr.',
+      'Ausstellungsdatum',
+      'Rechnungsnummer',
+      'Leistungsbeschreibung',
+      'Leistungszeitpunkt',
+      'Nettobetrag',
+      'Steuersatz',
+      'Steuerbetrag',
+    ],
+  },
+  {
+    id: 'EU_VAT',
+    title: 'EU – Mehrwertsteuer-Richtlinie',
+    titleShort: 'EU (MwSt)',
+    version: '1.0.0',
+    featuresCount: 12,
+    description: 'EU-Mehrwertsteuer-Richtlinie 2006/112/EG',
+    features: [
+      'Supplier identification',
+      'Customer identification',
+      'VAT number',
+      'Invoice date',
+      'Sequential number',
+      'Description of goods/services',
+      'Date of supply',
+      'Taxable amount',
+      'VAT rate',
+      'VAT amount',
+    ],
+  },
+  {
+    id: 'AT_USTG',
+    title: 'Österreich – Umsatzsteuergesetz',
+    titleShort: 'AT (UStG)',
+    version: '1.0.0',
+    featuresCount: 11,
+    description: 'Österreichisches Umsatzsteuergesetz',
+    features: [
+      'Name/Anschrift Lieferant',
+      'Name/Anschrift Abnehmer',
+      'UID-Nummer',
+      'Rechnungsdatum',
+      'Fortlaufende Nummer',
+      'Leistungsbezeichnung',
+      'Lieferdatum',
+      'Entgelt',
+      'Steuersatz',
+      'Steuerbetrag',
+    ],
+  },
+]
+
+// Statisches Musterprojekt für die Schulung
+const SAMPLE_PROJECT = {
+  title: 'Digitalisierung Stadtbücherei Musterstadt',
+  fileReference: 'FKZ 2024-DIG-0815',
+  period: { start: '01.01.2024', end: '31.12.2024' },
+  location: 'Musterstadt, Hauptstraße 1',
+  beneficiary: {
+    name: 'Stadtbücherei Musterstadt e.V.',
+    address: 'Hauptstraße 1, 12345 Musterstadt',
+    vatId: 'DE123456789',
+    inputTaxDeductible: false,
+  },
+  sampleInvoices: [
+    { name: 'IT-Service GmbH', amount: '2.380,00 €', status: 'ok' },
+    { name: 'Bürobedarf Müller', amount: '89,50 €', status: 'warning' },
+    { name: 'Schulungsagentur Weber', amount: '1.500,00 €', status: 'ok' },
+  ],
 }
 
 const WORKFLOW_STEPS: WorkflowStep[] = [
@@ -297,28 +371,19 @@ const GLOSSARY_TERMS: GlossaryTerm[] = [
 ]
 
 export default function Training() {
-  const { t, i18n } = useTranslation()
+  const { i18n } = useTranslation()
   const lang = i18n.language
 
-  const [selectedRuleset, setSelectedRuleset] = useState<string>('DE_USTG')
+  const [selectedRulesetId, setSelectedRulesetId] = useState<string>('DE_USTG')
   const [currentStep, setCurrentStep] = useState(0)
   const [isPlaying, setIsPlaying] = useState(false)
   const [showGlossary, setShowGlossary] = useState(false)
+  const [showSampleProject, setShowSampleProject] = useState(false)
   const [expandedDetail, setExpandedDetail] = useState<number | null>(null)
   const [glossaryFilter, setGlossaryFilter] = useState<string>('all')
 
-  // Fetch rulesets
-  const { data: rulesets, isLoading: loadingRulesets } = useQuery({
-    queryKey: ['rulesets'],
-    queryFn: () => api.getRulesets(),
-  })
-
-  // Fetch selected ruleset details
-  const { data: rulesetDetail } = useQuery({
-    queryKey: ['ruleset', selectedRuleset],
-    queryFn: () => api.getRuleset(selectedRuleset),
-    enabled: !!selectedRuleset,
-  })
+  // Aktuell ausgewähltes Regelwerk (aus statischen Daten)
+  const selectedRuleset = DEMO_RULESETS.find(r => r.id === selectedRulesetId) || DEMO_RULESETS[0]
 
   // Auto-play animation
   useEffect(() => {
@@ -358,11 +423,6 @@ export default function Training() {
 
   const currentWorkflowStep = WORKFLOW_STEPS[currentStep]
 
-  // Get features from ruleset for step 4
-  const rulesetFeatures = rulesetDetail?.features || []
-  const requiredFeatures = rulesetFeatures.filter((f: { required_level: string }) => f.required_level === 'REQUIRED')
-  const conditionalFeatures = rulesetFeatures.filter((f: { required_level: string }) => f.required_level === 'CONDITIONAL')
-
   const filteredGlossary = glossaryFilter === 'all'
     ? GLOSSARY_TERMS
     : GLOSSARY_TERMS.filter(t => t.category === glossaryFilter)
@@ -398,18 +458,26 @@ export default function Training() {
           <div className="flex items-center gap-2">
             <BookOpen className="w-5 h-5 text-theme-text-muted" />
             <select
-              value={selectedRuleset}
-              onChange={(e) => setSelectedRuleset(e.target.value)}
-              disabled={loadingRulesets}
+              value={selectedRulesetId}
+              onChange={(e) => setSelectedRulesetId(e.target.value)}
               className="px-3 py-2 bg-theme-input border border-theme-border rounded-lg text-theme-text-primary focus:ring-2 focus:ring-theme-primary"
             >
-              {rulesets?.map((rs: RulesetListItem) => (
-                <option key={rs.ruleset_id} value={rs.ruleset_id}>
-                  {rs.title} (v{rs.version})
+              {DEMO_RULESETS.map((rs) => (
+                <option key={rs.id} value={rs.id}>
+                  {rs.titleShort} (v{rs.version})
                 </option>
               ))}
             </select>
           </div>
+
+          {/* Sample Project Button */}
+          <button
+            onClick={() => setShowSampleProject(true)}
+            className="flex items-center gap-2 px-4 py-2 bg-theme-primary/10 text-theme-primary rounded-lg hover:bg-theme-primary/20 transition-colors"
+          >
+            <FolderPlus className="w-5 h-5" />
+            {lang === 'de' ? 'Musterprojekt' : 'Sample Project'}
+          </button>
 
           {/* Glossary Button */}
           <button
@@ -419,6 +487,64 @@ export default function Training() {
             <Info className="w-5 h-5" />
             {lang === 'de' ? 'Glossar' : 'Glossary'}
           </button>
+        </div>
+      </div>
+
+      {/* Sample Project + Selected Ruleset Info Card */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+        {/* Musterprojekt */}
+        <div className="bg-gradient-to-r from-blue-500/10 to-blue-500/5 rounded-xl border border-blue-500/20 p-4">
+          <div className="flex items-start gap-3">
+            <div className="p-2 bg-blue-500/10 rounded-lg">
+              <FolderPlus className="w-5 h-5 text-blue-500" />
+            </div>
+            <div className="flex-1 min-w-0">
+              <div className="flex items-center gap-2 mb-1">
+                <h3 className="font-medium text-theme-text-primary text-sm">
+                  {lang === 'de' ? 'Musterprojekt' : 'Sample Project'}
+                </h3>
+              </div>
+              <p className="text-sm font-semibold text-theme-text-primary truncate">
+                {SAMPLE_PROJECT.title}
+              </p>
+              <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-theme-text-muted mt-1">
+                <span className="flex items-center gap-1">
+                  <Building className="w-3 h-3" />
+                  {SAMPLE_PROJECT.beneficiary.name}
+                </span>
+                <span className="flex items-center gap-1">
+                  <Calendar className="w-3 h-3" />
+                  {SAMPLE_PROJECT.period.start} - {SAMPLE_PROJECT.period.end}
+                </span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Ausgewähltes Regelwerk */}
+        <div className="bg-gradient-to-r from-orange-500/10 to-orange-500/5 rounded-xl border border-orange-500/20 p-4">
+          <div className="flex items-start gap-3">
+            <div className="p-2 bg-orange-500/10 rounded-lg">
+              <BookOpen className="w-5 h-5 text-orange-500" />
+            </div>
+            <div className="flex-1 min-w-0">
+              <div className="flex items-center gap-2 mb-1">
+                <h3 className="font-medium text-theme-text-primary text-sm">
+                  {lang === 'de' ? 'Regelwerk' : 'Ruleset'}
+                </h3>
+              </div>
+              <p className="text-sm font-semibold text-theme-text-primary truncate">
+                {selectedRuleset.title}
+              </p>
+              <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-theme-text-muted mt-1">
+                <span className="flex items-center gap-1">
+                  <ListChecks className="w-3 h-3" />
+                  {selectedRuleset.featuresCount} {lang === 'de' ? 'Pflichtmerkmale' : 'Features'}
+                </span>
+                <span>v{selectedRuleset.version}</span>
+              </div>
+            </div>
+          </div>
         </div>
       </div>
 
@@ -675,22 +801,31 @@ export default function Training() {
                 </div>
               )}
 
-              {/* Step 4: Ruleset */}
+              {/* Step 4: Ruleset - zeigt Merkmale des gewählten Regelwerks */}
               {currentWorkflowStep.key === 'ruleset' && (
-                <div className="text-center space-y-4">
-                  <BookOpen className="w-16 h-16 text-orange-500 mx-auto" />
-                  <div className="flex flex-wrap gap-1 justify-center px-4">
-                    {[1,2,3,4,5,6,7].map((n) => (
+                <div className="text-center space-y-3 p-2">
+                  <BookOpen className="w-12 h-12 text-orange-500 mx-auto" />
+                  <p className="text-xs font-medium text-orange-500">{selectedRuleset.titleShort}</p>
+                  <div className="flex flex-wrap gap-1 justify-center">
+                    {selectedRuleset.features.slice(0, 7).map((feature, n) => (
                       <div
                         key={n}
-                        className="w-6 h-6 bg-orange-500/20 rounded text-xs flex items-center justify-center text-orange-500 font-medium animate-pulse"
+                        className="px-2 py-1 bg-orange-500/20 rounded text-[10px] text-orange-600 font-medium animate-pulse truncate max-w-[80px]"
                         style={{ animationDelay: `${n * 100}ms` }}
+                        title={feature}
                       >
-                        {n}
+                        {feature.split(' ')[0]}
                       </div>
                     ))}
+                    {selectedRuleset.features.length > 7 && (
+                      <div className="px-2 py-1 bg-orange-500/10 rounded text-[10px] text-orange-500">
+                        +{selectedRuleset.features.length - 7}
+                      </div>
+                    )}
                   </div>
-                  <p className="text-sm text-theme-text-muted">14 Pflichtmerkmale prüfen</p>
+                  <p className="text-xs text-theme-text-muted">
+                    {selectedRuleset.featuresCount} {lang === 'de' ? 'Merkmale prüfen' : 'features to check'}
+                  </p>
                 </div>
               )}
 
@@ -786,6 +921,153 @@ export default function Training() {
           </div>
         </div>
       </div>
+
+      {/* Sample Project Modal */}
+      {showSampleProject && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+          <div className="bg-theme-elevated rounded-xl shadow-xl max-w-2xl w-full max-h-[80vh] overflow-hidden flex flex-col">
+            <div className="flex items-center justify-between px-6 py-4 border-b border-theme-border">
+              <div className="flex items-center gap-3">
+                <FolderPlus className="w-6 h-6 text-blue-500" />
+                <h3 className="text-lg font-semibold text-theme-text-primary">
+                  {lang === 'de' ? 'Musterprojekt-Details' : 'Sample Project Details'}
+                </h3>
+              </div>
+              <button
+                onClick={() => setShowSampleProject(false)}
+                className="p-2 hover:bg-theme-hover rounded-lg transition-colors"
+              >
+                <X className="w-5 h-5 text-theme-text-muted" />
+              </button>
+            </div>
+
+            <div className="flex-1 overflow-auto p-6 space-y-6">
+              {/* Projekt-Info */}
+              <div>
+                <h4 className="font-semibold text-theme-text-primary mb-3">
+                  {lang === 'de' ? 'Projektdaten' : 'Project Data'}
+                </h4>
+                <div className="bg-theme-card border border-theme-border rounded-lg p-4 space-y-3">
+                  <div className="flex items-center gap-3">
+                    <FileText className="w-5 h-5 text-theme-text-muted" />
+                    <div>
+                      <p className="text-xs text-theme-text-muted">{lang === 'de' ? 'Projekttitel' : 'Project Title'}</p>
+                      <p className="font-medium text-theme-text-primary">{SAMPLE_PROJECT.title}</p>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-3">
+                    <FileCheck className="w-5 h-5 text-theme-text-muted" />
+                    <div>
+                      <p className="text-xs text-theme-text-muted">{lang === 'de' ? 'Aktenzeichen' : 'File Reference'}</p>
+                      <p className="font-medium text-theme-text-primary">{SAMPLE_PROJECT.fileReference}</p>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-3">
+                    <Calendar className="w-5 h-5 text-theme-text-muted" />
+                    <div>
+                      <p className="text-xs text-theme-text-muted">{lang === 'de' ? 'Projektzeitraum' : 'Project Period'}</p>
+                      <p className="font-medium text-theme-text-primary">{SAMPLE_PROJECT.period.start} – {SAMPLE_PROJECT.period.end}</p>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-3">
+                    <MapPin className="w-5 h-5 text-theme-text-muted" />
+                    <div>
+                      <p className="text-xs text-theme-text-muted">{lang === 'de' ? 'Durchführungsort' : 'Location'}</p>
+                      <p className="font-medium text-theme-text-primary">{SAMPLE_PROJECT.location}</p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Begünstigter */}
+              <div>
+                <h4 className="font-semibold text-theme-text-primary mb-3">
+                  {lang === 'de' ? 'Begünstigter' : 'Beneficiary'}
+                </h4>
+                <div className="bg-theme-card border border-theme-border rounded-lg p-4 space-y-3">
+                  <div className="flex items-center gap-3">
+                    <Building className="w-5 h-5 text-theme-text-muted" />
+                    <div>
+                      <p className="text-xs text-theme-text-muted">{lang === 'de' ? 'Name' : 'Name'}</p>
+                      <p className="font-medium text-theme-text-primary">{SAMPLE_PROJECT.beneficiary.name}</p>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-3">
+                    <MapPin className="w-5 h-5 text-theme-text-muted" />
+                    <div>
+                      <p className="text-xs text-theme-text-muted">{lang === 'de' ? 'Adresse' : 'Address'}</p>
+                      <p className="font-medium text-theme-text-primary">{SAMPLE_PROJECT.beneficiary.address}</p>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-3">
+                    <FileText className="w-5 h-5 text-theme-text-muted" />
+                    <div>
+                      <p className="text-xs text-theme-text-muted">USt-IdNr.</p>
+                      <p className="font-medium text-theme-text-primary">{SAMPLE_PROJECT.beneficiary.vatId}</p>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-3">
+                    <Euro className="w-5 h-5 text-theme-text-muted" />
+                    <div>
+                      <p className="text-xs text-theme-text-muted">{lang === 'de' ? 'Vorsteuerabzug' : 'Input Tax Deduction'}</p>
+                      <p className="font-medium text-theme-text-primary">
+                        {SAMPLE_PROJECT.beneficiary.inputTaxDeductible
+                          ? (lang === 'de' ? 'Ja' : 'Yes')
+                          : (lang === 'de' ? 'Nein' : 'No')}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Musterrechnungen */}
+              <div>
+                <h4 className="font-semibold text-theme-text-primary mb-3">
+                  {lang === 'de' ? 'Beispiel-Rechnungen' : 'Sample Invoices'}
+                </h4>
+                <div className="space-y-2">
+                  {SAMPLE_PROJECT.sampleInvoices.map((inv, idx) => (
+                    <div
+                      key={idx}
+                      className={clsx(
+                        'flex items-center justify-between p-3 rounded-lg border',
+                        inv.status === 'ok'
+                          ? 'bg-status-success-bg border-status-success-border'
+                          : 'bg-status-warning-bg border-status-warning-border'
+                      )}
+                    >
+                      <div className="flex items-center gap-3">
+                        <FileText className={clsx(
+                          'w-5 h-5',
+                          inv.status === 'ok' ? 'text-status-success' : 'text-status-warning'
+                        )} />
+                        <span className="font-medium text-theme-text-primary">{inv.name}</span>
+                      </div>
+                      <div className="flex items-center gap-3">
+                        <span className="text-theme-text-secondary">{inv.amount}</span>
+                        {inv.status === 'ok' ? (
+                          <CheckCircle className="w-5 h-5 text-status-success" />
+                        ) : (
+                          <AlertTriangle className="w-5 h-5 text-status-warning" />
+                        )}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+
+            <div className="px-6 py-4 border-t border-theme-border bg-theme-hover">
+              <button
+                onClick={() => setShowSampleProject(false)}
+                className="w-full px-4 py-2 bg-theme-primary text-white rounded-lg hover:bg-theme-primary-hover transition-colors"
+              >
+                {lang === 'de' ? 'Schließen' : 'Close'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Glossary Modal */}
       {showGlossary && (
