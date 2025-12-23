@@ -20,7 +20,164 @@ from reportlab.lib import colors
 from reportlab.lib.pagesizes import A4
 from reportlab.lib.styles import ParagraphStyle, getSampleStyleSheet
 from reportlab.lib.units import cm
+from reportlab.pdfbase import pdfmetrics
+from reportlab.pdfbase.ttfonts import TTFont
 from reportlab.platypus import Paragraph, SimpleDocTemplate, Spacer, Table, TableStyle
+
+
+# =============================================================================
+# Template-Styling-Konfiguration
+# =============================================================================
+
+# Versuche, zusätzliche Schriftarten zu registrieren (falls vorhanden)
+_FONTS_REGISTERED = False
+
+def _register_fonts():
+    """Registriert zusätzliche Schriftarten für PDF-Generierung."""
+    global _FONTS_REGISTERED
+    if _FONTS_REGISTERED:
+        return
+
+    # Standard-Fonts sind immer verfügbar: Helvetica, Times-Roman, Courier
+    # Für verschiedene Templates nutzen wir verschiedene Standard-Font-Familien
+    _FONTS_REGISTERED = True
+
+
+# Template-spezifische Styling-Konfiguration
+TEMPLATE_STYLES = {
+    "T1_HANDWERK": {
+        "name": "Handwerker",
+        "primary_color": colors.Color(0.15, 0.35, 0.55),  # Dunkelblau/Stahl
+        "accent_color": colors.Color(0.85, 0.55, 0.15),   # Orange/Rost
+        "header_bg": colors.Color(0.15, 0.35, 0.55),
+        "table_stripe": colors.Color(0.94, 0.96, 0.98),
+        "font_family": "Helvetica",
+        "font_bold": "Helvetica-Bold",
+        "watermark": "HANDWERK",
+        "watermark_color": colors.Color(0.92, 0.92, 0.92),
+        "logo_color": colors.Color(0.15, 0.35, 0.55),
+        "logo_accent": colors.Color(0.85, 0.55, 0.15),
+    },
+    "T2_SUPERMARKT": {
+        "name": "Supermarkt",
+        "primary_color": colors.Color(0.2, 0.6, 0.2),     # Frisches Grün
+        "accent_color": colors.Color(0.95, 0.75, 0.1),    # Gelb/Gold
+        "header_bg": colors.Color(0.2, 0.6, 0.2),
+        "table_stripe": colors.Color(0.94, 0.98, 0.94),
+        "font_family": "Helvetica",
+        "font_bold": "Helvetica-Bold",
+        "watermark": "FRISCH",
+        "watermark_color": colors.Color(0.90, 0.95, 0.90),
+        "logo_color": colors.Color(0.2, 0.6, 0.2),
+        "logo_accent": colors.Color(0.95, 0.75, 0.1),
+    },
+    "T3_CORPORATE": {
+        "name": "Konzern",
+        "primary_color": colors.Color(0.1, 0.2, 0.4),     # Dunkelblau/Corporate
+        "accent_color": colors.Color(0.6, 0.7, 0.8),      # Hellblau/Silber
+        "header_bg": colors.Color(0.1, 0.2, 0.4),
+        "table_stripe": colors.Color(0.95, 0.96, 0.98),
+        "font_family": "Times-Roman",
+        "font_bold": "Times-Bold",
+        "watermark": "ENTERPRISE",
+        "watermark_color": colors.Color(0.93, 0.93, 0.95),
+        "logo_color": colors.Color(0.1, 0.2, 0.4),
+        "logo_accent": colors.Color(0.6, 0.7, 0.8),
+    },
+    "T4_FREELANCER": {
+        "name": "Freelancer",
+        "primary_color": colors.Color(0.4, 0.2, 0.5),     # Lila/Kreativ
+        "accent_color": colors.Color(0.9, 0.4, 0.5),      # Pink/Coral
+        "header_bg": colors.Color(0.4, 0.2, 0.5),
+        "table_stripe": colors.Color(0.97, 0.95, 0.98),
+        "font_family": "Helvetica",
+        "font_bold": "Helvetica-Bold",
+        "watermark": "KREATIV",
+        "watermark_color": colors.Color(0.95, 0.92, 0.95),
+        "logo_color": colors.Color(0.4, 0.2, 0.5),
+        "logo_accent": colors.Color(0.9, 0.4, 0.5),
+    },
+    "T5_MINIMAL": {
+        "name": "Minimal",
+        "primary_color": colors.Color(0.2, 0.2, 0.2),     # Dunkelgrau
+        "accent_color": colors.Color(0.5, 0.5, 0.5),      # Mittelgrau
+        "header_bg": colors.Color(0.2, 0.2, 0.2),
+        "table_stripe": colors.Color(0.96, 0.96, 0.96),
+        "font_family": "Courier",
+        "font_bold": "Courier-Bold",
+        "watermark": "",  # Kein Wasserzeichen für minimal
+        "watermark_color": colors.Color(0.95, 0.95, 0.95),
+        "logo_color": colors.Color(0.3, 0.3, 0.3),
+        "logo_accent": colors.Color(0.6, 0.6, 0.6),
+    },
+    "T6_BAUGEWERBE": {
+        "name": "Baugewerbe",
+        "primary_color": colors.Color(0.6, 0.35, 0.1),    # Braun/Ziegel
+        "accent_color": colors.Color(0.85, 0.65, 0.2),    # Sand/Gelb
+        "header_bg": colors.Color(0.6, 0.35, 0.1),
+        "table_stripe": colors.Color(0.98, 0.96, 0.93),
+        "font_family": "Helvetica",
+        "font_bold": "Helvetica-Bold",
+        "watermark": "BAUSTELLE",
+        "watermark_color": colors.Color(0.95, 0.93, 0.88),
+        "logo_color": colors.Color(0.6, 0.35, 0.1),
+        "logo_accent": colors.Color(0.85, 0.65, 0.2),
+    },
+    "T7_FORSCHUNG": {
+        "name": "Forschung",
+        "primary_color": colors.Color(0.0, 0.4, 0.6),     # Türkis/Wissenschaft
+        "accent_color": colors.Color(0.2, 0.7, 0.7),      # Cyan
+        "header_bg": colors.Color(0.0, 0.4, 0.6),
+        "table_stripe": colors.Color(0.92, 0.97, 0.98),
+        "font_family": "Times-Roman",
+        "font_bold": "Times-Bold",
+        "watermark": "SCIENCE",
+        "watermark_color": colors.Color(0.90, 0.95, 0.97),
+        "logo_color": colors.Color(0.0, 0.4, 0.6),
+        "logo_accent": colors.Color(0.2, 0.7, 0.7),
+    },
+    "T8_IT_HARDWARE": {
+        "name": "IT-Hardware",
+        "primary_color": colors.Color(0.15, 0.15, 0.2),   # Fast Schwarz/Tech
+        "accent_color": colors.Color(0.0, 0.8, 0.4),      # Neon-Grün
+        "header_bg": colors.Color(0.15, 0.15, 0.2),
+        "table_stripe": colors.Color(0.94, 0.94, 0.96),
+        "font_family": "Courier",
+        "font_bold": "Courier-Bold",
+        "watermark": "TECH",
+        "watermark_color": colors.Color(0.92, 0.95, 0.93),
+        "logo_color": colors.Color(0.15, 0.15, 0.2),
+        "logo_accent": colors.Color(0.0, 0.8, 0.4),
+    },
+    "T9_INDUSTRIE": {
+        "name": "Industrie",
+        "primary_color": colors.Color(0.3, 0.3, 0.35),    # Stahl/Industrie
+        "accent_color": colors.Color(0.9, 0.6, 0.1),      # Warn-Orange
+        "header_bg": colors.Color(0.3, 0.3, 0.35),
+        "table_stripe": colors.Color(0.95, 0.95, 0.95),
+        "font_family": "Helvetica",
+        "font_bold": "Helvetica-Bold",
+        "watermark": "INDUSTRIE",
+        "watermark_color": colors.Color(0.93, 0.93, 0.93),
+        "logo_color": colors.Color(0.3, 0.3, 0.35),
+        "logo_accent": colors.Color(0.9, 0.6, 0.1),
+    },
+}
+
+# Default-Styling für unbekannte Templates
+DEFAULT_STYLE = {
+    "name": "Standard",
+    "primary_color": colors.darkblue,
+    "accent_color": colors.lightblue,
+    "header_bg": colors.darkblue,
+    "table_stripe": colors.Color(0.95, 0.95, 0.95),
+    "font_family": "Helvetica",
+    "font_bold": "Helvetica-Bold",
+    "watermark": "",
+    "watermark_color": colors.Color(0.95, 0.95, 0.95),
+    "logo_color": colors.darkblue,
+    "logo_accent": colors.lightblue,
+}
 
 from sqlalchemy import select
 
@@ -1750,22 +1907,84 @@ def _create_error_overview(solutions: list[dict[str, Any]], ruleset_id: str) -> 
 
 def _format_invoice_pdf(data: dict[str, Any], filepath: Path) -> None:
     """
-    Erstellt eine professionelle PDF-Rechnung.
+    Erstellt eine professionelle PDF-Rechnung mit template-spezifischem Styling.
 
     Args:
-        data: Rechnungsdaten
+        data: Rechnungsdaten (inkl. template-Feld für Styling)
         filepath: Ausgabepfad für die PDF
     """
+    from reportlab.pdfgen import canvas as pdf_canvas
+
+    # Template-Styling laden
+    template = data.get("template", "")
+    style = TEMPLATE_STYLES.get(template, DEFAULT_STYLE)
+
+    primary_color = style["primary_color"]
+    accent_color = style["accent_color"]
+    header_bg = style["header_bg"]
+    table_stripe = style["table_stripe"]
+    font_family = style["font_family"]
+    font_bold = style["font_bold"]
+    watermark_text = style["watermark"]
+    watermark_color = style["watermark_color"]
+    logo_color = style["logo_color"]
+    logo_accent = style["logo_accent"]
+
+    # Watermark-Callback für jede Seite
+    def add_watermark_and_logo(canvas, doc):
+        """Zeichnet Wasserzeichen und Logo-Platzhalter auf jede Seite."""
+        canvas.saveState()
+
+        # Wasserzeichen (diagonal, halbtransparent)
+        if watermark_text:
+            canvas.setFillColor(watermark_color)
+            canvas.setFont("Helvetica-Bold", 72)
+            canvas.translate(A4[0] / 2, A4[1] / 2)
+            canvas.rotate(45)
+            canvas.drawCentredString(0, 0, watermark_text)
+            canvas.rotate(-45)
+            canvas.translate(-A4[0] / 2, -A4[1] / 2)
+
+        # Logo-Platzhalter oben rechts (stilisiertes Rechteck mit Akzent)
+        logo_x = A4[0] - 4 * cm
+        logo_y = A4[1] - 3 * cm
+        logo_width = 2.5 * cm
+        logo_height = 1.5 * cm
+
+        # Hauptfarbe des Logos
+        canvas.setFillColor(logo_color)
+        canvas.rect(logo_x, logo_y, logo_width, logo_height, fill=1, stroke=0)
+
+        # Akzent-Streifen
+        canvas.setFillColor(logo_accent)
+        canvas.rect(logo_x, logo_y + logo_height - 0.3 * cm, logo_width, 0.3 * cm, fill=1, stroke=0)
+
+        # "Logo" Text im Platzhalter
+        canvas.setFillColor(colors.white)
+        canvas.setFont(font_bold, 8)
+        canvas.drawCentredString(logo_x + logo_width / 2, logo_y + 0.5 * cm, "LOGO")
+
+        # Farbiger Streifen am linken Rand
+        canvas.setFillColor(primary_color)
+        canvas.rect(0, 0, 0.5 * cm, A4[1], fill=1, stroke=0)
+
+        # Akzent-Linie oben
+        canvas.setStrokeColor(accent_color)
+        canvas.setLineWidth(3)
+        canvas.line(0.5 * cm, A4[1] - 1.2 * cm, A4[0] - 4.5 * cm, A4[1] - 1.2 * cm)
+
+        canvas.restoreState()
+
     doc = SimpleDocTemplate(
         str(filepath),
         pagesize=A4,
         rightMargin=2 * cm,
-        leftMargin=2 * cm,
-        topMargin=2 * cm,
+        leftMargin=2.5 * cm,  # Etwas mehr für farbigen Rand
+        topMargin=3.5 * cm,   # Platz für Logo
         bottomMargin=2 * cm,
     )
 
-    # Styles definieren
+    # Styles mit Template-Farben definieren
     styles = getSampleStyleSheet()
     title_style = ParagraphStyle(
         "Title",
@@ -1773,36 +1992,39 @@ def _format_invoice_pdf(data: dict[str, Any], filepath: Path) -> None:
         fontSize=24,
         alignment=1,  # Center
         spaceAfter=20,
-        textColor=colors.darkblue,
+        textColor=primary_color,
+        fontName=font_bold,
     )
     heading_style = ParagraphStyle(
         "SectionHeading",
         parent=styles["Heading2"],
         fontSize=12,
-        textColor=colors.darkblue,
+        textColor=primary_color,
         spaceBefore=15,
         spaceAfter=8,
         borderWidth=0,
-        borderColor=colors.darkblue,
+        borderColor=primary_color,
         borderPadding=5,
+        fontName=font_bold,
     )
     normal_style = ParagraphStyle(
         "Normal",
         parent=styles["Normal"],
         fontSize=10,
         leading=14,
+        fontName=font_family,
     )
     bold_style = ParagraphStyle(
         "Bold",
         parent=styles["Normal"],
         fontSize=10,
         leading=14,
-        fontName="Helvetica-Bold",
+        fontName=font_bold,
     )
 
     elements = []
 
-    # Titel
+    # Titel mit Template-Farbe
     elements.append(Paragraph("RECHNUNG", title_style))
     elements.append(Spacer(1, 0.5 * cm))
 
@@ -1813,8 +2035,10 @@ def _format_invoice_pdf(data: dict[str, Any], filepath: Path) -> None:
     ]
     info_table = Table(invoice_info, colWidths=[4 * cm, 8 * cm])
     info_table.setStyle(TableStyle([
-        ("FONTNAME", (0, 0), (0, -1), "Helvetica-Bold"),
+        ("FONTNAME", (0, 0), (0, -1), font_bold),
+        ("FONTNAME", (1, 0), (1, -1), font_family),
         ("FONTSIZE", (0, 0), (-1, -1), 10),
+        ("TEXTCOLOR", (0, 0), (0, -1), primary_color),
         ("VALIGN", (0, 0), (-1, -1), "TOP"),
         ("BOTTOMPADDING", (0, 0), (-1, -1), 6),
     ]))
@@ -1884,16 +2108,16 @@ def _format_invoice_pdf(data: dict[str, Any], filepath: Path) -> None:
         # Spaltenbreiten: Pos(1cm), Beschreibung(6cm), Menge(1.5cm), Einheit(1.5cm), Einzelpreis(2.5cm), Betrag(2.5cm)
         pos_table = Table(pos_data, colWidths=[1 * cm, 6 * cm, 1.5 * cm, 1.5 * cm, 2.5 * cm, 2.5 * cm])
         pos_table.setStyle(TableStyle([
-            # Header-Styling
-            ("BACKGROUND", (0, 0), (-1, 0), colors.darkblue),
+            # Header-Styling mit Template-Farben
+            ("BACKGROUND", (0, 0), (-1, 0), header_bg),
             ("TEXTCOLOR", (0, 0), (-1, 0), colors.white),
-            ("FONTNAME", (0, 0), (-1, 0), "Helvetica-Bold"),
+            ("FONTNAME", (0, 0), (-1, 0), font_bold),
             ("FONTSIZE", (0, 0), (-1, 0), 9),
             ("ALIGN", (0, 0), (-1, 0), "CENTER"),
             ("BOTTOMPADDING", (0, 0), (-1, 0), 8),
             ("TOPPADDING", (0, 0), (-1, 0), 8),
-            # Daten-Styling
-            ("FONTNAME", (0, 1), (-1, -1), "Helvetica"),
+            # Daten-Styling mit Template-Font
+            ("FONTNAME", (0, 1), (-1, -1), font_family),
             ("FONTSIZE", (0, 1), (-1, -1), 9),
             ("ALIGN", (0, 1), (0, -1), "CENTER"),  # Pos zentriert
             ("ALIGN", (2, 1), (2, -1), "RIGHT"),   # Menge rechts
@@ -1901,11 +2125,11 @@ def _format_invoice_pdf(data: dict[str, Any], filepath: Path) -> None:
             ("VALIGN", (0, 1), (-1, -1), "TOP"),
             ("BOTTOMPADDING", (0, 1), (-1, -1), 6),
             ("TOPPADDING", (0, 1), (-1, -1), 6),
-            # Zebrastreifen
-            ("ROWBACKGROUNDS", (0, 1), (-1, -1), [colors.white, colors.Color(0.95, 0.95, 0.95)]),
-            # Rahmen
+            # Zebrastreifen mit Template-Farbe
+            ("ROWBACKGROUNDS", (0, 1), (-1, -1), [colors.white, table_stripe]),
+            # Rahmen mit Template-Farben
             ("GRID", (0, 0), (-1, -1), 0.5, colors.grey),
-            ("BOX", (0, 0), (-1, -1), 1, colors.darkblue),
+            ("BOX", (0, 0), (-1, -1), 1, primary_color),
         ]))
         elements.append(pos_table)
         elements.append(Spacer(1, 0.8 * cm))
@@ -1921,15 +2145,16 @@ def _format_invoice_pdf(data: dict[str, Any], filepath: Path) -> None:
     ]
     amounts_table = Table(amounts_data, colWidths=[8 * cm, 4 * cm])
     amounts_table.setStyle(TableStyle([
-        ("FONTNAME", (0, 0), (-1, -1), "Helvetica"),
-        ("FONTNAME", (0, 2), (-1, 2), "Helvetica-Bold"),
+        ("FONTNAME", (0, 0), (-1, -1), font_family),
+        ("FONTNAME", (0, 2), (-1, 2), font_bold),
         ("FONTSIZE", (0, 0), (-1, -1), 11),
+        ("TEXTCOLOR", (0, 2), (-1, 2), primary_color),
         ("ALIGN", (1, 0), (1, -1), "RIGHT"),
         ("BOTTOMPADDING", (0, 0), (-1, -1), 8),
         ("TOPPADDING", (0, 0), (-1, -1), 8),
-        ("LINEABOVE", (0, 2), (-1, 2), 1, colors.black),
-        ("LINEBELOW", (0, 2), (-1, 2), 2, colors.black),
-        ("BACKGROUND", (0, 2), (-1, 2), colors.lightgrey),
+        ("LINEABOVE", (0, 2), (-1, 2), 1, primary_color),
+        ("LINEBELOW", (0, 2), (-1, 2), 2, primary_color),
+        ("BACKGROUND", (0, 2), (-1, 2), table_stripe),
     ]))
     elements.append(amounts_table)
     elements.append(Spacer(1, 1 * cm))
@@ -1943,8 +2168,8 @@ def _format_invoice_pdf(data: dict[str, Any], filepath: Path) -> None:
     """
     elements.append(Paragraph(payment_text, normal_style))
 
-    # PDF erstellen
-    doc.build(elements)
+    # PDF erstellen mit Wasserzeichen und Logo
+    doc.build(elements, onFirstPage=add_watermark_and_logo, onLaterPages=add_watermark_and_logo)
 
 
 # =============================================================================
