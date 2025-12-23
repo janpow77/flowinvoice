@@ -400,29 +400,29 @@ const WORKFLOW_NODES: WorkflowNode[] = [
   },
   {
     id: 'result',
-    title: { de: 'Ergebnis & Feedback', en: 'Result & Feedback' },
+    title: { de: 'Prüfergebnis & Korrektur', en: 'Audit Result & Correction' },
     shortTitle: { de: 'Ergebnis', en: 'Result' },
-    description: { de: 'Bewertung und Lernschleife', en: 'Evaluation and learning loop' },
+    description: { de: 'Prüfer bestätigt oder korrigiert KI-Bewertung', en: 'Auditor confirms or corrects AI assessment' },
     icon: CheckCircle,
     color: 'from-emerald-400 to-emerald-600',
     colorRgb: '52, 211, 153',
     details: [
-      { de: 'Gesamtbewertung', en: 'Overall Assessment' },
+      { de: 'Prüfer-Review', en: 'Auditor Review' },
+      { de: 'Bestätigung/Korrektur', en: 'Confirm/Correct' },
       { de: 'Fehlerhinweise', en: 'Error Notes' },
-      { de: 'Korrektur', en: 'Correction' },
       { de: 'RAG-Lernen', en: 'RAG Learning' },
     ],
     glossaryTerms: [
-      { term: { de: 'Gesamtbewertung', en: 'Overall Assessment' }, definition: { de: 'Zusammenfassende Beurteilung der geprüften Ausgaben.', en: 'Summary evaluation of the audited expenses.' } },
-      { term: { de: 'Feedback-Loop', en: 'Feedback Loop' }, definition: { de: 'Rückmeldung aus der fachlichen Prüfung zur Verbesserung künftiger Analysen.', en: 'Feedback from technical review to improve future analyses.' } },
+      { term: { de: 'Prüfer-Review', en: 'Auditor Review' }, definition: { de: 'Der Fachprüfer überprüft die KI-Bewertung und bestätigt oder korrigiert diese.', en: 'The auditor reviews the AI assessment and confirms or corrects it.' } },
+      { term: { de: 'Feedback-Loop', en: 'Feedback Loop' }, definition: { de: 'Korrekturen des Prüfers fließen zurück in die Wissensbasis zur Verbesserung künftiger Analysen.', en: 'Auditor corrections flow back into the knowledge base to improve future analyses.' } },
       { term: { de: 'RAG-Lernen', en: 'RAG Learning' }, definition: { de: 'Bestätigte Bewertungen erweitern die Wissensbasis für vergleichbare Fälle.', en: 'Confirmed assessments expand the knowledge base for comparable cases.' } },
     ],
   },
   {
     id: 'export',
-    title: { de: 'Export', en: 'Export' },
+    title: { de: 'Prüfbericht erstellen', en: 'Generate Audit Report' },
     shortTitle: { de: 'Report', en: 'Report' },
-    description: { de: 'Dokumentation und Ausgabe', en: 'Documentation and output' },
+    description: { de: 'Finale Dokumentation exportieren', en: 'Export final documentation' },
     icon: FileText,
     color: 'from-cyan-400 to-cyan-600',
     colorRgb: '34, 211, 238',
@@ -433,7 +433,8 @@ const WORKFLOW_NODES: WorkflowNode[] = [
       { de: 'Archivierung', en: 'Archiving' },
     ],
     glossaryTerms: [
-      { term: { de: 'Prüfbericht', en: 'Audit Report' }, definition: { de: 'Dokumentation aller Prüfergebnisse als PDF oder Excel.', en: 'Documentation of all audit results as PDF or Excel.' } },
+      { term: { de: 'Prüfbericht', en: 'Audit Report' }, definition: { de: 'Zusammenfassende Dokumentation aller Prüfergebnisse mit Bewertungen, Hinweisen und Empfehlungen.', en: 'Summary documentation of all audit results with assessments, notes, and recommendations.' } },
+      { term: { de: 'Belegliste', en: 'Document List' }, definition: { de: 'Übersicht aller geprüften Belege mit Status und Ergebnis.', en: 'Overview of all audited documents with status and result.' } },
     ],
   },
 ]
@@ -818,7 +819,7 @@ export default function Training() {
   const currentNode = WORKFLOW_NODES[currentStep]
 
   const STEP_DURATION = 5000 // 5 Sekunden pro Schritt
-  const ORBIT_RADIUS = 340 // Radius der Umlaufbahn (maximiert für großen Kreis)
+  const ORBIT_RADIUS = 400 // Radius der Umlaufbahn (maximiert für großen Kreis)
 
   // Auto-Animation mit Orbital-Rotation
   useEffect(() => {
@@ -943,47 +944,6 @@ export default function Training() {
                 {lang === 'de' ? 'Glossar' : 'Glossary'}
               </button>
             </div>
-          </div>
-        </div>
-
-        {/* Steuerung */}
-        <div className="flex items-center justify-center gap-4 mb-4">
-          <button
-            onClick={handleReset}
-            className="p-3 glass-panel rounded-full hover:bg-white/20 transition-colors"
-            title={lang === 'de' ? 'Zurücksetzen' : 'Reset'}
-          >
-            <RotateCcw className="w-5 h-5 text-white" />
-          </button>
-
-          <button
-            onClick={isPlaying ? handlePause : handlePlay}
-            className={clsx(
-              'flex items-center gap-2 px-8 py-3 rounded-full font-semibold transition-all text-lg',
-              isPlaying
-                ? 'bg-yellow-500 hover:bg-yellow-400 text-yellow-900'
-                : 'bg-emerald-500 hover:bg-emerald-400 text-white'
-            )}
-          >
-            {isPlaying ? (
-              <>
-                <Pause className="w-6 h-6" />
-                {lang === 'de' ? 'Pause' : 'Pause'}
-              </>
-            ) : (
-              <>
-                <Play className="w-6 h-6" />
-                {currentStep === 0
-                  ? (lang === 'de' ? 'Animation starten' : 'Start Animation')
-                  : (lang === 'de' ? 'Fortsetzen' : 'Continue')
-                }
-              </>
-            )}
-          </button>
-
-          <div className="text-white/70 text-sm flex items-center gap-2">
-            <Zap className="w-4 h-4" />
-            {lang === 'de' ? 'Schritt' : 'Step'} {currentStep + 1} / {WORKFLOW_NODES.length}
           </div>
         </div>
 
@@ -1141,6 +1101,47 @@ export default function Training() {
                 <p className="text-xs text-white/80">{SAMPLE_PROJECT.title}</p>
               </div>
             </div>
+          </div>
+        </div>
+
+        {/* Steuerung - unten */}
+        <div className="flex items-center justify-center gap-4 mt-6">
+          <button
+            onClick={handleReset}
+            className="p-3 glass-panel rounded-full hover:bg-white/20 transition-colors"
+            title={lang === 'de' ? 'Zurücksetzen' : 'Reset'}
+          >
+            <RotateCcw className="w-5 h-5 text-white" />
+          </button>
+
+          <button
+            onClick={isPlaying ? handlePause : handlePlay}
+            className={clsx(
+              'flex items-center gap-2 px-8 py-3 rounded-full font-semibold transition-all text-lg',
+              isPlaying
+                ? 'bg-yellow-500 hover:bg-yellow-400 text-yellow-900'
+                : 'bg-emerald-500 hover:bg-emerald-400 text-white'
+            )}
+          >
+            {isPlaying ? (
+              <>
+                <Pause className="w-6 h-6" />
+                {lang === 'de' ? 'Pause' : 'Pause'}
+              </>
+            ) : (
+              <>
+                <Play className="w-6 h-6" />
+                {currentStep === 0
+                  ? (lang === 'de' ? 'Animation starten' : 'Start Animation')
+                  : (lang === 'de' ? 'Fortsetzen' : 'Continue')
+                }
+              </>
+            )}
+          </button>
+
+          <div className="text-white/70 text-sm flex items-center gap-2">
+            <Zap className="w-4 h-4" />
+            {lang === 'de' ? 'Schritt' : 'Step'} {currentStep + 1} / {WORKFLOW_NODES.length}
           </div>
         </div>
       </div>
