@@ -48,6 +48,12 @@ case $TEMPLATE in
     echo "✅ Both templates installed!"
     ;;
 
+  complete)
+    echo "📦 Installing Complete App Template (recommended)..."
+    cp -r "$SCRIPT_DIR/complete-app-template/"* "$TARGET/"
+    echo "✅ Complete app template installed!"
+    ;;
+
   *)
     echo "❌ Unknown template: $TEMPLATE"
     echo "Usage: ./setup.sh [login|ui-kit|both] [target-directory]"

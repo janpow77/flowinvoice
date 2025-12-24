@@ -1,0 +1,169 @@
+/* Login Page Animations
+ *
+ * Copy to your project's styles folder.
+ * Import in your main CSS or component.
+ */
+
+/* Fish/Logo Jump Animation */
+@keyframes fishJump {
+  0% {
+    transform: translateY(150px) translateX(-80px) rotate(-15deg) scaleX(-1);
+    opacity: 0;
+  }
+  15% {
+    opacity: 1;
+  }
+  50% {
+    transform: translateY(-200px) translateX(0px) rotate(5deg) scaleX(-1);
+  }
+  85% {
+    opacity: 1;
+  }
+  100% {
+    transform: translateY(150px) translateX(80px) rotate(25deg) scaleX(-1);
+    opacity: 0;
+  }
+}
+
+.animate-fish-jump {
+  animation: fishJump 7s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+  filter: drop-shadow(0 0 25px rgba(96, 165, 250, 0.7));
+}
+
+/* Wave Movement */
+@keyframes waveMove {
+  0% { transform: translateX(0); }
+  50% { transform: translateX(-25px); }
+  100% { transform: translateX(0); }
+}
+
+.wave-animation {
+  animation: waveMove 6s ease-in-out infinite;
+}
+
+.wave-animation-reverse {
+  animation: waveMove 8s ease-in-out infinite reverse;
+}
+
+/* Binary Data Flow */
+@keyframes dataFlow {
+  0% { transform: translateX(0); }
+  100% { transform: translateX(-50%); }
+}
+
+.data-flow {
+  animation: dataFlow 20s linear infinite;
+}
+
+.data-flow-fast {
+  animation: dataFlow 15s linear infinite;
+}
+
+.data-flow-slow {
+  animation: dataFlow 25s linear infinite reverse;
+}
+
+/* Binary Pulse Effect */
+@keyframes binaryPulse {
+  0%, 100% { opacity: 0.3; }
+  50% { opacity: 0.8; }
+}
+
+.binary-pulse {
+  animation: binaryPulse 3s ease-in-out infinite;
+}
+
+/* Bubble Float Animation */
+@keyframes bubbleFloat {
+  0%, 100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-20px);
+  }
+}
+
+.animate-bubble {
+  animation: bubbleFloat 3s ease-in-out infinite;
+}
+
+/* Fade In Animation */
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.animate-fade-in {
+  animation: fadeIn 0.5s ease-out forwards;
+}
+
+/* Glassmorphism Card Styles */
+.glass-card {
+  background: rgba(255, 255, 255, 0.1);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+}
+
+/* Input Field Styles */
+.login-input {
+  background: rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  color: white;
+  transition: all 0.2s ease;
+}
+
+.login-input::placeholder {
+  color: rgba(191, 219, 254, 0.6);
+}
+
+.login-input:focus {
+  border-color: rgba(147, 197, 253, 1);
+  box-shadow: 0 0 0 3px rgba(147, 197, 253, 0.3);
+  outline: none;
+}
+
+/* Button Styles */
+.login-button {
+  background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%);
+  box-shadow: 0 10px 25px -5px rgba(37, 99, 235, 0.5);
+  transition: all 0.2s ease;
+}
+
+.login-button:hover {
+  background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
+  box-shadow: 0 15px 30px -5px rgba(37, 99, 235, 0.6);
+  transform: translateY(-1px);
+}
+
+.login-button:active {
+  transform: translateY(0);
+}
+
+/* Google Button */
+.google-button {
+  background: rgba(255, 255, 255, 0.95);
+  transition: all 0.2s ease;
+}
+
+.google-button:hover {
+  background: white;
+  box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.2);
+}
+
+/* Spinner Animation */
+@keyframes spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+.animate-spin {
+  animation: spin 1s linear infinite;
+}
