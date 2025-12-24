@@ -49,6 +49,20 @@ class User(Base):
         nullable=False,
     )
 
+    # OAuth Provider (google, github, etc.) - null for local users
+    auth_provider: Mapped[str | None] = mapped_column(
+        String(20),
+        nullable=True,
+        default=None,
+    )
+    google_id: Mapped[str | None] = mapped_column(
+        String(255),
+        unique=True,
+        index=True,
+        nullable=True,
+        default=None,
+    )
+
     # Stammdaten
     email: Mapped[str] = mapped_column(
         String(255),

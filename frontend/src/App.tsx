@@ -18,6 +18,7 @@ const Settings = lazy(() => import('./pages/Settings'))
 const Training = lazy(() => import('./pages/Training'))
 const Users = lazy(() => import('./pages/Users'))
 const Login = lazy(() => import('./pages/Login'))
+const GoogleCallback = lazy(() => import('./pages/GoogleCallback'))
 
 function App() {
   return (
@@ -25,8 +26,9 @@ function App() {
       <AuthProvider>
         <Suspense fallback={<LoadingScreen message="Seite wird geladen..." />}>
           <Routes>
-          {/* Öffentliche Route: Login */}
+          {/* Öffentliche Routen: Login & OAuth Callbacks */}
           <Route path="/login" element={<Login />} />
+          <Route path="/auth/google/callback" element={<GoogleCallback />} />
 
           {/* Geschützte Routen: Erfordern Authentifizierung */}
           <Route

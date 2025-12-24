@@ -104,6 +104,20 @@ class Settings(BaseSettings):
     jwt_algorithm: str = "HS256"
     jwt_expire_hours: int = 24
 
+    # Google OAuth (optional)
+    google_client_id: str | None = Field(
+        default=None,
+        description="Google OAuth Client ID for authentication"
+    )
+    google_client_secret: SecretStr | None = Field(
+        default=None,
+        description="Google OAuth Client Secret"
+    )
+    google_redirect_uri: str = Field(
+        default="http://localhost:3000/auth/google/callback",
+        description="Google OAuth redirect URI after authentication"
+    )
+
     # Demo-Benutzer (für Entwicklung/Seminare - in Produktion deaktivieren!)
     # Format: "username:password_hash" (bcrypt) oder "username:plaintext" im Debug-Modus
     demo_users: str = Field(
