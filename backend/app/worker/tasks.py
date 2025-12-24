@@ -190,7 +190,9 @@ from app.models.enums import DocumentStatus, Provider
 from app.models.export import ExportJob, GeneratorJob
 from app.models.project import Project
 from app.models.result import AnalysisResult, FinalResult
+from app.models.ruleset_checker import RulesetCheckerSettings
 from app.rag import get_rag_service
+from app.services.legal_retrieval import get_legal_retrieval_service
 from app.services.parser import get_parser
 from app.services.rule_engine import get_rule_engine
 
@@ -484,17 +486,72 @@ async def _analyze_document_async(
                 precheck_result=precheck,
             )
 
+            # Legal Retrieval Kontext holen (wenn aktiviert)
+            legal_context: list[dict[str, Any]] | None = None
+            ruleset_id = document.ruleset_id or "DE_USTG"
+
+            try:
+                # Checker-Einstellungen laden
+                checker_settings = await session.execute(
+                    select(RulesetCheckerSettings).where(
+                        RulesetCheckerSettings.ruleset_id == ruleset_id
+                    )
+                )
+                checker_row = checker_settings.scalar_one_or_none()
+
+                if checker_row and checker_row.legal_checker.get("enabled", False):
+                    legal_config = checker_row.legal_checker
+                    logger.info(f"Legal Retrieval aktiviert für {ruleset_id}")
+
+                    # Suchanfrage aus Rechnungsdaten bauen
+                    query_parts = []
+                    if parse_result.extracted.get("leistung"):
+                        query_parts.append(parse_result.extracted["leistung"].value)
+                    if parse_result.extracted.get("beschreibung"):
+                        query_parts.append(parse_result.extracted["beschreibung"].value)
+                    if not query_parts:
+                        query_parts.append(parse_result.raw_text[:500])
+
+                    search_query = " ".join(query_parts)
+
+                    # Legal Retrieval durchführen
+                    legal_service = get_legal_retrieval_service()
+                    legal_results = legal_service.search(
+                        query=search_query,
+                        funding_period=legal_config.get("funding_period", "2021-2027"),
+                        n_results=legal_config.get("max_results", 5),
+                        rerank_by_hierarchy=legal_config.get("use_hierarchy_weighting", True),
+                    )
+
+                    if legal_results:
+                        legal_context = [
+                            {
+                                "norm_citation": r.norm_citation,
+                                "content": r.content,
+                                "hierarchy_level": r.hierarchy_level,
+                                "article": r.article,
+                                "paragraph": r.paragraph,
+                                "weighted_score": r.weighted_score,
+                            }
+                            for r in legal_results
+                            if r.weighted_score >= legal_config.get("min_relevance_score", 0.6)
+                        ]
+                        logger.info(f"Legal Retrieval: {len(legal_context)} relevante Texte gefunden")
+            except Exception as e:
+                logger.warning(f"Legal Retrieval Fehler (wird übersprungen): {e}")
+
             # LLM-Analyse
             llm_adapter = get_llm_adapter()
 
             analysis_request = InvoiceAnalysisRequest(
                 parse_result=parse_result,
                 precheck_result=precheck,
-                ruleset_id=document.ruleset_id or "DE_USTG",
+                ruleset_id=ruleset_id,
                 rag_examples=[
                     {"content": ex.content, "metadata": ex.metadata}
                     for ex in rag_context.similar_invoices[:3]
                 ],
+                legal_context=legal_context,
             )
 
             analysis_result = await llm_adapter.analyze_invoice(

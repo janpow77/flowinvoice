@@ -4,6 +4,7 @@ import {
   Shield,
   Brain,
   TrendingUp,
+  Scale,
   Save,
   RotateCcw,
   Info,
@@ -18,6 +19,15 @@ interface CheckerConfig {
   enabled: boolean
   severity_threshold: string
   custom_rules?: Record<string, unknown>
+}
+
+interface LegalCheckerConfig {
+  enabled: boolean
+  funding_period: '2014-2020' | '2021-2027'
+  max_results: number
+  min_relevance_score: number
+  use_hierarchy_weighting: boolean
+  include_definitions: boolean
 }
 
 interface CheckersSettingsState {
@@ -40,6 +50,7 @@ interface CheckersSettingsState {
     check_funding_rate: boolean
     max_deviation_percent: number
   }
+  legal_checker: LegalCheckerConfig
 }
 
 const defaultSettings: CheckersSettingsState = {
@@ -68,6 +79,14 @@ const defaultSettings: CheckersSettingsState = {
     check_funding_rate: true,
     max_deviation_percent: 20,
   },
+  legal_checker: {
+    enabled: false,
+    funding_period: '2021-2027',
+    max_results: 5,
+    min_relevance_score: 0.6,
+    use_hierarchy_weighting: true,
+    include_definitions: true,
+  },
 }
 
 interface CheckersSettingsProps {
@@ -80,6 +99,7 @@ export default function CheckersSettings({ rulesetId }: CheckersSettingsProps) {
     risk: true,
     semantic: false,
     economic: false,
+    legal: false,
   })
   const [settings, setSettings] = useState<CheckersSettingsState>(defaultSettings)
   const [hasChanges, setHasChanges] = useState(false)
@@ -98,6 +118,7 @@ export default function CheckersSettings({ rulesetId }: CheckersSettingsProps) {
             risk_checker: response.risk_checker || defaultSettings.risk_checker,
             semantic_checker: response.semantic_checker || defaultSettings.semantic_checker,
             economic_checker: response.economic_checker || defaultSettings.economic_checker,
+            legal_checker: response.legal_checker || defaultSettings.legal_checker,
           })
         }
         return response || defaultSettings
@@ -541,6 +562,134 @@ export default function CheckersSettings({ rulesetId }: CheckersSettingsProps) {
                 <p className="text-xs text-theme-text-muted mt-1">
                   Erlaubte Preisabweichung vom Durchschnitt
                 </p>
+              </div>
+            </div>
+          </div>
+        )}
+      </div>
+
+      {/* Legal Checker Section */}
+      <div className="bg-theme-card rounded-lg border border-theme-border overflow-hidden">
+        <button
+          onClick={() => toggleSection('legal')}
+          className="w-full px-4 py-3 flex items-center justify-between hover:bg-theme-hover transition-colors"
+        >
+          <div className="flex items-center gap-3">
+            <div className="p-2 bg-purple-100 dark:bg-purple-900/30 rounded-lg">
+              <Scale className="w-5 h-5 text-purple-600 dark:text-purple-400" />
+            </div>
+            <div className="text-left">
+              <h4 className="font-medium text-theme-text-primary">Rechtliche Prüfung</h4>
+              <p className="text-sm text-theme-text-muted">
+                EU-Verordnungen und Förderbedingungen
+              </p>
+            </div>
+          </div>
+          <div className="flex items-center gap-3">
+            <span
+              className={clsx(
+                'px-2 py-1 text-xs rounded-full',
+                settings.legal_checker.enabled
+                  ? 'bg-status-success-bg text-status-success'
+                  : 'bg-theme-surface text-theme-text-muted'
+              )}
+            >
+              {settings.legal_checker.enabled ? 'Aktiv' : 'Inaktiv'}
+            </span>
+            {expandedSections.legal ? (
+              <ChevronDown className="w-5 h-5 text-theme-text-muted" />
+            ) : (
+              <ChevronRight className="w-5 h-5 text-theme-text-muted" />
+            )}
+          </div>
+        </button>
+
+        {expandedSections.legal && (
+          <div className="px-4 pb-4 border-t border-theme-border">
+            <div className="mt-4 space-y-4">
+              {/* Info Banner */}
+              <div className="bg-purple-50 dark:bg-purple-900/20 border border-purple-200 dark:border-purple-800 rounded-lg p-3">
+                <p className="text-sm text-purple-700 dark:text-purple-300">
+                  <strong>Legal Retrieval:</strong> Aktiviert die Suche nach relevanten EU-Verordnungen
+                  und Rechtstexten aus der Vektordatenbank. Die Ergebnisse werden nach Normenhierarchie
+                  gewichtet (EU-Recht &gt; Nationales Recht &gt; Guidance).
+                </p>
+              </div>
+
+              <div className="flex items-center justify-between">
+                <label className="text-sm text-theme-text">Rechtliche Prüfung aktivieren</label>
+                <input
+                  type="checkbox"
+                  checked={settings.legal_checker.enabled}
+                  onChange={e => updateSetting('legal_checker', 'enabled', e.target.checked)}
+                  className="rounded border-theme-border text-theme-primary focus:ring-theme-primary"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm text-theme-text mb-1">EU-Förderperiode</label>
+                <select
+                  value={settings.legal_checker.funding_period}
+                  onChange={e => updateSetting('legal_checker', 'funding_period', e.target.value)}
+                  className="w-full px-3 py-2 text-sm border border-theme-border rounded-lg bg-theme-surface text-theme-text"
+                >
+                  <option value="2021-2027">2021-2027 (aktuelle Periode)</option>
+                  <option value="2014-2020">2014-2020 (vorherige Periode)</option>
+                </select>
+              </div>
+
+              <div className="border-t border-theme-border pt-4">
+                <p className="text-sm font-medium text-theme-text mb-3">Retrieval-Optionen</p>
+                <div className="space-y-3">
+                  <label className="flex items-center gap-3">
+                    <input
+                      type="checkbox"
+                      checked={settings.legal_checker.use_hierarchy_weighting}
+                      onChange={e => updateSetting('legal_checker', 'use_hierarchy_weighting', e.target.checked)}
+                      className="rounded border-theme-border text-theme-primary focus:ring-theme-primary"
+                    />
+                    <span className="text-sm text-theme-text">Normenhierarchie-Gewichtung</span>
+                  </label>
+                  <label className="flex items-center gap-3">
+                    <input
+                      type="checkbox"
+                      checked={settings.legal_checker.include_definitions}
+                      onChange={e => updateSetting('legal_checker', 'include_definitions', e.target.checked)}
+                      className="rounded border-theme-border text-theme-primary focus:ring-theme-primary"
+                    />
+                    <span className="text-sm text-theme-text">Legaldefinitionen einbeziehen</span>
+                  </label>
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-sm text-theme-text mb-1">
+                  Max. Ergebnisse: {settings.legal_checker.max_results}
+                </label>
+                <input
+                  type="range"
+                  min="1"
+                  max="20"
+                  step="1"
+                  value={settings.legal_checker.max_results}
+                  onChange={e => updateSetting('legal_checker', 'max_results', parseInt(e.target.value))}
+                  className="w-full"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm text-theme-text mb-1">
+                  Minimale Relevanz: {(settings.legal_checker.min_relevance_score * 100).toFixed(0)}%
+                </label>
+                <input
+                  type="range"
+                  min="0"
+                  max="1"
+                  step="0.05"
+                  value={settings.legal_checker.min_relevance_score}
+                  onChange={e => updateSetting('legal_checker', 'min_relevance_score', parseFloat(e.target.value))}
+                  className="w-full"
+                />
               </div>
             </div>
           </div>

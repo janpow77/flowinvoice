@@ -73,6 +73,7 @@ class InvoiceAnalysisRequest:
     project_context: dict[str, Any] | None = None
     beneficiary_context: dict[str, Any] | None = None
     rag_examples: list[dict[str, Any]] | None = None
+    legal_context: list[dict[str, Any]] | None = None
 
 
 @dataclass
@@ -222,6 +223,7 @@ class LLMAdapter:
             analysis_request.rag_examples,
             db_features=db_features,
             db_ruleset_info=db_ruleset_info,
+            legal_context=analysis_request.legal_context,
         )
 
         user_prompt = self._build_user_prompt(
@@ -333,6 +335,7 @@ class LLMAdapter:
         rag_examples: list[dict[str, Any]] | None,
         db_features: list[dict[str, Any]] | None = None,
         db_ruleset_info: dict[str, Any] | None = None,
+        legal_context: list[dict[str, Any]] | None = None,
     ) -> str:
         """Erstellt System-Prompt mit Regelwerk-Features."""
         # Features aus DB oder Fallback auf hardcodierte Rule Engine
@@ -380,6 +383,30 @@ class LLMAdapter:
                 prompt_parts.append(f"Fehler: {example.get('error_type', 'N/A')}")
                 prompt_parts.append(f"Bewertung: {example.get('assessment', 'N/A')}")
                 prompt_parts.append(f"Begründung: {example.get('reasoning', 'N/A')}")
+            prompt_parts.append("")
+
+        # Rechtliche Kontext-Dokumente einfügen (Legal Retrieval)
+        if legal_context:
+            prompt_parts.append("RELEVANTE RECHTSGRUNDLAGEN:")
+            prompt_parts.append("Die folgenden Rechtstexte sind für die Prüfung relevant:")
+            prompt_parts.append("")
+            for i, legal_doc in enumerate(legal_context[:5], 1):
+                norm_citation = legal_doc.get("norm_citation", "N/A")
+                content = legal_doc.get("content", "")[:500]  # Limit content length
+                hierarchy = legal_doc.get("hierarchy_level", 6)
+                hierarchy_name = {
+                    1: "EU-Primärrecht",
+                    2: "EU-Verordnung",
+                    3: "EU-Richtlinie",
+                    4: "Delegierte VO",
+                    5: "Nationales Recht",
+                    6: "Verwaltungsvorschrift",
+                    7: "Guidance",
+                }.get(hierarchy, "Sonstiges")
+                prompt_parts.append(f"[{i}] {norm_citation} ({hierarchy_name}):")
+                prompt_parts.append(f"    {content}")
+                prompt_parts.append("")
+            prompt_parts.append("Berücksichtige diese Rechtsgrundlagen bei der Analyse.")
             prompt_parts.append("")
 
         return "\n".join(prompt_parts)

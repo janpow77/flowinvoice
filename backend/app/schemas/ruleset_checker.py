@@ -83,6 +83,33 @@ class EconomicCheckerConfig(BaseModel):
     )
 
 
+class LegalCheckerConfig(BaseModel):
+    """Konfiguration für Legal Checker (Legal Retrieval / Normenhierarchie)."""
+
+    model_config = ConfigDict(from_attributes=True)
+
+    enabled: bool = Field(
+        default=False,
+        description="Legal Checker aktiviert - bindet Rechtstexte in die Analyse ein"
+    )
+    funding_period: Literal["2014-2020", "2021-2027"] = Field(
+        default="2021-2027", description="EU-Förderperiode für Rechtstexte"
+    )
+    max_results: int = Field(
+        default=5, ge=1, le=20, description="Max. Anzahl Rechtstexte pro Analyse"
+    )
+    min_relevance_score: float = Field(
+        default=0.6, ge=0.0, le=1.0, description="Mindest-Relevanz für Rechtstexte"
+    )
+    use_hierarchy_weighting: bool = Field(
+        default=True,
+        description="Normenhierarchie-Gewichtung (EU-VO > Nat. Recht > Guidance)"
+    )
+    include_definitions: bool = Field(
+        default=True, description="Legaldefinitionen in Kontext einbeziehen"
+    )
+
+
 class RulesetCheckerSettingsResponse(BaseModel):
     """Response für Checker-Einstellungen eines Regelwerks."""
 
@@ -95,6 +122,9 @@ class RulesetCheckerSettingsResponse(BaseModel):
     )
     economic_checker: EconomicCheckerConfig = Field(
         ..., description="Economic Checker Konfiguration"
+    )
+    legal_checker: LegalCheckerConfig = Field(
+        ..., description="Legal Checker Konfiguration (Legal Retrieval)"
     )
     created_at: datetime | None = Field(default=None, description="Erstellungszeitpunkt")
     updated_at: datetime | None = Field(default=None, description="Aktualisierung")
@@ -114,12 +144,16 @@ class RulesetCheckerSettingsUpdate(BaseModel):
     economic_checker: EconomicCheckerConfig | None = Field(
         default=None, description="Economic Checker Konfiguration"
     )
+    legal_checker: LegalCheckerConfig | None = Field(
+        default=None, description="Legal Checker Konfiguration (Legal Retrieval)"
+    )
 
 
 # Default-Konfigurationen
 DEFAULT_RISK_CHECKER = RiskCheckerConfig()
 DEFAULT_SEMANTIC_CHECKER = SemanticCheckerConfig()
 DEFAULT_ECONOMIC_CHECKER = EconomicCheckerConfig()
+DEFAULT_LEGAL_CHECKER = LegalCheckerConfig()
 
 
 def get_default_checker_settings(ruleset_id: str) -> RulesetCheckerSettingsResponse:
@@ -137,4 +171,5 @@ def get_default_checker_settings(ruleset_id: str) -> RulesetCheckerSettingsRespo
         risk_checker=DEFAULT_RISK_CHECKER,
         semantic_checker=DEFAULT_SEMANTIC_CHECKER,
         economic_checker=DEFAULT_ECONOMIC_CHECKER,
+        legal_checker=DEFAULT_LEGAL_CHECKER,
     )

@@ -80,6 +80,20 @@ class RulesetCheckerSettings(Base):
         }
     )
 
+    # Legal Checker Konfiguration (Legal Retrieval / Normenhierarchie)
+    legal_checker: Mapped[dict[str, Any]] = mapped_column(
+        JSONB,
+        nullable=False,
+        default=lambda: {
+            "enabled": False,
+            "funding_period": "2021-2027",
+            "max_results": 5,
+            "min_relevance_score": 0.6,
+            "use_hierarchy_weighting": True,
+            "include_definitions": True,
+        }
+    )
+
     # Zeitstempel
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), default=datetime.utcnow
@@ -99,6 +113,7 @@ class RulesetCheckerSettings(Base):
             "risk_checker": self.risk_checker,
             "semantic_checker": self.semantic_checker,
             "economic_checker": self.economic_checker,
+            "legal_checker": self.legal_checker,
             "created_at": self.created_at.isoformat() if self.created_at else None,
             "updated_at": self.updated_at.isoformat() if self.updated_at else None,
         }
