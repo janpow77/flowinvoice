@@ -30,42 +30,62 @@ Complete design system and component library:
 
 ## How to Use These Templates
 
-### Method 1: Direct Copy
+### Method 1: Setup Script (Easiest)
+
+```bash
+# Download setup script
+curl -sL https://raw.githubusercontent.com/janpow77/flowinvoice/main/templates/setup.sh -o setup.sh
+chmod +x setup.sh
+
+# Install login template only
+./setup.sh login ./my-project
+
+# Install UI kit template only
+./setup.sh ui-kit ./my-project
+
+# Install both templates
+./setup.sh both ./my-project
+```
+
+### Method 2: Direct Clone & Copy
 
 ```bash
 # Clone and copy what you need
 git clone https://github.com/janpow77/flowinvoice.git
+
+# Copy templates
 cp -r flowinvoice/templates/login-template/* your-project/
 cp -r flowinvoice/templates/ui-kit-template/* your-project/
+
+# Clean up
+rm -rf flowinvoice
 ```
 
-### Method 2: Git Subtree (Recommended)
+### Method 3: Git Subtree (Recommended for updates)
 
-Add templates as a subtree in your project:
+Add templates as a subtree in your project - allows pulling updates later:
 
 ```bash
 # Add templates folder to your repo
 git subtree add --prefix=templates \
   https://github.com/janpow77/flowinvoice.git main --squash
 
-# Update templates later
+# Later: Update templates
 git subtree pull --prefix=templates \
   https://github.com/janpow77/flowinvoice.git main --squash
 ```
 
-### Method 3: GitHub Template
+### Method 4: Direct Download (ZIP)
+
+1. Go to: https://github.com/janpow77/flowinvoice
+2. Click: Code → Download ZIP
+3. Extract `templates/` folder to your project
+
+### Method 5: GitHub Template Repository
 
 1. Fork this repo
 2. Go to Settings → Template repository → Enable
 3. Use "Use this template" button for new projects
-
-### Method 4: npx Script (Coming Soon)
-
-```bash
-# Future: Download templates via npx
-npx @janpow77/create-app --template login
-npx @janpow77/create-app --template ui-kit
-```
 
 ---
 

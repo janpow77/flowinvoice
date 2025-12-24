@@ -2,6 +2,56 @@
 
 A complete design system and component library for React applications with Tailwind CSS. Includes dark/light mode, semantic colors, and reusable components.
 
+## How to Use This Template
+
+### Option 1: Direct Clone & Copy
+
+```bash
+# Clone the repo
+git clone https://github.com/janpow77/flowinvoice.git
+
+# Copy UI kit template to your project
+cp -r flowinvoice/templates/ui-kit-template/* your-project/
+
+# Clean up
+rm -rf flowinvoice
+```
+
+### Option 2: Git Subtree (Recommended - allows updates)
+
+```bash
+# Add template to your repo
+git subtree add --prefix=templates/ui-kit \
+  https://github.com/janpow77/flowinvoice.git main --squash
+
+# Later: Pull updates
+git subtree pull --prefix=templates/ui-kit \
+  https://github.com/janpow77/flowinvoice.git main --squash
+```
+
+### Option 3: Setup Script
+
+```bash
+# Download and run setup script
+curl -sL https://raw.githubusercontent.com/janpow77/flowinvoice/main/templates/setup.sh -o setup.sh
+chmod +x setup.sh
+./setup.sh ui-kit ./my-project
+```
+
+### Option 4: Direct Download (ZIP)
+
+1. Go to: https://github.com/janpow77/flowinvoice
+2. Code → Download ZIP
+3. Extract `templates/ui-kit-template/` to your project
+
+### Option 5: Both Templates Together
+
+```bash
+./setup.sh both ./my-project
+```
+
+---
+
 ## Features
 
 - Complete CSS design system with semantic tokens

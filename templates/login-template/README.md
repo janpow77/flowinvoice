@@ -2,6 +2,50 @@
 
 A beautiful, animated login page template with Google OAuth support. Features a jumping fish animation over binary data water, glassmorphism design, and full Cloudflare Tunnel compatibility.
 
+## How to Use This Template
+
+### Option 1: Direct Clone & Copy
+
+```bash
+# Clone the repo
+git clone https://github.com/janpow77/flowinvoice.git
+
+# Copy login template to your project
+cp -r flowinvoice/templates/login-template/* your-project/
+
+# Clean up
+rm -rf flowinvoice
+```
+
+### Option 2: Git Subtree (Recommended - allows updates)
+
+```bash
+# Add template to your repo
+git subtree add --prefix=templates/login \
+  https://github.com/janpow77/flowinvoice.git main --squash
+
+# Later: Pull updates
+git subtree pull --prefix=templates/login \
+  https://github.com/janpow77/flowinvoice.git main --squash
+```
+
+### Option 3: Setup Script
+
+```bash
+# Download and run setup script
+curl -sL https://raw.githubusercontent.com/janpow77/flowinvoice/main/templates/setup.sh -o setup.sh
+chmod +x setup.sh
+./setup.sh login ./my-project
+```
+
+### Option 4: Direct Download (ZIP)
+
+1. Go to: https://github.com/janpow77/flowinvoice
+2. Code → Download ZIP
+3. Extract `templates/login-template/` to your project
+
+---
+
 ## Features
 
 - Animated fish jumping over binary data "water"
