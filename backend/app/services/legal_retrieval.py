@@ -65,12 +65,14 @@ class LegalRetrievalService:
     """
 
     COLLECTION_NAME = "legal_norms"
+    DEFINITIONS_COLLECTION = "legal_definitions"
 
     def __init__(self):
         """Initialisiert LegalRetrievalService."""
         self._embedding_model = get_embedding_model()
         self._chunker = LegalChunker()
         self._init_collection()
+        self._init_definitions_collection()
 
     def _init_collection(self):
         """Initialisiert ChromaDB Collection für juristische Texte."""
@@ -93,6 +95,43 @@ class LegalRetrievalService:
                 "hnsw:space": "cosine",
             },
         )
+
+    def _init_definitions_collection(self):
+        """Initialisiert ChromaDB Collection für Legaldefinitionen."""
+        self._definitions_collection = self._client.get_or_create_collection(
+            name=self.DEFINITIONS_COLLECTION,
+            metadata={
+                "description": "Legaldefinitionen aus EU-Verordnungen",
+            },
+        )
+
+    def _store_definitions(self, definitions: dict[str, str], celex: str) -> int:
+        """Speichert Definitionen in ChromaDB."""
+        if not definitions:
+            return 0
+
+        ids: list[str] = []
+        documents: list[str] = []
+        metadatas: list[dict[str, Any]] = []
+
+        for term, definition in definitions.items():
+            def_id = f"{celex}_def_{term.replace(' ', '_')}"
+            ids.append(def_id)
+            documents.append(f"{term}: {definition}")
+            metadatas.append({
+                "term": term,
+                "definition": definition[:500],  # Limit für Metadata
+                "celex": celex,
+            })
+
+        # Upsert - falls schon vorhanden, aktualisieren
+        self._definitions_collection.upsert(
+            ids=ids,
+            documents=documents,
+            metadatas=metadatas,
+        )
+
+        return len(definitions)
 
     def add_regulation(
         self,
@@ -121,6 +160,12 @@ class LegalRetrievalService:
             celex=celex,
             hierarchy_level=hierarchy_level,
         )
+
+        # Definitionen persistent speichern
+        definitions = self._chunker.get_definitions()
+        if definitions:
+            stored = self._store_definitions(definitions, celex)
+            logger.info(f"Gespeichert: {stored} Definitionen für {celex}")
 
         if not chunks:
             logger.warning(f"Keine Chunks erstellt für CELEX {celex}")
@@ -416,8 +461,24 @@ class LegalRetrievalService:
         }
 
     def get_definitions(self) -> dict[str, str]:
-        """Gibt extrahierte Definitionen zurück."""
-        return self._chunker.get_definitions()
+        """Gibt persistierte Legaldefinitionen aus ChromaDB zurück."""
+        try:
+            results = self._definitions_collection.get(
+                include=["metadatas"],
+            )
+
+            definitions: dict[str, str] = {}
+            if results and results.get("metadatas"):
+                for meta in results["metadatas"]:
+                    term = meta.get("term", "")
+                    definition = meta.get("definition", "")
+                    if term and definition:
+                        definitions[term] = definition
+
+            return definitions
+        except Exception as e:
+            logger.warning(f"Fehler beim Laden der Definitionen: {e}")
+            return {}
 
 
 # Singleton

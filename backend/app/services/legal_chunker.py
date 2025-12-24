@@ -91,18 +91,30 @@ class LegalChunker:
         re.compile(r"§\s*(\d+[a-z]?)\s*(?:Abs\.?\s*(\d+))?", re.IGNORECASE),
     ]
 
+    # Unicode Anführungszeichen für deutsche/europäische Texte
+    # „ = U+201E (German opening), " = U+201C (German closing), " = U+201D (English closing)
+    # « » = French quotes, ' ' = single quotes
+    QUOTE_OPEN = r'[„"\'«\u201E\u201C\u00AB]'
+    QUOTE_CLOSE = r'["\'"»\u201C\u201D\u00BB]'
+
     # Definitionen erkennen (typischerweise Art. 2)
     DEFINITION_PATTERNS = [
-        # "31. 'Unregelmäßigkeit' bezeichnet..."
+        # "1. „Begriff" den/die/eine Definition..." (EU-Verordnungen)
         re.compile(
-            r'(\d+)\.\s*[„"\'«]([\w\-\s]+)["\'"»]\s+'
-            r"(?:bezeichnet|bedeutet|ist|sind)\s+(.+?)(?=\d+\.\s*[„\"\'«]|$)",
+            r'(\d+)\.\s*[„"\'«\u201E\u201C\u00AB]([\w\-\s]+)["\'"»\u201C\u201D\u00BB]\s+'
+            r'(.+?)(?=\n\s*\d+\.\s*[„"\'«\u201E\u201C\u00AB]|\n\n|\Z)',
             re.DOTALL,
         ),
-        # "(a) 'Begriff' bedeutet..."
+        # "1. 'Begriff' bezeichnet/bedeutet..." (mit Verb)
         re.compile(
-            r'\([a-z]\)\s*[„"\'«]([\w\-\s]+)["\'"»]\s+'
-            r"(?:bezeichnet|bedeutet|ist|sind)\s+(.+?)(?=\([a-z]\)|$)",
+            r'(\d+)\.\s*[„"\'«\u201E\u201C\u00AB]([\w\-\s]+)["\'"»\u201C\u201D\u00BB]\s+'
+            r"(?:bezeichnet|bedeutet|ist|sind|meint)\s+(.+?)(?=\d+\.\s*[„\"\'«\u201E\u201C\u00AB]|\n\n|\Z)",
+            re.DOTALL,
+        ),
+        # "(a) 'Begriff' bedeutet..." (Buchstaben-Nummerierung)
+        re.compile(
+            r'\(([a-z])\)\s*[„"\'«\u201E\u201C\u00AB]([\w\-\s]+)["\'"»\u201C\u201D\u00BB]\s+'
+            r'(.+?)(?=\([a-z]\)\s*[„"\'«\u201E\u201C\u00AB]|\n\n|\Z)',
             re.DOTALL,
         ),
     ]
