@@ -26,6 +26,18 @@ Complete design system and component library:
 
 [View Documentation](./ui-kit-template/README.md)
 
+### 3. Complete App Template (`complete-app-template/`) - RECOMMENDED
+
+Everything combined in one ready-to-use template:
+- Login page with animations + Google OAuth
+- Complete design system + dark/light mode
+- All UI components (Button, Input, Card, Badge, etc.)
+- Sidebar layout with role-based navigation
+- FastAPI backend auth endpoints
+- Logo files (PNG + SVG)
+
+[View Documentation](./complete-app-template/README.md)
+
 ---
 
 ## How to Use These Templates
@@ -43,8 +55,11 @@ chmod +x setup.sh
 # Install UI kit template only
 ./setup.sh ui-kit ./my-project
 
-# Install both templates
+# Install both templates (merged)
 ./setup.sh both ./my-project
+
+# Install complete app template (recommended)
+./setup.sh complete ./my-project
 ```
 
 ### Method 2: Direct Clone & Copy
@@ -93,7 +108,19 @@ git subtree pull --prefix=templates \
 
 ```
 templates/
-├── login-template/
+├── complete-app-template/   # RECOMMENDED - Everything combined
+│   ├── frontend/
+│   │   ├── src/
+│   │   │   ├── components/  # Layout + all UI components
+│   │   │   ├── context/     # Auth + Theme contexts
+│   │   │   ├── pages/       # Login, GoogleCallback
+│   │   │   └── styles/      # Design system + animations
+│   │   ├── public/          # Logo files
+│   │   └── tailwind.config.js
+│   ├── backend/             # FastAPI auth endpoints
+│   └── README.md
+│
+├── login-template/          # Login only
 │   ├── frontend/
 │   │   ├── pages/           # Login, GoogleCallback
 │   │   ├── context/         # AuthContext
@@ -103,7 +130,7 @@ templates/
 │   ├── backend/             # FastAPI auth endpoints
 │   └── README.md
 │
-├── ui-kit-template/
+├── ui-kit-template/         # UI Kit only
 │   ├── frontend/
 │   │   ├── components/      # Layout, UI components
 │   │   ├── context/         # Theme, Auth contexts
@@ -112,6 +139,7 @@ templates/
 │   ├── tailwind.config.js
 │   └── README.md
 │
+├── setup.sh                 # Setup script
 └── README.md                # This file
 ```
 
