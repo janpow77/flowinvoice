@@ -89,6 +89,11 @@ export function SettingsSystem() {
     queryFn: () => api.getGpuSettings(),
   })
 
+  const { data: settings } = useQuery({
+    queryKey: ['settings'],
+    queryFn: () => api.getSettings(),
+  })
+
   // Initialize GPU settings from API
   useEffect(() => {
     if (gpuData) {
@@ -457,6 +462,87 @@ export function SettingsSystem() {
           </div>
         )}
       </div>
+
+      {/* RAG & Embedding Model */}
+      {settings?.rag && (
+        <div className="bg-theme-card rounded-lg border border-theme-border-default p-6">
+          <div className="flex items-center gap-2 mb-4">
+            <Database className="h-5 w-5 text-accent-primary" />
+            <h3 className="text-lg font-semibold text-theme-text-primary">
+              RAG & Embedding
+            </h3>
+          </div>
+
+          <div className="space-y-4">
+            {/* RAG Status */}
+            <div className="flex items-center justify-between p-3 bg-theme-hover rounded-lg">
+              <span className="text-sm text-theme-text-secondary">RAG-System</span>
+              <span className={`px-3 py-1 rounded-full text-sm font-medium ${
+                settings.rag.enabled
+                  ? 'bg-status-success-bg text-status-success'
+                  : 'bg-status-danger-bg text-status-danger'
+              }`}>
+                {settings.rag.enabled ? 'Aktiviert' : 'Deaktiviert'}
+              </span>
+            </div>
+
+            {/* Embedding Model Info */}
+            {settings.rag.embedding_info && (
+              <div className="p-4 bg-theme-hover rounded-lg space-y-3">
+                <div className="flex items-center gap-2">
+                  <Zap className="h-4 w-4 text-status-info" />
+                  <span className="font-medium text-theme-text-primary">Embedding-Modell</span>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-sm">
+                  <div>
+                    <span className="text-theme-text-muted">Modell:</span>
+                    <span className="ml-2 font-mono text-theme-text-primary">
+                      {settings.rag.embedding_info.name}
+                    </span>
+                  </div>
+                  <div>
+                    <span className="text-theme-text-muted">Typ:</span>
+                    <span className="ml-2 text-theme-text-primary">
+                      {settings.rag.embedding_info.type}
+                    </span>
+                  </div>
+                  <div>
+                    <span className="text-theme-text-muted">Dimensionen:</span>
+                    <span className="ml-2 font-mono text-theme-text-primary">
+                      {settings.rag.embedding_info.dimensions}
+                    </span>
+                  </div>
+                  <div>
+                    <span className="text-theme-text-muted">Sprachen:</span>
+                    <span className="ml-2 text-theme-text-primary">
+                      {settings.rag.embedding_info.languages}
+                    </span>
+                  </div>
+                </div>
+
+                <p className="text-xs text-theme-text-muted pt-2 border-t border-theme-border-subtle">
+                  {settings.rag.embedding_info.description}
+                </p>
+              </div>
+            )}
+
+            {/* RAG Parameters */}
+            <div className="grid grid-cols-2 gap-3">
+              <div className="p-3 bg-theme-hover rounded-lg">
+                <span className="text-xs text-theme-text-muted">Top-K Ergebnisse</span>
+                <div className="text-lg font-bold text-theme-text-primary">{settings.rag.top_k}</div>
+              </div>
+              <div className="p-3 bg-theme-hover rounded-lg">
+                <span className="text-xs text-theme-text-muted">Ähnlichkeits-Schwelle</span>
+                <div className="text-lg font-bold text-theme-text-primary">
+                  {(settings.rag.similarity_threshold * 100).toFixed(0)}%
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Contact & Info */}
       <div className="bg-theme-card rounded-lg border border-theme-border-default p-6">

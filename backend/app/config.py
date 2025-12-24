@@ -83,7 +83,9 @@ class Settings(BaseSettings):
     rag_enabled: bool = True
     rag_top_k: int = 3
     rag_similarity_threshold: float = 0.25
-    embedding_model: str = "sentence-transformers/all-MiniLM-L6-v2"
+    # Multilingual embedding model for German invoice texts
+    # Supports 50+ languages including German, 768 dimensions
+    embedding_model: str = "sentence-transformers/paraphrase-multilingual-mpnet-base-v2"
 
     # Parser settings
     parser_timeout_sec: int = 30

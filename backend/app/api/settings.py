@@ -88,6 +88,15 @@ async def get_settings_endpoint(
             "enabled": config.rag_enabled,
             "top_k": config.rag_top_k,
             "similarity_threshold": config.rag_similarity_threshold,
+            "embedding_model": config.embedding_model,
+            "embedding_info": {
+                "name": config.embedding_model.split("/")[-1],
+                "full_name": config.embedding_model,
+                "type": "sentence-transformers",
+                "dimensions": 768,  # paraphrase-multilingual-mpnet-base-v2
+                "languages": "50+ (inkl. Deutsch)",
+                "description": "Multilinguales Embedding-Modell für semantische Ähnlichkeitssuche",
+            },
         },
         "logging": {
             "verbose": config.debug,
