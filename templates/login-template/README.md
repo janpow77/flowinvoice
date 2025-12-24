@@ -33,6 +33,7 @@ The login page features:
    cp -r frontend/pages/* your-project/src/pages/
    cp -r frontend/context/* your-project/src/context/
    cp frontend/styles/login-animations.css your-project/src/styles/
+   cp frontend/public/* your-project/public/  # Logo
    ```
 
 2. Add routes in your App.tsx:
@@ -129,10 +130,12 @@ SECRET_KEY=your-secret-key-for-jwt
 
 ### Logo
 
-Replace the logo path in Login.tsx:
+The template includes a sample logo (`public/auditlogo.png`). Replace with your own:
 ```tsx
+// In Login.tsx, update these lines:
 <img src="/your-logo.png" alt="Logo" className="h-24 w-auto mx-auto" />
 ```
+Or copy the included logo to your public folder and use `/auditlogo.png`.
 
 ### Colors
 
@@ -178,6 +181,8 @@ Disable or customize demo user hints:
 ```
 login-template/
 ├── frontend/
+│   ├── public/
+│   │   └── auditlogo.png      # Sample logo (replace with yours)
 │   ├── components/
 │   │   └── ui/
 │   │       ├── Button.tsx
