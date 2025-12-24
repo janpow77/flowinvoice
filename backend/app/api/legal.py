@@ -68,8 +68,9 @@ class LegalSearchResponse(BaseModel):
 
 
 class AddRegulationRequest(BaseModel):
-    """Request zum Hinzufügen einer Verordnung."""
+    """Request zum Hinzufügen einer Verordnung (JSON)."""
 
+    text: str = Field(..., min_length=10, description="Volltext der Verordnung")
     celex: str = Field(..., description="CELEX-Nummer (z.B. 32021R1060)")
     hierarchy_level: int = Field(
         NormHierarchy.EU_REGULATION,
@@ -82,8 +83,9 @@ class AddRegulationRequest(BaseModel):
 
 
 class AddNationalLawRequest(BaseModel):
-    """Request zum Hinzufügen von nationalem Recht."""
+    """Request zum Hinzufügen von nationalem Recht (JSON)."""
 
+    text: str = Field(..., min_length=10, description="Volltext des Gesetzes")
     law_name: str = Field(..., description="Name des Gesetzes (z.B. UStG)")
     hierarchy_level: int = Field(
         NormHierarchy.NATIONAL_LAW,
@@ -271,6 +273,43 @@ async def add_regulation(
     }
 
 
+@router.post("/regulations/json")
+async def add_regulation_json(
+    request: AddRegulationRequest,
+    current_user: User = Depends(get_current_user),
+):
+    """
+    Fügt eine EU-Verordnung via JSON hinzu (empfohlen für mehrzeilige Texte).
+
+    Die Verordnung wird automatisch in semantische Chunks zerlegt:
+    - Artikel/Absatz-Struktur wird erkannt
+    - Legaldefinitionen werden extrahiert
+    - Querverweise werden als Metadaten gespeichert
+    """
+    if not current_user.role == "admin":
+        raise HTTPException(
+            status_code=403,
+            detail="Nur Administratoren können Verordnungen hinzufügen",
+        )
+
+    service = get_legal_retrieval_service()
+
+    chunk_count = service.add_regulation(
+        text=request.text,
+        celex=request.celex,
+        hierarchy_level=request.hierarchy_level,
+        funding_period=request.funding_period,
+        title=request.title,
+    )
+
+    return {
+        "status": "success",
+        "celex": request.celex,
+        "chunks_created": chunk_count,
+        "message": f"Verordnung erfolgreich indexiert ({chunk_count} Chunks)",
+    }
+
+
 @router.post("/regulations/upload")
 async def upload_regulation(
     file: UploadFile = File(..., description="Text-Datei mit Verordnung"),
@@ -343,6 +382,35 @@ async def add_national_law(
     return {
         "status": "success",
         "law_name": law_name,
+        "chunks_created": chunk_count,
+    }
+
+
+@router.post("/national-laws/json")
+async def add_national_law_json(
+    request: AddNationalLawRequest,
+    current_user: User = Depends(get_current_user),
+):
+    """
+    Fügt nationales Recht via JSON hinzu (empfohlen für mehrzeilige Texte).
+    """
+    if not current_user.role == "admin":
+        raise HTTPException(
+            status_code=403,
+            detail="Nur Administratoren können Gesetze hinzufügen",
+        )
+
+    service = get_legal_retrieval_service()
+
+    chunk_count = service.add_national_law(
+        text=request.text,
+        law_name=request.law_name,
+        hierarchy_level=request.hierarchy_level,
+    )
+
+    return {
+        "status": "success",
+        "law_name": request.law_name,
         "chunks_created": chunk_count,
     }
 
