@@ -182,7 +182,8 @@ Disable or customize demo user hints:
 login-template/
 ├── frontend/
 │   ├── public/
-│   │   └── auditlogo.png      # Sample logo (replace with yours)
+│   │   ├── auditlogo.png      # Logo (PNG for raster)
+│   │   └── auditlogo.svg      # Logo (SVG for vector)
 │   ├── components/
 │   │   └── ui/
 │   │       ├── Button.tsx
