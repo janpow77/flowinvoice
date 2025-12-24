@@ -3,14 +3,18 @@
 FlowAudit User Authentication API
 
 Endpoints für Benutzer-Authentifizierung mit JWT-Tokens.
-Unterstützt datenbankbasierte Authentifizierung und Demo-User-Fallback.
+Unterstützt datenbankbasierte Authentifizierung, Demo-User-Fallback und Google OAuth.
 """
 
 import logging
+import secrets
 from datetime import UTC, datetime, timedelta
 from typing import Annotated
+from urllib.parse import urlencode
 
-from fastapi import APIRouter, Depends, HTTPException, status
+import httpx
+from fastapi import APIRouter, Depends, HTTPException, Query, status
+from fastapi.responses import RedirectResponse
 from fastapi.security import OAuth2PasswordRequestForm
 from jose import jwt
 from pydantic import BaseModel
@@ -235,3 +239,214 @@ async def refresh_token(
         status_code=status.HTTP_501_NOT_IMPLEMENTED,
         detail="Token refresh not yet implemented. Re-login required.",
     )
+
+
+# =============================================================================
+# Google OAuth Endpoints
+# =============================================================================
+
+# In-memory state storage for CSRF protection (use Redis in production)
+_oauth_states: dict[str, datetime] = {}
+
+
+class GoogleAuthUrl(BaseModel):
+    """Google OAuth URL Response."""
+
+    auth_url: str
+    state: str
+
+
+class GoogleTokenRequest(BaseModel):
+    """Google OAuth Token Exchange Request."""
+
+    code: str
+    state: str
+
+
+@router.get("/auth/google/url", response_model=GoogleAuthUrl)
+async def get_google_auth_url() -> GoogleAuthUrl:
+    """
+    Generiert die Google OAuth Authorization URL.
+
+    Der Client leitet den Benutzer zu dieser URL weiter.
+    Nach erfolgreicher Authentifizierung wird der Benutzer
+    zum redirect_uri mit einem authorization code weitergeleitet.
+    """
+    settings = get_settings()
+
+    if not settings.google_client_id:
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail="Google OAuth is not configured. Set GOOGLE_CLIENT_ID environment variable.",
+        )
+
+    # Generate CSRF state token
+    state = secrets.token_urlsafe(32)
+    _oauth_states[state] = datetime.now(UTC) + timedelta(minutes=10)
+
+    # Clean up expired states
+    now = datetime.now(UTC)
+    expired = [s for s, exp in _oauth_states.items() if exp < now]
+    for s in expired:
+        del _oauth_states[s]
+
+    # Build Google OAuth URL
+    params = {
+        "client_id": settings.google_client_id,
+        "redirect_uri": settings.google_redirect_uri,
+        "response_type": "code",
+        "scope": "openid email profile",
+        "state": state,
+        "access_type": "offline",
+        "prompt": "consent",
+    }
+
+    auth_url = f"https://accounts.google.com/o/oauth2/v2/auth?{urlencode(params)}"
+
+    logger.info("Generated Google OAuth URL")
+    return GoogleAuthUrl(auth_url=auth_url, state=state)
+
+
+@router.post("/auth/google/callback", response_model=Token)
+async def google_oauth_callback(
+    request: GoogleTokenRequest,
+    session: Annotated[AsyncSession, Depends(get_async_session)],
+) -> Token:
+    """
+    Verarbeitet den Google OAuth Callback.
+
+    Tauscht den authorization code gegen ein access token,
+    ruft Benutzerinformationen ab und erstellt/aktualisiert den Benutzer.
+    """
+    settings = get_settings()
+
+    if not settings.google_client_id or not settings.google_client_secret:
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail="Google OAuth is not configured.",
+        )
+
+    # Verify state (CSRF protection)
+    if request.state not in _oauth_states:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Invalid or expired state parameter.",
+        )
+
+    state_expiry = _oauth_states.pop(request.state)
+    if datetime.now(UTC) > state_expiry:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="State parameter has expired.",
+        )
+
+    # Exchange authorization code for tokens
+    async with httpx.AsyncClient() as client:
+        token_response = await client.post(
+            "https://oauth2.googleapis.com/token",
+            data={
+                "code": request.code,
+                "client_id": settings.google_client_id,
+                "client_secret": settings.google_client_secret.get_secret_value(),
+                "redirect_uri": settings.google_redirect_uri,
+                "grant_type": "authorization_code",
+            },
+        )
+
+        if token_response.status_code != 200:
+            logger.error(f"Google token exchange failed: {token_response.text}")
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="Failed to exchange authorization code.",
+            )
+
+        token_data = token_response.json()
+        google_access_token = token_data.get("access_token")
+
+        # Get user info from Google
+        userinfo_response = await client.get(
+            "https://www.googleapis.com/oauth2/v2/userinfo",
+            headers={"Authorization": f"Bearer {google_access_token}"},
+        )
+
+        if userinfo_response.status_code != 200:
+            logger.error(f"Failed to get Google user info: {userinfo_response.text}")
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="Failed to retrieve user information from Google.",
+            )
+
+        google_user = userinfo_response.json()
+
+    email = google_user.get("email")
+    google_id = google_user.get("id")
+    name = google_user.get("name", email.split("@")[0] if email else "User")
+
+    if not email:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Email not provided by Google.",
+        )
+
+    # Check if user exists in database (by email or google_id)
+    result = await session.execute(
+        select(User).where(
+            (User.email == email) | (User.google_id == google_id)
+        )
+    )
+    db_user = result.scalar_one_or_none()
+
+    if db_user:
+        # Update existing user with Google ID if not set
+        if not db_user.google_id:
+            db_user.google_id = google_id
+            await session.commit()
+        user = db_user
+    else:
+        # Create new user from Google OAuth
+        user = User(
+            username=email.split("@")[0],
+            email=email,
+            google_id=google_id,
+            full_name=name,
+            hashed_password="",  # No password for OAuth users
+            role="schueler",  # Default role for new users
+            is_active=True,
+            auth_provider="google",
+        )
+        session.add(user)
+        await session.commit()
+        await session.refresh(user)
+        logger.info(f"Created new user from Google OAuth: {email}")
+
+    # Check if user is active
+    if not user.is_active:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="User account is inactive.",
+        )
+
+    # Create JWT token
+    access_token, expires_in = _create_access_token(user.username, user.role)
+
+    logger.info(f"Google OAuth login successful for user: {email}")
+
+    return Token(
+        access_token=access_token,
+        token_type="bearer",
+        expires_in=expires_in,
+    )
+
+
+@router.get("/auth/google/enabled")
+async def google_oauth_enabled() -> dict[str, bool]:
+    """
+    Prüft ob Google OAuth konfiguriert und aktiviert ist.
+
+    Frontend kann diesen Endpoint nutzen um den Google Login Button
+    nur anzuzeigen wenn OAuth konfiguriert ist.
+    """
+    settings = get_settings()
+    return {
+        "enabled": bool(settings.google_client_id and settings.google_client_secret)
+    }
