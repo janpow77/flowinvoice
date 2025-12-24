@@ -24,6 +24,7 @@ from app.api import (
     feedback,
     generator,
     health,
+    legal,
     llm,
     projects,
     rag,
@@ -159,6 +160,7 @@ app.include_router(solutions.router, prefix="/api", tags=["Solutions"])
 app.include_router(batch_jobs.router, prefix="/api", tags=["Batch Jobs"])
 app.include_router(custom_criteria.router, prefix="/api", tags=["Custom Criteria"])
 app.include_router(system.router, prefix="/api", tags=["System"])
+app.include_router(legal.router, prefix="/api", tags=["Legal"])
 
 
 @app.get("/", include_in_schema=False)
