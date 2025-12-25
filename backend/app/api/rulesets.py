@@ -388,6 +388,7 @@ async def get_ruleset_checker_settings(
         risk_checker=settings.risk_checker,
         semantic_checker=settings.semantic_checker,
         economic_checker=settings.economic_checker,
+        legal_checker=settings.legal_checker,
         created_at=settings.created_at,
         updated_at=settings.updated_at,
     )
@@ -452,6 +453,9 @@ async def update_ruleset_checker_settings(
     if data.economic_checker is not None:
         settings.economic_checker = data.economic_checker.model_dump()
 
+    if data.legal_checker is not None:
+        settings.legal_checker = data.legal_checker.model_dump()
+
     await session.flush()
 
     return RulesetCheckerSettingsResponse(
@@ -459,6 +463,7 @@ async def update_ruleset_checker_settings(
         risk_checker=settings.risk_checker,
         semantic_checker=settings.semantic_checker,
         economic_checker=settings.economic_checker,
+        legal_checker=settings.legal_checker,
         created_at=settings.created_at,
         updated_at=settings.updated_at,
     )
