@@ -10,6 +10,7 @@ import {
   Shield,
   Info,
 } from 'lucide-react'
+import { useAuth } from '@/context/AuthContext'
 
 // Tab Components
 import { SettingsGeneral } from '@/components/settings/SettingsGeneral'
@@ -66,9 +67,7 @@ const TABS: TabConfig[] = [
 export default function Settings() {
   const { t } = useTranslation()
   const [activeTab, setActiveTab] = useState<SettingsTab>('general')
-
-  // TODO: Replace with actual auth check
-  const isAdmin = true
+  const { isAdmin } = useAuth()
 
   const visibleTabs = TABS.filter(tab => !tab.adminOnly || isAdmin)
 
