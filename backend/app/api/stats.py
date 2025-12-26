@@ -15,7 +15,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.api.deps import CurrentAdmin
 from app.database import get_async_session
 from app.models.document import Document, ParseRun
-from app.models.enums import FeedbackRating, ParseStatus
+from app.models.enums import FeedbackRating
 from app.models.feedback import Feedback, RagExample
 from app.models.llm import LlmRun
 from app.models.project import Project
@@ -269,7 +269,7 @@ async def get_project_stats(
         .join(Document, ParseRun.document_id == Document.id)
         .where(
             Document.project_id == project_id,
-            ParseRun.status == ParseStatus.SUCCESS,
+            ParseRun.status == "SUCCESS",
         )
     )
     parse_stats = parse_stats_query.first()

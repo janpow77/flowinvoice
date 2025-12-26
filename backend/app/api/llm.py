@@ -385,7 +385,9 @@ async def get_llm_run_logs(
 # ============================================================================
 
 @router.get("/llm/providers")
-async def get_llm_providers() -> dict[str, Any]:
+async def get_llm_providers(
+    session: AsyncSession = Depends(get_async_session),
+) -> dict[str, Any]:
     """
     Gibt verfügbare LLM-Provider und deren Status zurück.
 
@@ -396,12 +398,18 @@ async def get_llm_providers() -> dict[str, Any]:
 
     settings = get_settings()
 
+    # Default-Provider aus DB laden
+    setting_key = "default_llm_provider"
+    result = await session.execute(select(Setting).where(Setting.key == setting_key))
+    setting = result.scalar_one_or_none()
+    default_provider = setting.value.get("provider", "LOCAL_OLLAMA") if setting else "LOCAL_OLLAMA"
+
     providers = [
         {
             "id": "LOCAL_OLLAMA",
             "name": "Ollama (Lokal)",
             "enabled": True,
-            "is_default": True,
+            "is_default": default_provider == "LOCAL_OLLAMA",
             "base_url": settings.ollama_host,
             "model": settings.ollama_default_model,
             "requires_api_key": False,
@@ -410,7 +418,7 @@ async def get_llm_providers() -> dict[str, Any]:
             "id": "OPENAI",
             "name": "OpenAI",
             "enabled": settings.openai_api_key is not None,
-            "is_default": False,
+            "is_default": default_provider == "OPENAI",
             "requires_api_key": True,
             "api_key_set": settings.openai_api_key is not None,
         },
@@ -418,7 +426,7 @@ async def get_llm_providers() -> dict[str, Any]:
             "id": "ANTHROPIC",
             "name": "Anthropic Claude",
             "enabled": settings.anthropic_api_key is not None,
-            "is_default": False,
+            "is_default": default_provider == "ANTHROPIC",
             "requires_api_key": True,
             "api_key_set": settings.anthropic_api_key is not None,
         },
@@ -426,7 +434,7 @@ async def get_llm_providers() -> dict[str, Any]:
             "id": "GOOGLE",
             "name": "Google Gemini",
             "enabled": settings.gemini_api_key is not None,
-            "is_default": False,
+            "is_default": default_provider == "GOOGLE",
             "requires_api_key": True,
             "api_key_set": settings.gemini_api_key is not None,
         },
