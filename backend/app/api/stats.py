@@ -14,8 +14,8 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.deps import CurrentAdmin
 from app.database import get_async_session
-from app.models.document import Document
-from app.models.enums import FeedbackRating
+from app.models.document import Document, ParseRun
+from app.models.enums import FeedbackRating, ParseStatus
 from app.models.feedback import Feedback, RagExample
 from app.models.llm import LlmRun
 from app.models.project import Project
@@ -261,6 +261,21 @@ async def get_project_stats(
         .where(Document.project_id == project_id)
     ) or 0
 
+    # Parse-Timing aus ParseRun (timings_ms.total oder started_at/completed_at)
+    parse_stats_query = await session.execute(
+        select(
+            func.avg(ParseRun.timings_ms["total"].astext.cast(Integer)).label("avg_parse"),
+        )
+        .join(Document, ParseRun.document_id == Document.id)
+        .where(
+            Document.project_id == project_id,
+            ParseRun.status == ParseStatus.SUCCESS,
+        )
+    )
+    parse_stats = parse_stats_query.first()
+    avg_parse_ms = round(parse_stats.avg_parse or 0) if parse_stats and parse_stats.avg_parse else 0
+    avg_llm_ms = round(llm_stats.avg_latency or 0) if llm_stats and llm_stats.avg_latency else 0
+
     return {
         "project_id": project_id,
         "counters": {
@@ -271,9 +286,9 @@ async def get_project_stats(
             "rag_examples_used": rag_examples_used,
         },
         "timings": {
-            "avg_parse_ms": 0,  # TODO: ParseRun hat kein aggregiertes Timing
-            "avg_llm_ms": round(llm_stats.avg_latency or 0) if llm_stats else 0,
-            "avg_total_ms": round(llm_stats.avg_latency or 0) if llm_stats else 0,
+            "avg_parse_ms": avg_parse_ms,
+            "avg_llm_ms": avg_llm_ms,
+            "avg_total_ms": avg_parse_ms + avg_llm_ms,
         },
         "tokens": {
             "avg_in": round(llm_stats.avg_in or 0) if llm_stats else 0,

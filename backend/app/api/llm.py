@@ -14,6 +14,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.database import get_async_session
 from app.models.document import Document, ParseRun
 from app.models.enums import DocumentStatus, Provider
+from app.models.settings import Setting
 from app.models.llm import LlmRun, LlmRunLog, PreparePayload
 from app.schemas.llm import LlmRunCreate, LlmRunLogResponse, LlmRunResponse, PreparePayloadResponse
 from app.services.rule_engine import RULESETS
@@ -497,13 +498,12 @@ async def get_llm_health() -> dict[str, Any]:
 
 
 @router.post("/llm/default")
-async def set_default_provider(data: dict[str, str]) -> dict[str, Any]:
+async def set_default_provider(
+    data: dict[str, str],
+    session: AsyncSession = Depends(get_async_session),
+) -> dict[str, Any]:
     """
-    Setzt den Standard-LLM-Provider.
-
-    Note: Diese Einstellung ist derzeit nur in-memory und wird
-    bei Neustart zurückgesetzt. Für persistente Konfiguration
-    sollte die stack.env angepasst werden.
+    Setzt den Standard-LLM-Provider (persistiert in Datenbank).
 
     Args:
         data: {"provider": "LOCAL_OLLAMA" | "OPENAI" | ...}
@@ -520,11 +520,23 @@ async def set_default_provider(data: dict[str, str]) -> dict[str, Any]:
             detail=f"Ungültiger Provider. Erlaubt: {valid_providers}",
         )
 
-    # TODO: Persistente Speicherung implementieren
-    # Aktuell nur Bestätigung zurückgeben
+    # Persistente Speicherung in Settings-Tabelle
+    setting_key = "default_llm_provider"
+    result = await session.execute(
+        select(Setting).where(Setting.key == setting_key)
+    )
+    setting = result.scalar_one_or_none()
+
+    if setting:
+        setting.value = {"provider": provider}
+    else:
+        setting = Setting(key=setting_key, value={"provider": provider})
+        session.add(setting)
+
+    await session.commit()
 
     return {
         "success": True,
         "default_provider": provider,
-        "message": f"Provider '{provider}' als Standard gesetzt (nur für diese Session)",
+        "message": f"Provider '{provider}' als Standard gesetzt",
     }

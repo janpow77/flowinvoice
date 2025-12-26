@@ -12,6 +12,41 @@ FlowAudit ist ein KI-gestütztes Rechnungsprüfungssystem mit:
 
 ---
 
+## ⚠️ Produktions-Sicherheit
+
+> **WICHTIG**: Vor dem Produktionseinsatz MÜSSEN folgende Schritte durchgeführt werden!
+
+### Kritische Sicherheitsmaßnahmen
+
+1. **Secrets ändern** - Alle Default-Werte ersetzen:
+   ```bash
+   # Sichere Werte generieren
+   export SECRET_KEY=$(openssl rand -hex 32)
+   export POSTGRES_PASSWORD=$(openssl rand -hex 16)
+   export CHROMA_TOKEN=$(openssl rand -hex 16)
+   ```
+
+2. **Demo-Benutzer deaktivieren**:
+   ```bash
+   export DEMO_USERS=""  # Leer setzen!
+   ```
+
+3. **Debug-Modus deaktivieren**:
+   ```bash
+   export DEBUG=false
+   ```
+
+4. **CORS auf Produktions-Domain beschränken**:
+   ```bash
+   export CORS_ORIGINS="https://your-domain.com"
+   ```
+
+### Vollständige Dokumentation
+
+Siehe [docs/ENV_VARIABLES.md](docs/ENV_VARIABLES.md) für alle Umgebungsvariablen.
+
+---
+
 ## Schnellstart (Docker)
 
 ### Voraussetzungen

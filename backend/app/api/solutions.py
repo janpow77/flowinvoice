@@ -27,6 +27,7 @@ from app.schemas.solution import (
     SolutionFileUploadResponse,
     SolutionPreviewResponse,
 )
+from app.rag.vectorstore import get_vectorstore
 from app.services.solution_matcher import DocumentInfo, SolutionMatcher
 from app.services.solution_parser import SolutionFileParser
 
@@ -403,8 +404,37 @@ async def apply_solution_file(
             # RAG-Beispiele erstellen (wenn aktiviert und Fehler vorhanden)
             rag_created = 0
             if options.create_rag_examples and match.solution_entry.errors:
-                # TODO: RAG-Beispiele erstellen analog zu feedback.py
-                rag_created = len(match.solution_entry.errors)
+                try:
+                    vectorstore = get_vectorstore()
+                    # Dokument für raw_text laden
+                    doc_result = await session.execute(
+                        select(Document).where(Document.id == match.document_id)
+                    )
+                    doc = doc_result.scalar_one_or_none()
+                    raw_text = ""
+                    if doc and doc.parse_runs:
+                        # Letzten erfolgreichen Parse-Run nehmen
+                        for pr in reversed(doc.parse_runs):
+                            if pr.raw_text:
+                                raw_text = pr.raw_text
+                                break
+
+                    for error in match.solution_entry.errors:
+                        error_id = f"solution_{solution_file_id}_{match.document_id}_{error.feature_id}"
+                        vectorstore.add_error_example(
+                            error_id=error_id,
+                            error_type=error.error_type,
+                            feature_id=error.feature_id,
+                            context_text=raw_text[:2000] if raw_text else "",
+                            wrong_value=error.current_value or "",
+                            correct_value=error.expected_value or "",
+                            reasoning=error.message or "",
+                            ruleset_id=match.solution_entry.ruleset_id or "DE_USTG",
+                        )
+                        rag_created += 1
+                except Exception as e:
+                    logger.warning(f"Fehler beim Erstellen von RAG-Beispielen: {e}")
+
                 solution_match.rag_examples_created = rag_created
                 total_rag_examples += rag_created
 

@@ -575,7 +575,15 @@ async def delete_sample(
             detail=f"Sample {sample_id} not found",
         )
 
-    # TODO: Auch RAG-Beispiele löschen falls vorhanden
+    # RAG-Beispiele löschen falls vorhanden
+    if sample.rag_example_ids:
+        try:
+            vectorstore = get_vectorstore()
+            for example_id in sample.rag_example_ids:
+                vectorstore.delete_invoice_example(example_id)
+            logger.info(f"Deleted {len(sample.rag_example_ids)} RAG examples for sample {sample_id}")
+        except Exception as e:
+            logger.warning(f"Error deleting RAG examples for sample {sample_id}: {e}")
 
     await session.delete(sample)
     await session.flush()

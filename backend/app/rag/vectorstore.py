@@ -553,6 +553,66 @@ Beispiele: {' | '.join(examples[:5])}
                 stats[name] = 0
         return stats
 
+    def delete_invoice_example(self, document_id: str) -> bool:
+        """
+        Löscht ein Rechnungsbeispiel und zugehörige Chunks.
+
+        Args:
+            document_id: Dokument-ID
+
+        Returns:
+            True wenn gelöscht, False wenn nicht gefunden
+        """
+        deleted = False
+
+        # Aus invoices Collection löschen
+        try:
+            collection = self._get_collection("invoices")
+            collection.delete(ids=[document_id])
+            deleted = True
+            logger.info(f"Deleted invoice example: {document_id}")
+        except Exception as e:
+            logger.debug(f"Could not delete from invoices: {e}")
+
+        # Zugehörige Chunks löschen
+        try:
+            chunks_collection = self._get_collection("invoice_chunks")
+            # Chunks haben IDs wie "{document_id}_chunk_{index}"
+            # Wir müssen nach parent_document_id filtern und dann löschen
+            results = chunks_collection.get(
+                where={"parent_document_id": document_id},
+                include=["metadatas"],
+            )
+            if results and results.get("ids"):
+                chunk_ids = results["ids"]
+                if chunk_ids:
+                    chunks_collection.delete(ids=chunk_ids)
+                    logger.info(f"Deleted {len(chunk_ids)} chunks for: {document_id}")
+                    deleted = True
+        except Exception as e:
+            logger.debug(f"Could not delete chunks: {e}")
+
+        return deleted
+
+    def delete_error_example(self, error_id: str) -> bool:
+        """
+        Löscht ein Fehlerbeispiel.
+
+        Args:
+            error_id: Fehler-ID
+
+        Returns:
+            True wenn gelöscht, False wenn nicht gefunden
+        """
+        try:
+            collection = self._get_collection("errors")
+            collection.delete(ids=[error_id])
+            logger.info(f"Deleted error example: {error_id}")
+            return True
+        except Exception as e:
+            logger.debug(f"Could not delete error example: {e}")
+            return False
+
 
 # Singleton
 _vectorstore: VectorStore | None = None
