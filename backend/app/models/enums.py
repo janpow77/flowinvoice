@@ -89,10 +89,20 @@ class TruthSource(str, Enum):
 class Provider(str, Enum):
     """LLM-Provider."""
 
+    # Lokale Provider
     LOCAL_OLLAMA = "LOCAL_OLLAMA"
+    LOCAL_CUSTOM = "LOCAL_CUSTOM"  # Weitere lokale LLM-API (konfigurierbar)
+
+    # Westliche Cloud-Provider
     OPENAI = "OPENAI"
     ANTHROPIC = "ANTHROPIC"
     GEMINI = "GEMINI"
+
+    # Chinesische Provider
+    ZHIPU_GLM = "ZHIPU_GLM"  # ChatGLM / GLM-4 (Zhipu AI)
+    BAIDU_ERNIE = "BAIDU_ERNIE"  # ERNIE Bot (Baidu)
+    ALIBABA_QWEN = "ALIBABA_QWEN"  # Qwen / Tongyi Qianwen (Alibaba)
+    DEEPSEEK = "DEEPSEEK"  # DeepSeek
 
 
 class FeedbackRating(str, Enum):

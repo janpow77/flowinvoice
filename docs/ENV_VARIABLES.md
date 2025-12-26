@@ -82,13 +82,31 @@ python3 -c "import secrets; print(secrets.token_hex(32))"
 | `OLLAMA_NUM_PARALLEL` | `2` | Parallele Requests |
 | `OLLAMA_NUM_CTX` | `4096` | Context Window |
 
-### Externe LLM-Provider (Optional)
+### Lokale LLM (Custom)
+
+| Variable | Default | Beschreibung |
+|----------|---------|--------------|
+| `LOCAL_CUSTOM_HOST` | `null` | URL der lokalen LLM-API (z.B. `http://localhost:8080`) |
+| `LOCAL_CUSTOM_MODEL` | `custom-model` | Modellname |
+| `LOCAL_CUSTOM_API_FORMAT` | `openai` | API-Format: `openai`, `ollama`, `custom` |
+
+### Externe LLM-Provider - Westlich (Optional)
 
 | Variable | Default | Beschreibung |
 |----------|---------|--------------|
 | `OPENAI_API_KEY` | `null` | OpenAI API Key |
 | `ANTHROPIC_API_KEY` | `null` | Anthropic API Key |
 | `GEMINI_API_KEY` | `null` | Google Gemini API Key |
+
+### Externe LLM-Provider - Chinesisch (Optional)
+
+| Variable | Default | Beschreibung |
+|----------|---------|--------------|
+| `ZHIPU_API_KEY` | `null` | Zhipu AI API Key (ChatGLM / GLM-4) |
+| `BAIDU_API_KEY` | `null` | Baidu API Key (ERNIE Bot) |
+| `BAIDU_SECRET_KEY` | `null` | Baidu Secret Key (benötigt zusammen mit API Key) |
+| `ALIBABA_API_KEY` | `null` | Alibaba API Key (Qwen / Tongyi Qianwen) |
+| `DEEPSEEK_API_KEY` | `null` | DeepSeek API Key |
 
 ### LLM-Inference
 

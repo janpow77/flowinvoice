@@ -405,9 +405,11 @@ async def get_llm_providers(
     default_provider = setting.value.get("provider", "LOCAL_OLLAMA") if setting else "LOCAL_OLLAMA"
 
     providers = [
+        # === Lokale Provider ===
         {
             "id": "LOCAL_OLLAMA",
             "name": "Ollama (Lokal)",
+            "category": "local",
             "enabled": True,
             "is_default": default_provider == "LOCAL_OLLAMA",
             "base_url": settings.ollama_host,
@@ -415,8 +417,21 @@ async def get_llm_providers(
             "requires_api_key": False,
         },
         {
+            "id": "LOCAL_CUSTOM",
+            "name": "Lokale LLM API (Custom)",
+            "category": "local",
+            "enabled": settings.local_custom_host is not None,
+            "is_default": default_provider == "LOCAL_CUSTOM",
+            "base_url": settings.local_custom_host,
+            "model": settings.local_custom_model,
+            "api_format": settings.local_custom_api_format,
+            "requires_api_key": False,
+        },
+        # === Westliche Cloud-Provider ===
+        {
             "id": "OPENAI",
             "name": "OpenAI",
+            "category": "western",
             "enabled": settings.openai_api_key is not None,
             "is_default": default_provider == "OPENAI",
             "requires_api_key": True,
@@ -425,18 +440,59 @@ async def get_llm_providers(
         {
             "id": "ANTHROPIC",
             "name": "Anthropic Claude",
+            "category": "western",
             "enabled": settings.anthropic_api_key is not None,
             "is_default": default_provider == "ANTHROPIC",
             "requires_api_key": True,
             "api_key_set": settings.anthropic_api_key is not None,
         },
         {
-            "id": "GOOGLE",
+            "id": "GEMINI",
             "name": "Google Gemini",
+            "category": "western",
             "enabled": settings.gemini_api_key is not None,
-            "is_default": default_provider == "GOOGLE",
+            "is_default": default_provider == "GEMINI",
             "requires_api_key": True,
             "api_key_set": settings.gemini_api_key is not None,
+        },
+        # === Chinesische Provider ===
+        {
+            "id": "ZHIPU_GLM",
+            "name": "ChatGLM / GLM-4 (Zhipu AI)",
+            "category": "chinese",
+            "enabled": settings.zhipu_api_key is not None,
+            "is_default": default_provider == "ZHIPU_GLM",
+            "requires_api_key": True,
+            "api_key_set": settings.zhipu_api_key is not None,
+        },
+        {
+            "id": "BAIDU_ERNIE",
+            "name": "ERNIE Bot (Baidu)",
+            "category": "chinese",
+            "enabled": settings.baidu_api_key is not None and settings.baidu_secret_key is not None,
+            "is_default": default_provider == "BAIDU_ERNIE",
+            "requires_api_key": True,
+            "api_key_set": settings.baidu_api_key is not None,
+            "requires_secret_key": True,
+            "secret_key_set": settings.baidu_secret_key is not None,
+        },
+        {
+            "id": "ALIBABA_QWEN",
+            "name": "Qwen / Tongyi Qianwen (Alibaba)",
+            "category": "chinese",
+            "enabled": settings.alibaba_api_key is not None,
+            "is_default": default_provider == "ALIBABA_QWEN",
+            "requires_api_key": True,
+            "api_key_set": settings.alibaba_api_key is not None,
+        },
+        {
+            "id": "DEEPSEEK",
+            "name": "DeepSeek",
+            "category": "chinese",
+            "enabled": settings.deepseek_api_key is not None,
+            "is_default": default_provider == "DEEPSEEK",
+            "requires_api_key": True,
+            "api_key_set": settings.deepseek_api_key is not None,
         },
     ]
 

@@ -43,14 +43,26 @@ async def get_settings_endpoint(
     settings_dict = {
         "active_provider": "LOCAL_OLLAMA",
         "providers": {
+            # Lokale Provider
             "LOCAL_OLLAMA": {
                 "enabled": True,
+                "category": "local",
                 "base_url": config.ollama_host,
                 "model_name": config.ollama_default_model,
                 "available_models": [config.ollama_default_model],
             },
+            "LOCAL_CUSTOM": {
+                "enabled": config.local_custom_host is not None,
+                "category": "local",
+                "base_url": config.local_custom_host,
+                "model_name": config.local_custom_model,
+                "api_format": config.local_custom_api_format,
+                "available_models": [config.local_custom_model] if config.local_custom_host else [],
+            },
+            # Westliche Cloud-Provider
             "OPENAI": {
                 "enabled": config.openai_api_key is not None,
+                "category": "western",
                 "api_key_is_set": config.openai_api_key is not None,
                 "api_key_masked": None,
                 "model_name": "gpt-4o-mini",
@@ -58,6 +70,7 @@ async def get_settings_endpoint(
             },
             "ANTHROPIC": {
                 "enabled": config.anthropic_api_key is not None,
+                "category": "western",
                 "api_key_is_set": config.anthropic_api_key is not None,
                 "api_key_masked": None,
                 "model_name": "claude-sonnet-4-20250514",
@@ -65,10 +78,45 @@ async def get_settings_endpoint(
             },
             "GEMINI": {
                 "enabled": config.gemini_api_key is not None,
+                "category": "western",
                 "api_key_is_set": config.gemini_api_key is not None,
                 "api_key_masked": None,
                 "model_name": "gemini-1.5-flash",
                 "available_models": ["gemini-1.5-pro", "gemini-1.5-flash"],
+            },
+            # Chinesische Provider
+            "ZHIPU_GLM": {
+                "enabled": config.zhipu_api_key is not None,
+                "category": "chinese",
+                "api_key_is_set": config.zhipu_api_key is not None,
+                "api_key_masked": None,
+                "model_name": "glm-4",
+                "available_models": ["glm-4", "glm-4-flash", "glm-4v"],
+            },
+            "BAIDU_ERNIE": {
+                "enabled": config.baidu_api_key is not None and config.baidu_secret_key is not None,
+                "category": "chinese",
+                "api_key_is_set": config.baidu_api_key is not None,
+                "secret_key_is_set": config.baidu_secret_key is not None,
+                "api_key_masked": None,
+                "model_name": "ernie-4.0-8k",
+                "available_models": ["ernie-4.0-8k", "ernie-4.0-turbo-8k", "ernie-3.5-8k"],
+            },
+            "ALIBABA_QWEN": {
+                "enabled": config.alibaba_api_key is not None,
+                "category": "chinese",
+                "api_key_is_set": config.alibaba_api_key is not None,
+                "api_key_masked": None,
+                "model_name": "qwen-max",
+                "available_models": ["qwen-max", "qwen-plus", "qwen-turbo"],
+            },
+            "DEEPSEEK": {
+                "enabled": config.deepseek_api_key is not None,
+                "category": "chinese",
+                "api_key_is_set": config.deepseek_api_key is not None,
+                "api_key_masked": None,
+                "model_name": "deepseek-chat",
+                "available_models": ["deepseek-chat", "deepseek-coder"],
             },
         },
         "inference": {

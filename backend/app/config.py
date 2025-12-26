@@ -62,10 +62,22 @@ class Settings(BaseSettings):
     ollama_default_model: str = "llama3.1:8b"
     ollama_timeout_sec: int = 120
 
-    # External LLM Providers (optional)
+    # Custom Local LLM (für weitere lokale APIs)
+    local_custom_host: str | None = None  # z.B. "http://localhost:8080"
+    local_custom_model: str = "custom-model"
+    local_custom_api_format: str = "openai"  # openai, ollama, custom
+
+    # External LLM Providers - Western (optional)
     openai_api_key: SecretStr | None = None
     anthropic_api_key: SecretStr | None = None
     gemini_api_key: SecretStr | None = None
+
+    # External LLM Providers - Chinese (optional)
+    zhipu_api_key: SecretStr | None = None  # ChatGLM / GLM-4 (Zhipu AI)
+    baidu_api_key: SecretStr | None = None  # ERNIE Bot (Baidu)
+    baidu_secret_key: SecretStr | None = None  # Baidu benötigt API Key + Secret Key
+    alibaba_api_key: SecretStr | None = None  # Qwen / Tongyi Qianwen (Alibaba)
+    deepseek_api_key: SecretStr | None = None  # DeepSeek
 
     # Default inference settings
     default_temperature: float = 0.2
