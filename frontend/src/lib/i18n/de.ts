@@ -234,6 +234,8 @@ export const de = {
     autoLearningDescription: 'Validierte Rechnungen automatisch in RAG aufnehmen',
     fewShotExamples: 'Few-Shot-Beispiele',
     fewShotDescription: 'Anzahl der Beispiele im LLM-Prompt',
+    similarityThreshold: 'Ähnlichkeitsschwelle',
+    similarityThresholdDescription: 'Mindestähnlichkeit für RAG-Beispiele (niedriger = mehr Ergebnisse)',
     examples: 'Beispiele',
     systemInfo: 'System-Information',
     version: 'Version',

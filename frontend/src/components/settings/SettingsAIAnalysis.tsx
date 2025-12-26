@@ -22,10 +22,27 @@ import {
   Zap,
   Lock,
   RefreshCw,
+  Database,
+  Info,
 } from 'lucide-react'
 import { api } from '@/lib/api'
 import type { ProviderInfo } from '@/lib/types'
 import type { OllamaStatus } from '@/lib/settings-types'
+
+interface RagSettings {
+  enabled: boolean
+  top_k: number
+  similarity_threshold: number
+  embedding_model: string
+  embedding_info: {
+    name: string
+    full_name: string
+    type: string
+    dimensions: number
+    languages: string
+    description: string
+  }
+}
 
 interface ProviderConfig {
   id: string
@@ -77,11 +94,46 @@ export function SettingsAIAnalysis({ isAdmin }: Props) {
   const [testResults, setTestResults] = useState<Record<string, { status: string; latency?: number; message?: string }>>({})
   const [savingApiKey, setSavingApiKey] = useState<string | null>(null)
   const [lastHealthCheck, setLastHealthCheck] = useState<Date | null>(null)
+  const [ragSettings, setRagSettings] = useState<RagSettings | null>(null)
+  const [savingRag, setSavingRag] = useState(false)
 
   const { data: providers, isLoading } = useQuery({
     queryKey: ['llm-providers'],
     queryFn: () => api.getLLMProviders(),
   })
+
+  // Load settings including RAG config
+  const { data: settings } = useQuery({
+    queryKey: ['settings'],
+    queryFn: () => api.getSettings(),
+  })
+
+  // Initialize RAG settings from API
+  useEffect(() => {
+    if (settings?.rag && !ragSettings) {
+      setRagSettings(settings.rag as RagSettings)
+    }
+  }, [settings, ragSettings])
+
+  // RAG settings mutation
+  const updateRagMutation = useMutation({
+    mutationFn: (rag: Partial<RagSettings>) => api.updateSettings({ rag }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['settings'] })
+      setSavingRag(false)
+    },
+    onError: () => {
+      setSavingRag(false)
+    },
+  })
+
+  const handleRagChange = (field: keyof RagSettings, value: boolean | number) => {
+    if (!ragSettings) return
+    const updated = { ...ragSettings, [field]: value }
+    setRagSettings(updated)
+    setSavingRag(true)
+    updateRagMutation.mutate({ [field]: value })
+  }
 
   const { data: health, refetch: refetchHealth } = useQuery({
     queryKey: ['llm-health'],
@@ -508,14 +560,26 @@ export function SettingsAIAnalysis({ isAdmin }: Props) {
 
       {/* RAG Settings */}
       <div className="bg-theme-card rounded-lg border border-theme-border-default p-6">
-        <h3 className="text-lg font-semibold text-theme-text-primary mb-4">
-          {t('settings.ragSettings')}
-        </h3>
-        <p className="text-sm text-theme-text-muted mb-4">
+        <div className="flex items-center justify-between mb-4">
+          <div className="flex items-center gap-2">
+            <Database className="h-5 w-5 text-accent-primary" />
+            <h3 className="text-lg font-semibold text-theme-text-primary">
+              {t('settings.ragSettings')}
+            </h3>
+          </div>
+          {savingRag && (
+            <span className="flex items-center gap-1 text-xs text-accent-primary">
+              <Loader2 className="h-3 w-3 animate-spin" />
+              Speichern...
+            </span>
+          )}
+        </div>
+        <p className="text-sm text-theme-text-muted mb-6">
           {t('settings.ragDescription')}
         </p>
 
-        <div className="space-y-4">
+        <div className="space-y-6">
+          {/* RAG Enabled Toggle */}
           <div className="flex items-center justify-between">
             <div>
               <p className="font-medium text-theme-text-primary">{t('settings.autoLearning')}</p>
@@ -524,11 +588,21 @@ export function SettingsAIAnalysis({ isAdmin }: Props) {
               </p>
             </div>
             <label className="relative inline-flex items-center cursor-pointer">
-              <input type="checkbox" className="sr-only peer" defaultChecked />
-              <div className="w-11 h-6 bg-theme-hover peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-accent-primary/50 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-theme-border-default after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-accent-primary" />
+              <input
+                type="checkbox"
+                className="sr-only peer"
+                checked={ragSettings?.enabled ?? true}
+                onChange={(e) => handleRagChange('enabled', e.target.checked)}
+                disabled={!isAdmin}
+              />
+              <div className={clsx(
+                "w-11 h-6 bg-theme-hover peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-accent-primary/50 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-theme-border-default after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-accent-primary",
+                !isAdmin && "opacity-60 cursor-not-allowed"
+              )} />
             </label>
           </div>
 
+          {/* Top-K Examples */}
           <div className="flex items-center justify-between">
             <div>
               <p className="font-medium text-theme-text-primary">{t('settings.fewShotExamples')}</p>
@@ -536,12 +610,83 @@ export function SettingsAIAnalysis({ isAdmin }: Props) {
                 {t('settings.fewShotDescription')}
               </p>
             </div>
-            <select className="px-3 py-2 border border-theme-border-default rounded-lg bg-theme-input text-theme-text-primary">
+            <select
+              className={clsx(
+                "px-3 py-2 border border-theme-border-default rounded-lg bg-theme-input text-theme-text-primary",
+                !isAdmin && "opacity-60 cursor-not-allowed"
+              )}
+              value={ragSettings?.top_k ?? 3}
+              onChange={(e) => handleRagChange('top_k', parseInt(e.target.value))}
+              disabled={!isAdmin}
+            >
+              <option value="1">1 {t('settings.examples')}</option>
+              <option value="2">2 {t('settings.examples')}</option>
               <option value="3">3 {t('settings.examples')}</option>
               <option value="5">5 {t('settings.examples')}</option>
               <option value="10">10 {t('settings.examples')}</option>
             </select>
           </div>
+
+          {/* Similarity Threshold Slider */}
+          <div>
+            <div className="flex items-center justify-between mb-2">
+              <div>
+                <p className="font-medium text-theme-text-primary">{t('settings.similarityThreshold')}</p>
+                <p className="text-sm text-theme-text-muted">
+                  {t('settings.similarityThresholdDescription')}
+                </p>
+              </div>
+              <span className="text-sm font-mono text-theme-text-primary bg-theme-hover px-2 py-1 rounded">
+                {((ragSettings?.similarity_threshold ?? 0.25) * 100).toFixed(0)}%
+              </span>
+            </div>
+            <input
+              type="range"
+              min="0"
+              max="100"
+              step="5"
+              value={(ragSettings?.similarity_threshold ?? 0.25) * 100}
+              onChange={(e) => handleRagChange('similarity_threshold', parseInt(e.target.value) / 100)}
+              disabled={!isAdmin}
+              className={clsx(
+                "w-full h-2 bg-theme-hover rounded-lg appearance-none cursor-pointer accent-accent-primary",
+                !isAdmin && "opacity-60 cursor-not-allowed"
+              )}
+            />
+            <div className="flex justify-between text-xs text-theme-text-muted mt-1">
+              <span>0% (alle)</span>
+              <span>50%</span>
+              <span>100% (nur exakt)</span>
+            </div>
+          </div>
+
+          {/* Embedding Model Info */}
+          {ragSettings?.embedding_info && (
+            <div className="mt-4 p-4 bg-theme-hover rounded-lg">
+              <div className="flex items-start gap-2">
+                <Info className="h-4 w-4 text-status-info mt-0.5 flex-shrink-0" />
+                <div className="text-sm">
+                  <p className="font-medium text-theme-text-primary mb-1">
+                    Embedding-Modell: {ragSettings.embedding_info.name}
+                  </p>
+                  <p className="text-theme-text-muted text-xs">
+                    {ragSettings.embedding_info.description}
+                  </p>
+                  <div className="flex flex-wrap gap-2 mt-2">
+                    <span className="text-xs bg-theme-card px-2 py-0.5 rounded">
+                      {ragSettings.embedding_info.dimensions} Dimensionen
+                    </span>
+                    <span className="text-xs bg-theme-card px-2 py-0.5 rounded">
+                      {ragSettings.embedding_info.languages}
+                    </span>
+                    <span className="text-xs bg-theme-card px-2 py-0.5 rounded">
+                      {ragSettings.embedding_info.type}
+                    </span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
         </div>
       </div>
     </div>

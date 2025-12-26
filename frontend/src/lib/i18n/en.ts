@@ -234,6 +234,8 @@ export const en = {
     autoLearningDescription: 'Automatically add validated invoices to RAG',
     fewShotExamples: 'Few-Shot Examples',
     fewShotDescription: 'Number of examples in LLM prompt',
+    similarityThreshold: 'Similarity Threshold',
+    similarityThresholdDescription: 'Minimum similarity for RAG examples (lower = more results)',
     examples: 'examples',
     systemInfo: 'System Information',
     version: 'Version',
