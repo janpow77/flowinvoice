@@ -22,6 +22,8 @@ import {
   TrendingUp,
   UserCheck,
   Info,
+  Target,
+  GitMerge,
 } from 'lucide-react'
 import clsx from 'clsx'
 import { api } from '@/lib/api'
@@ -584,6 +586,135 @@ export default function DocumentDetail() {
               </div>
             )}
 
+            {/* Grant Purpose Audit */}
+            {document.analysis_result.grant_purpose_audit && (
+              <div className="border border-theme-border rounded-lg overflow-hidden">
+                <div className={clsx(
+                  'px-4 py-2 flex items-center gap-3',
+                  document.analysis_result.grant_purpose_audit.overall_result === 'PASS'
+                    ? 'bg-status-success-bg'
+                    : document.analysis_result.grant_purpose_audit.overall_result === 'FAIL'
+                    ? 'bg-status-danger-bg'
+                    : 'bg-status-warning-bg'
+                )}>
+                  <Target className="h-5 w-5" />
+                  <span className="font-medium">Zuwendungszweckprüfung</span>
+                </div>
+                <div className="p-3 space-y-3">
+                  {/* Dimension Results */}
+                  <div className="grid grid-cols-2 gap-2">
+                    {document.analysis_result.grant_purpose_audit.subject_relation && (
+                      <div className={clsx(
+                        'p-2 rounded text-sm',
+                        document.analysis_result.grant_purpose_audit.subject_relation.result === 'PASS'
+                          ? 'bg-status-success-bg'
+                          : document.analysis_result.grant_purpose_audit.subject_relation.result === 'FAIL'
+                          ? 'bg-status-danger-bg'
+                          : 'bg-status-warning-bg'
+                      )}>
+                        <div className="font-medium">Sachlicher Zusammenhang</div>
+                        <div className="text-xs opacity-75">{document.analysis_result.grant_purpose_audit.subject_relation.result}</div>
+                      </div>
+                    )}
+                    {document.analysis_result.grant_purpose_audit.temporal_relation && (
+                      <div className={clsx(
+                        'p-2 rounded text-sm',
+                        document.analysis_result.grant_purpose_audit.temporal_relation.result === 'PASS'
+                          ? 'bg-status-success-bg'
+                          : document.analysis_result.grant_purpose_audit.temporal_relation.result === 'FAIL'
+                          ? 'bg-status-danger-bg'
+                          : 'bg-status-warning-bg'
+                      )}>
+                        <div className="font-medium">Zeitlicher Zusammenhang</div>
+                        <div className="text-xs opacity-75">{document.analysis_result.grant_purpose_audit.temporal_relation.result}</div>
+                      </div>
+                    )}
+                    {document.analysis_result.grant_purpose_audit.organizational_relation && (
+                      <div className={clsx(
+                        'p-2 rounded text-sm',
+                        document.analysis_result.grant_purpose_audit.organizational_relation.result === 'PASS'
+                          ? 'bg-status-success-bg'
+                          : document.analysis_result.grant_purpose_audit.organizational_relation.result === 'FAIL'
+                          ? 'bg-status-danger-bg'
+                          : 'bg-status-warning-bg'
+                      )}>
+                        <div className="font-medium">Organisatorischer Zusammenhang</div>
+                        <div className="text-xs opacity-75">{document.analysis_result.grant_purpose_audit.organizational_relation.result}</div>
+                      </div>
+                    )}
+                    {document.analysis_result.grant_purpose_audit.economic_plausibility && (
+                      <div className={clsx(
+                        'p-2 rounded text-sm',
+                        document.analysis_result.grant_purpose_audit.economic_plausibility.result === 'PASS'
+                          ? 'bg-status-success-bg'
+                          : document.analysis_result.grant_purpose_audit.economic_plausibility.result === 'FAIL'
+                          ? 'bg-status-danger-bg'
+                          : 'bg-status-warning-bg'
+                      )}>
+                        <div className="font-medium">Wirtschaftliche Plausibilität</div>
+                        <div className="text-xs opacity-75">{document.analysis_result.grant_purpose_audit.economic_plausibility.result}</div>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Overall Reasoning */}
+                  {document.analysis_result.grant_purpose_audit.overall_reasoning && (
+                    <div className="text-sm text-theme-text-muted border-t border-theme-border pt-2">
+                      {document.analysis_result.grant_purpose_audit.overall_reasoning}
+                    </div>
+                  )}
+
+                  {/* Negative Indicators */}
+                  {document.analysis_result.grant_purpose_audit.negative_indicators &&
+                   document.analysis_result.grant_purpose_audit.negative_indicators.length > 0 && (
+                    <div className="space-y-1">
+                      {document.analysis_result.grant_purpose_audit.negative_indicators.map((indicator: { description: string; severity: string }, i: number) => (
+                        <div key={i} className={clsx(
+                          'p-2 rounded text-sm flex items-start gap-2',
+                          indicator.severity === 'HIGH' ? 'bg-status-danger-bg' : 'bg-status-warning-bg'
+                        )}>
+                          <AlertTriangle className="h-4 w-4 flex-shrink-0 mt-0.5" />
+                          <span>{indicator.description}</span>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
+
+            {/* Conflict Resolution */}
+            {document.analysis_result.conflicts && document.analysis_result.conflicts.length > 0 && (
+              <div className="border border-theme-border rounded-lg overflow-hidden">
+                <div className="px-4 py-2 bg-status-warning-bg flex items-center gap-3">
+                  <GitMerge className="h-5 w-5 text-status-warning" />
+                  <span className="font-medium">Konfliktauflösung</span>
+                  <span className="text-sm ml-auto">
+                    {document.analysis_result.conflicts.length} Konflikt(e)
+                  </span>
+                </div>
+                <div className="p-3 space-y-2">
+                  {document.analysis_result.conflicts.map((conflict: { field: string; rule_value: string; llm_value: string; resolved_by: string; resolved_value: string }, i: number) => (
+                    <div key={i} className="p-2 rounded bg-theme-hover text-sm">
+                      <div className="font-medium mb-1">{conflict.field}</div>
+                      <div className="grid grid-cols-2 gap-2 text-xs">
+                        <div>
+                          <span className="text-theme-text-muted">Regel:</span> {conflict.rule_value || '-'}
+                        </div>
+                        <div>
+                          <span className="text-theme-text-muted">KI:</span> {conflict.llm_value || '-'}
+                        </div>
+                      </div>
+                      <div className="mt-1 text-xs">
+                        <span className="text-theme-text-muted">Aufgelöst durch:</span>{' '}
+                        <span className="font-medium">{conflict.resolved_by}</span> → {conflict.resolved_value}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
             {/* Warnings */}
             {document.analysis_result.warnings && document.analysis_result.warnings.length > 0 && (
               <div className="border border-status-warning-border rounded-lg overflow-hidden">
@@ -607,6 +738,8 @@ export default function DocumentDetail() {
              !document.analysis_result.semantic_check &&
              !document.analysis_result.economic_check &&
              !document.analysis_result.beneficiary_match &&
+             !document.analysis_result.grant_purpose_audit &&
+             (!document.analysis_result.conflicts || document.analysis_result.conflicts.length === 0) &&
              (!document.analysis_result.warnings || document.analysis_result.warnings.length === 0) && (
               <div className="text-center py-4 text-theme-text-muted">
                 <Info className="h-8 w-8 mx-auto mb-2 opacity-50" />
