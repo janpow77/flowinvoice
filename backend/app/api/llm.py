@@ -577,7 +577,20 @@ async def set_default_provider(
     """
     provider = data.get("provider", "LOCAL_OLLAMA")
 
-    valid_providers = ["LOCAL_OLLAMA", "OPENAI", "ANTHROPIC", "GOOGLE"]
+    valid_providers = [
+        # Lokale Provider
+        "LOCAL_OLLAMA",
+        "LOCAL_CUSTOM",
+        # Westliche Provider
+        "OPENAI",
+        "ANTHROPIC",
+        "GEMINI",
+        # Chinesische Provider
+        "ZHIPU_GLM",
+        "BAIDU_ERNIE",
+        "ALIBABA_QWEN",
+        "DEEPSEEK",
+    ]
     if provider not in valid_providers:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
