@@ -217,6 +217,67 @@ export const de = {
     system: 'System',
   },
 
+  // Checker Settings
+  checkerSettings: {
+    title: 'Prüfmodul-Konfiguration',
+    description: 'Konfigurieren Sie die automatischen Prüfungen für Rechnungsdokumente',
+    save: 'Speichern',
+    reset: 'Zurücksetzen',
+    note: 'Hinweis',
+    noteText: 'Änderungen an den Prüfmodulen wirken sich nur auf neue Analysen aus. Bereits analysierte Dokumente müssen erneut verarbeitet werden.',
+    active: 'Aktiv',
+    inactive: 'Inaktiv',
+    threshold: 'Schwellenwert',
+    thresholdLow: 'Niedrig (alle Warnungen)',
+    thresholdMedium: 'Mittel (ab Warnung)',
+    thresholdHigh: 'Hoch (nur kritische)',
+    activeChecks: 'Aktive Prüfungen',
+    risk: {
+      title: 'Risikoprüfung',
+      description: 'Betrugserkennungen und Plausibilitätsprüfungen',
+      enable: 'Risikoprüfung aktivieren',
+      selfInvoice: 'Selbstrechnungsprüfung',
+      duplicate: 'Duplikatsprüfung',
+      roundAmounts: 'Runde Beträge erkennen',
+      weekendDates: 'Wochenend-Rechnungsdatum',
+      roundThreshold: 'Schwelle für runde Beträge (EUR)',
+      roundThresholdDesc: 'Beträge ab diesem Wert werden bei runden Summen markiert',
+    },
+    semantic: {
+      title: 'Semantische Prüfung',
+      description: 'Projektrelevanz und Beschreibungsqualität',
+      enable: 'Semantische Prüfung aktivieren',
+      projectRelevance: 'Projektrelevanz prüfen',
+      descriptionQuality: 'Beschreibungsqualität',
+      useRag: 'RAG-Kontext verwenden',
+      minRelevance: 'Minimale Relevanz-Score',
+    },
+    economic: {
+      title: 'Wirtschaftlichkeitsprüfung',
+      description: 'Budget- und Preiskontrollen',
+      enable: 'Wirtschaftlichkeitsprüfung aktivieren',
+      budgetLimits: 'Budgetgrenzen prüfen',
+      unitPrices: 'Stückpreise prüfen',
+      fundingRate: 'Fördersatz prüfen',
+      maxDeviation: 'Max. Abweichung',
+      deviationDesc: 'Erlaubte Preisabweichung vom Durchschnitt',
+    },
+    legal: {
+      title: 'Rechtliche Prüfung',
+      description: 'EU-Verordnungen und Förderbedingungen',
+      enable: 'Rechtliche Prüfung aktivieren',
+      infoText: 'Legal Retrieval: Aktiviert die Suche nach relevanten EU-Verordnungen und Rechtstexten aus der Vektordatenbank. Die Ergebnisse werden nach Normenhierarchie gewichtet (EU-Recht > Nationales Recht > Guidance).',
+      fundingPeriod: 'EU-Förderperiode',
+      periodCurrent: 'aktuelle Periode',
+      periodPrevious: 'vorherige Periode',
+      retrievalOptions: 'Retrieval-Optionen',
+      hierarchyWeighting: 'Normenhierarchie-Gewichtung',
+      includeDefinitions: 'Legaldefinitionen einbeziehen',
+      maxResults: 'Max. Ergebnisse',
+      minRelevance: 'Minimale Relevanz',
+    },
+  },
+
   // Settings
   settings: {
     title: 'Einstellungen',
@@ -499,6 +560,26 @@ export const de = {
     },
   },
 
+  // Check Results (Document Detail)
+  checkResults: {
+    title: 'Prüfergebnisse',
+    trainingView: 'Schulungsansicht',
+    semantic: {
+      title: 'Semantische Prüfung',
+      projectRelevance: 'Projektrelevanz',
+      passed: 'Semantische Prüfung bestanden',
+    },
+    economic: {
+      title: 'Wirtschaftlichkeitsprüfung',
+      passed: 'Wirtschaftlichkeitsprüfung bestanden',
+    },
+    beneficiary: {
+      title: 'Begünstigtenabgleich',
+      match: 'Empfänger stimmt überein',
+      noMatch: 'Empfänger stimmt nicht überein',
+    },
+  },
+
   // Generator
   generator: {
     title: 'Rechnungs-Generator',
@@ -621,6 +702,7 @@ export const de = {
   // Risk Assessment
   risk: {
     title: 'Risikobewertung',
+    check: 'Risikoprüfung',
     disclaimer: 'HINWEIS: Mögliches Risiko erkannt – keine rechtliche Bewertung',
     indicators: {
       highAmount: 'Ungewöhnlich hoher Betrag',
@@ -641,6 +723,7 @@ export const de = {
     score: 'Risiko-Score',
     findings: 'Erkannte Risiken',
     noRisks: 'Keine besonderen Risiken erkannt',
+    noIndicators: 'Keine Risikoindikatoren gefunden',
   },
 
   // Analysis Status

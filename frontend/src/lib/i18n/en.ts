@@ -217,6 +217,67 @@ export const en = {
     system: 'System',
   },
 
+  // Checker Settings
+  checkerSettings: {
+    title: 'Checker Configuration',
+    description: 'Configure automatic checks for invoice documents',
+    save: 'Save',
+    reset: 'Reset',
+    note: 'Note',
+    noteText: 'Changes to checker modules only affect new analyses. Already analyzed documents must be reprocessed.',
+    active: 'Active',
+    inactive: 'Inactive',
+    threshold: 'Threshold',
+    thresholdLow: 'Low (all warnings)',
+    thresholdMedium: 'Medium (from warning)',
+    thresholdHigh: 'High (critical only)',
+    activeChecks: 'Active Checks',
+    risk: {
+      title: 'Risk Check',
+      description: 'Fraud detection and plausibility checks',
+      enable: 'Enable risk check',
+      selfInvoice: 'Self-invoice check',
+      duplicate: 'Duplicate check',
+      roundAmounts: 'Detect round amounts',
+      weekendDates: 'Weekend invoice dates',
+      roundThreshold: 'Round amount threshold (EUR)',
+      roundThresholdDesc: 'Amounts above this value are flagged for round sums',
+    },
+    semantic: {
+      title: 'Semantic Check',
+      description: 'Project relevance and description quality',
+      enable: 'Enable semantic check',
+      projectRelevance: 'Check project relevance',
+      descriptionQuality: 'Description quality',
+      useRag: 'Use RAG context',
+      minRelevance: 'Minimum relevance score',
+    },
+    economic: {
+      title: 'Economic Check',
+      description: 'Budget and price controls',
+      enable: 'Enable economic check',
+      budgetLimits: 'Check budget limits',
+      unitPrices: 'Check unit prices',
+      fundingRate: 'Check funding rate',
+      maxDeviation: 'Max. deviation',
+      deviationDesc: 'Allowed price deviation from average',
+    },
+    legal: {
+      title: 'Legal Check',
+      description: 'EU regulations and funding conditions',
+      enable: 'Enable legal check',
+      infoText: 'Legal Retrieval: Enables search for relevant EU regulations and legal texts from the vector database. Results are weighted by norm hierarchy (EU law > National law > Guidance).',
+      fundingPeriod: 'EU funding period',
+      periodCurrent: 'current period',
+      periodPrevious: 'previous period',
+      retrievalOptions: 'Retrieval Options',
+      hierarchyWeighting: 'Norm hierarchy weighting',
+      includeDefinitions: 'Include legal definitions',
+      maxResults: 'Max. results',
+      minRelevance: 'Minimum relevance',
+    },
+  },
+
   // Settings
   settings: {
     title: 'Settings',
@@ -499,6 +560,26 @@ export const en = {
     },
   },
 
+  // Check Results (Document Detail)
+  checkResults: {
+    title: 'Check Results',
+    trainingView: 'Training View',
+    semantic: {
+      title: 'Semantic Check',
+      projectRelevance: 'Project Relevance',
+      passed: 'Semantic check passed',
+    },
+    economic: {
+      title: 'Economic Check',
+      passed: 'Economic check passed',
+    },
+    beneficiary: {
+      title: 'Beneficiary Matching',
+      match: 'Recipient matches',
+      noMatch: 'Recipient does not match',
+    },
+  },
+
   // Generator
   generator: {
     title: 'Invoice Generator',
@@ -621,6 +702,7 @@ export const en = {
   // Risk Assessment
   risk: {
     title: 'Risk Assessment',
+    check: 'Risk Check',
     disclaimer: 'NOTE: Potential risk detected – not a legal assessment',
     indicators: {
       highAmount: 'Unusually high amount',
@@ -641,6 +723,7 @@ export const en = {
     score: 'Risk Score',
     findings: 'Risk Findings',
     noRisks: 'No notable risks detected',
+    noIndicators: 'No risk indicators found',
   },
 
   // Analysis Status
