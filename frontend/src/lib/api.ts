@@ -253,9 +253,14 @@ export const api = {
       const projectList = projects.data.data || []
       if (projectList.length === 0) return []
 
-      // Get documents from first project for now (TODO: aggregate all)
-      const response = await apiClient.get(`/projects/${projectList[0].id}/documents`)
-      return response.data.data || []
+      // Fetch documents from all projects in parallel
+      const documentPromises = projectList.map((project: { id: string }) =>
+        apiClient.get(`/projects/${project.id}/documents`)
+          .then(res => res.data.data || [])
+          .catch(() => []) // Ignore errors for individual projects
+      )
+      const documentsPerProject = await Promise.all(documentPromises)
+      return documentsPerProject.flat()
     }
     const response = await apiClient.get(`/projects/${projectId}/documents`)
     return response.data.data || []
