@@ -1,9 +1,19 @@
 import axios from 'axios'
+import type { UserInfo } from './types'
 
 // Token-Speicher Key (muss mit AuthContext übereinstimmen)
 const TOKEN_KEY = 'flowaudit_token'
 
+// Authenticated API client (with token interceptor)
 const apiClient = axios.create({
+  baseURL: '/api',
+  headers: {
+    'Content-Type': 'application/json',
+  },
+})
+
+// Public API client (for unauthenticated endpoints like login)
+const apiClientPublic = axios.create({
   baseURL: '/api',
   headers: {
     'Content-Type': 'application/json',
@@ -43,7 +53,60 @@ apiClient.interceptors.response.use(
 )
 
 export const api = {
+  // ============================================
+  // Auth (public endpoints - no token required)
+  // ============================================
+
+  /** Login with username/password - returns access_token */
+  login: async (username: string, password: string): Promise<{ access_token: string; token_type: string }> => {
+    const formData = new URLSearchParams()
+    formData.append('username', username)
+    formData.append('password', password)
+    const response = await apiClientPublic.post('/auth/login', formData, {
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+    })
+    return response.data
+  },
+
+  /** Check if Google OAuth is enabled */
+  isGoogleAuthEnabled: async (): Promise<boolean> => {
+    const response = await apiClientPublic.get('/auth/google/enabled')
+    return response.data.enabled
+  },
+
+  /** Get Google OAuth URL for redirect */
+  getGoogleAuthUrl: async (): Promise<{ auth_url: string; state: string }> => {
+    const response = await apiClientPublic.get('/auth/google/url')
+    return response.data
+  },
+
+  /** Exchange Google OAuth code for token */
+  googleCallback: async (code: string, state?: string): Promise<{ access_token: string; token_type: string }> => {
+    const response = await apiClientPublic.post('/auth/google/callback', { code, state })
+    return response.data
+  },
+
+  // ============================================
+  // User (authenticated endpoints)
+  // ============================================
+
+  /** Get current user info */
+  getCurrentUser: async (): Promise<UserInfo> => {
+    const response = await apiClient.get('/users/me')
+    return response.data
+  },
+
+  /** Get current user info with specific token (for initial auth) */
+  getCurrentUserWithToken: async (token: string): Promise<UserInfo> => {
+    const response = await apiClientPublic.get('/users/me', {
+      headers: { Authorization: `Bearer ${token}` },
+    })
+    return response.data
+  },
+
+  // ============================================
   // Dashboard
+  // ============================================
   getStats: async () => {
     const response = await apiClient.get('/stats/global')
     return response.data

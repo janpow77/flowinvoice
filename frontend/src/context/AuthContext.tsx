@@ -21,6 +21,7 @@ import {
 } from 'react';
 import { useNavigate } from 'react-router-dom';
 import type { UserInfo, UserRole } from '../lib/types';
+import { api } from '../lib/api';
 
 // Token-Speicher Key
 const TOKEN_KEY = 'flowaudit_token';
@@ -65,22 +66,10 @@ export function AuthProvider({ children }: AuthProviderProps) {
   const [loading, setLoading] = useState(true);
   const [lastActivity, setLastActivity] = useState<number>(Date.now());
 
-  // Lädt Benutzerinformationen vom Server
+  // Lädt Benutzerinformationen vom Server (über zentralen API-Client)
   const fetchUserInfo = useCallback(async (authToken: string): Promise<UserInfo | null> => {
     try {
-      const response = await fetch('/api/users/me', {
-        headers: {
-          Authorization: `Bearer ${authToken}`,
-        },
-      });
-
-      if (!response.ok) {
-        console.error('Failed to fetch user info:', response.status);
-        return null;
-      }
-
-      const userInfo: UserInfo = await response.json();
-      return userInfo;
+      return await api.getCurrentUserWithToken(authToken);
     } catch (error) {
       console.error('Error fetching user info:', error);
       return null;

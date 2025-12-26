@@ -9,7 +9,8 @@
 import { useEffect, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useAuth } from '@/context/AuthContext';
-import axios from 'axios';
+import { api } from '@/lib/api';
+import axios from 'axios'; // Only for isAxiosError check
 
 export default function GoogleCallback() {
   const { login } = useAuth();
@@ -51,13 +52,10 @@ export default function GoogleCallback() {
 
       try {
         // Exchange code for JWT token
-        const response = await axios.post('/api/auth/google/callback', {
-          code,
-          state,
-        });
+        const { access_token } = await api.googleCallback(code, state);
 
         // Login with the received token
-        await login(response.data.access_token);
+        await login(access_token);
         navigate('/');
       } catch (err) {
         if (axios.isAxiosError(err)) {

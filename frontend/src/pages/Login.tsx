@@ -4,7 +4,8 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/context/AuthContext';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
-import axios from 'axios';
+import { api } from '@/lib/api';
+import axios from 'axios'; // Only for isAxiosError check
 
 // --- CSS Animationen ---
 const cssAnimations = `
@@ -191,8 +192,8 @@ export default function Login() {
   useEffect(() => {
     const checkGoogleAuth = async () => {
       try {
-        const response = await axios.get('/api/auth/google/enabled');
-        setGoogleEnabled(response.data.enabled);
+        const enabled = await api.isGoogleAuthEnabled();
+        setGoogleEnabled(enabled);
       } catch {
         setGoogleEnabled(false);
       }
@@ -213,8 +214,7 @@ export default function Login() {
     setGoogleLoading(true);
 
     try {
-      const response = await axios.get('/api/auth/google/url');
-      const { auth_url, state } = response.data;
+      const { auth_url, state } = await api.getGoogleAuthUrl();
 
       // Store state in sessionStorage for verification after callback
       sessionStorage.setItem('google_oauth_state', state);
@@ -233,15 +233,8 @@ export default function Login() {
     setLoading(true);
 
     try {
-      const formData = new FormData();
-      formData.append('username', username);
-      formData.append('password', password);
-
-      const response = await axios.post('/api/auth/login', formData, {
-        headers: { 'Content-Type': 'application/x-www-form-urlencoded' }
-      });
-
-      login(response.data.access_token);
+      const { access_token } = await api.login(username, password);
+      login(access_token);
       navigate('/');
     } catch (err) {
       if (axios.isAxiosError(err) && err.response?.status === 401) {
