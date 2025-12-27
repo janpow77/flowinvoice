@@ -1,158 +1,293 @@
-# FlowInvoice/FlowAudit - Claude Code Guide
+# FlowAudit - Claude Code Projektguide
 
-## Projektübersicht
+## Projektüberblick
 
-FlowAudit ist ein KI-gestütztes Rechnungsprüfungssystem mit:
-- **Backend**: FastAPI (Python 3.11+) mit Celery Worker
-- **Frontend**: React 18 + TypeScript + Vite + Tailwind
-- **Datenbank**: PostgreSQL 16 mit pgvector
-- **LLM**: Ollama (lokal) oder OpenAI/Anthropic/Gemini (Cloud)
-- **Vector DB**: ChromaDB für RAG
-- **Queue**: Redis für Celery Tasks
+FlowAudit ist ein KI-gestütztes Schulungs- und Prüfungssystem für die regelbasierte Analyse von Geschäftsdokumenten (Rechnungen, Kontoauszüge, Belege). Das System prüft Dokumente gegen konfigurierbare steuerliche Regelwerke (DE_USTG, EU_VAT, UK_VAT) und ist darauf ausgelegt, weitere Regelwerke modular zu integrieren. Zielgruppe sind Finanzabteilungen, Steuerberater und Ausbildungseinrichtungen, die strukturierte Dokumentenprüfung erlernen oder automatisieren möchten.
 
 ---
 
-## ⚠️ Produktions-Sicherheit
+## Technologie-Stack
 
-> **WICHTIG**: Vor dem Produktionseinsatz MÜSSEN folgende Schritte durchgeführt werden!
+### Backend (Python 3.11+)
 
-### Kritische Sicherheitsmaßnahmen
+| Komponente | Bibliothek | Version | Anmerkungen |
+|------------|-----------|---------|-------------|
+| Web Framework | FastAPI | ≥0.109 | Async-first, Pydantic v2 |
+| HTTP Client | **httpx** | ≥0.26 | Nicht requests verwenden |
+| ORM | SQLAlchemy | ≥2.0.25 | Async mit asyncpg |
+| Migrations | Alembic | ≥1.13 | |
+| Task Queue | Celery + Redis | ≥5.3.6 | |
+| PDF Parsing | pdfplumber, pypdf | | |
+| Validation | Pydantic | ≥2.5.3 | Strikte Schemas |
+| LLM Clients | openai, anthropic, google-generativeai | | Ollama via httpx |
+| Vector Store | ChromaDB | ≥0.4.22 | RAG-Funktionalität |
+| Embeddings | sentence-transformers | ≥2.3.1 | |
 
-1. **Secrets ändern** - Alle Default-Werte ersetzen:
-   ```bash
-   # Sichere Werte generieren
-   export SECRET_KEY=$(openssl rand -hex 32)
-   export POSTGRES_PASSWORD=$(openssl rand -hex 16)
-   export CHROMA_TOKEN=$(openssl rand -hex 16)
-   ```
+### Frontend (Node 18+)
 
-2. **Demo-Benutzer deaktivieren**:
-   ```bash
-   export DEMO_USERS=""  # Leer setzen!
-   ```
+| Komponente | Bibliothek | Version | Anmerkungen |
+|------------|-----------|---------|-------------|
+| Framework | React | 18.3 | Functional Components only |
+| Build | Vite | 5.4 | |
+| Sprache | TypeScript | 5.6 | Strict mode, kein `any` |
+| Styling | Tailwind CSS | 3.4 | Utility-first |
+| HTTP Client | **axios** | 1.7 | Nicht fetch direkt |
+| Server State | @tanstack/react-query | 5.60 | Caching, Refetching |
+| Client State | zustand | 5.0 | Auth, UI-Preferences |
+| i18n | i18next + react-i18next | | DE/EN |
+| Icons | lucide-react | 0.460 | |
+| Router | react-router-dom | 6.28 | |
+| Charts | recharts | 2.13 | |
 
-3. **Debug-Modus deaktivieren**:
-   ```bash
-   export DEBUG=false
-   ```
+### Infrastruktur
 
-4. **CORS auf Produktions-Domain beschränken**:
-   ```bash
-   export CORS_ORIGINS="https://your-domain.com"
-   ```
-
-### Vollständige Dokumentation
-
-Siehe [docs/ENV_VARIABLES.md](docs/ENV_VARIABLES.md) für alle Umgebungsvariablen.
-
----
-
-## Schnellstart (Docker)
-
-### Voraussetzungen
-- Docker + Docker Compose
-- Mindestens 16 GB RAM (für Ollama)
-- Optional: NVIDIA GPU mit nvidia-container-toolkit
-
-### Starten
-
-```bash
-# Für lokale Entwicklung (mit Build)
-cd docker
-docker compose up -d
-
-# Für Portainer (mit pre-built Images)
-# Compose path: docker/docker-compose.portainer.yml
-```
-
-### Services und Ports
-
-| Service   | Port  | URL                          |
-|-----------|-------|------------------------------|
-| Frontend  | 3000  | http://localhost:3000        |
-| Backend   | 8000  | http://localhost:8000        |
-| API Docs  | 8000  | http://localhost:8000/docs   |
-| PostgreSQL| 5432  | -                            |
-| Redis     | 6379  | -                            |
-| ChromaDB  | 8001  | http://localhost:8001        |
-| Ollama    | 11434 | http://localhost:11434       |
+| Dienst | Technologie | Port |
+|--------|------------|------|
+| Datenbank | PostgreSQL 16 + pgvector | 5432 |
+| Cache/Queue | Redis | 6379 |
+| Vector DB | ChromaDB | 8001 |
+| LLM (lokal) | Ollama | 11434 |
+| Backend | Uvicorn | 8000 |
+| Frontend | Nginx/Vite | 3000 |
 
 ---
 
-## Häufige Probleme & Lösungen
+## Kritische Bereiche
 
-### Backend startet nicht
+> Diese Dateien/Module dürfen **NICHT** ohne explizite Anweisung geändert werden:
 
-```bash
-# Logs prüfen
-docker logs flowaudit-backend
+### Regelwerk-Logik (produktiv validiert)
 
-# Typische Ursachen:
-# 1. Datenbank nicht bereit → warten oder neu starten
-# 2. Redis nicht erreichbar → Redis-Container prüfen
-# 3. Migrations-Fehler → Datenbank-Init prüfen
+```
+backend/app/services/rule_engine.py      # Regelwerk-Auswertung
+backend/app/services/validators.py       # Steuerliche Validierungen
+backend/app/seeds/rulesets.py            # Seed-Daten für DE_USTG, EU_VAT, UK_VAT
+docs/rulesets.md                         # Ground Truth für Regelwerke
 ```
 
-### Frontend kann Backend nicht erreichen
+### Datenbank-Schema
 
-```bash
-# Prüfen ob Backend läuft
-curl http://localhost:8000/api/health
-
-# CORS-Probleme: Backend-Umgebungsvariable prüfen
-CORS_ORIGINS=http://localhost:3000
+```
+backend/app/models/*.py                  # SQLAlchemy Models
+backend/alembic/versions/*.py            # Migrations - nie manuell editieren
 ```
 
-### Ollama antwortet nicht
+### Sicherheit
 
-```bash
-# Status prüfen
-curl http://localhost:11434/api/tags
-
-# Modell herunterladen (falls noch nicht vorhanden)
-docker exec flowaudit-ollama ollama pull llama3.2
-
-# GPU-Probleme: CPU-Fallback in docker-compose.portainer.yml nutzen
+```
+backend/app/core/security.py             # JWT, Passwort-Hashing
+backend/app/core/permissions.py          # Rollenbasierte Zugriffskontrolle
+backend/app/api/auth.py                  # Auth-Endpunkte
 ```
 
-### Celery Worker hängt
+### API-Contracts
 
-```bash
-# Worker-Logs prüfen
-docker logs flowaudit-worker
-
-# Worker neu starten
-docker restart flowaudit-worker
+```
+backend/app/schemas/*.py                 # Pydantic-Schemas (API-Vertrag)
+docs/api_contracts.md                    # API-Spezifikation
 ```
 
 ---
 
-## Entwicklung
+## Code-Konventionen
 
-### Backend (Python)
+### Python (Backend)
+
+**Import-Reihenfolge** (durch ruff/isort erzwungen):
+```python
+# 1. Standard Library
+import logging
+from datetime import UTC, datetime
+from typing import Any
+from uuid import uuid4
+
+# 2. Third-party
+from fastapi import APIRouter, Depends, HTTPException
+from sqlalchemy.ext.asyncio import AsyncSession
+
+# 3. Local imports
+from app.database import get_db
+from app.models.document import Document
+from app.schemas.document import DocumentResponse
+```
+
+**Docstring-Format** (Google-Style):
+```python
+def process_invoice(document_id: str, ruleset_id: str) -> AuditResult:
+    """
+    Prüft eine Rechnung gegen ein Regelwerk.
+
+    Args:
+        document_id: UUID des Dokuments.
+        ruleset_id: ID des Regelwerks (z.B. "DE_USTG").
+
+    Returns:
+        AuditResult mit Prüfergebnissen.
+
+    Raises:
+        DocumentNotFoundError: Dokument existiert nicht.
+        RulesetNotFoundError: Regelwerk nicht gefunden.
+    """
+```
+
+**Namenskonventionen**:
+- Klassen: `PascalCase` (z.B. `AuditService`, `DocumentResponse`)
+- Funktionen/Variablen: `snake_case` (z.B. `get_document`, `ruleset_id`)
+- Konstanten: `UPPER_SNAKE_CASE` (z.B. `DEFAULT_PAGE_SIZE`)
+- Private: `_leading_underscore` (z.B. `_internal_helper`)
+
+**Type Hints**: Immer verwenden, `Any` vermeiden:
+```python
+# Richtig
+async def get_documents(limit: int = 20) -> list[Document]: ...
+
+# Falsch
+async def get_documents(limit=20): ...
+```
+
+### TypeScript (Frontend)
+
+**Import-Reihenfolge**:
+```typescript
+// 1. React/externe Libs
+import { useState, useEffect } from 'react'
+import { useQuery } from '@tanstack/react-query'
+
+// 2. Komponenten
+import { Button } from '@/components/ui/Button'
+import { Layout } from '@/components/Layout'
+
+// 3. Utilities/Types
+import { api } from '@/lib/api'
+import type { Document } from '@/lib/types'
+```
+
+**Komponenten-Struktur**:
+```typescript
+// Functional Components mit expliziten Props-Interface
+interface DocumentCardProps {
+  document: Document
+  onSelect: (id: string) => void
+}
+
+export function DocumentCard({ document, onSelect }: DocumentCardProps) {
+  // Hooks zuerst
+  const [isExpanded, setIsExpanded] = useState(false)
+
+  // Event Handler
+  const handleClick = () => onSelect(document.id)
+
+  // JSX
+  return (...)
+}
+```
+
+**Strikte TypeScript-Regeln**:
+- Kein `any` ohne explizite Annotation/Begründung
+- Kein `@ts-ignore` ohne Kommentar
+- Immer `interface` für Props, `type` für Unions
+
+### Commit-Messages
+
+Format: `<type>: <description>`
+
+Typen:
+- `feat:` Neue Funktionalität
+- `fix:` Bugfix
+- `refactor:` Code-Umstrukturierung ohne Funktionsänderung
+- `docs:` Dokumentation
+- `test:` Tests hinzufügen/ändern
+- `chore:` Build, Dependencies, Konfiguration
+
+Beispiele:
+```
+feat: Add UK_VAT ruleset support
+fix: Correct VAT calculation for small invoices
+refactor: Extract PDF parsing into dedicated service
+docs: Update API documentation for batch endpoints
+```
+
+---
+
+## Externe Abhängigkeiten
+
+### Datenbank (PostgreSQL)
+
+```
+Host: db (Docker) / localhost (lokal)
+Port: 5432
+Connection: postgresql+asyncpg://flowaudit:***@db:5432/flowaudit
+```
+
+### Redis (Celery Queue)
+
+```
+Host: redis (Docker) / localhost (lokal)
+Port: 6379
+URL: redis://redis:6379/0
+```
+
+### ChromaDB (Vector Store)
+
+```
+Host: chromadb (Docker) / localhost (lokal)
+Port: 8000 (intern) / 8001 (extern)
+Auth: Token-basiert (CHROMA_TOKEN)
+```
+
+### Ollama (LLM - lokal)
+
+```
+Host: ollama (Docker) / localhost (lokal)
+Port: 11434
+Endpunkte:
+  POST /api/generate     # Text-Generierung
+  POST /api/embeddings   # Embeddings
+  GET  /api/tags         # Verfügbare Modelle
+```
+
+### LLM Cloud-Provider (optional)
+
+| Provider | Basis-URL | Auth |
+|----------|-----------|------|
+| OpenAI | https://api.openai.com/v1 | Bearer Token |
+| Anthropic | https://api.anthropic.com/v1 | x-api-key Header |
+| Google AI | https://generativelanguage.googleapis.com | API Key |
+
+---
+
+## Wichtige Befehle
+
+### Backend
 
 ```bash
+# Entwicklungsserver starten
 cd backend
-
-# Virtuelle Umgebung
-python -m venv venv
-source venv/bin/activate  # Linux/Mac
-.\venv\Scripts\activate   # Windows
-
-# Dependencies
-pip install -e ".[dev]"
-
-# Lokaler Start (ohne Docker)
 uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
+
+# Tests ausführen
+pytest                           # Alle Tests
+pytest tests/test_rulesets.py    # Spezifische Tests
+pytest --cov=app                 # Mit Coverage
+
+# Linting & Formatting
+ruff check .                     # Linting
+ruff format .                    # Formatting (ersetzt black)
+mypy app                         # Type-Checking
+
+# Celery Worker
+celery -A app.worker.celery_app worker --loglevel=info
+
+# Alembic Migrations
+alembic revision --autogenerate -m "Add new field"
+alembic upgrade head
+alembic downgrade -1
 ```
 
-### Frontend (React)
+### Frontend
 
 ```bash
 cd frontend
-
-# Dependencies
-npm install
 
 # Entwicklungsserver
 npm run dev
@@ -160,8 +295,52 @@ npm run dev
 # Build
 npm run build
 
-# Type-Check
+# Type-Check (ohne Emit)
 npx tsc --noEmit
+
+# Linting
+npm run lint
+
+# Tests
+npm test                         # Vitest
+```
+
+### Docker
+
+```bash
+cd docker
+
+# Alle Services starten (lokal mit Build)
+docker compose up -d
+
+# Logs anzeigen
+docker compose logs -f backend
+docker compose logs -f worker
+
+# Einzelnen Service neu starten
+docker restart flowaudit-backend
+
+# Ollama-Modell laden
+docker exec flowaudit-ollama ollama pull llama3.2
+
+# Datenbank-Shell
+docker exec -it flowaudit-db psql -U flowaudit -d flowaudit
+```
+
+### Health-Checks
+
+```bash
+# Backend Health
+curl http://localhost:8000/api/health
+
+# Detaillierter Status
+curl http://localhost:8000/api/health/detailed
+
+# Ollama Status
+curl http://localhost:11434/api/tags
+
+# ChromaDB Status
+curl http://localhost:8001/api/v1/heartbeat
 ```
 
 ---
@@ -172,220 +351,42 @@ npx tsc --noEmit
 flowinvoice/
 ├── backend/
 │   ├── app/
-│   │   ├── api/          # FastAPI Routes
-│   │   ├── models/       # SQLAlchemy Models
-│   │   ├── schemas/      # Pydantic Schemas
-│   │   ├── services/     # Business Logic
-│   │   ├── llm/          # LLM Provider (Ollama, OpenAI, etc.)
-│   │   ├── rag/          # RAG mit ChromaDB
-│   │   └── worker/       # Celery Tasks
-│   ├── Dockerfile
+│   │   ├── api/              # FastAPI Router (REST-Endpunkte)
+│   │   ├── models/           # SQLAlchemy Models
+│   │   ├── schemas/          # Pydantic Request/Response Schemas
+│   │   ├── services/         # Business Logic
+│   │   ├── llm/              # LLM-Provider-Adapter
+│   │   ├── rag/              # RAG mit ChromaDB
+│   │   ├── core/             # Security, Config
+│   │   ├── worker/           # Celery Tasks
+│   │   └── seeds/            # Initiale Daten (Rulesets)
+│   ├── tests/
+│   ├── alembic/              # DB-Migrations
 │   └── pyproject.toml
 ├── frontend/
 │   ├── src/
-│   │   ├── pages/        # React Pages
-│   │   ├── components/   # React Components
-│   │   ├── lib/          # API Client, Utils
-│   │   └── i18n/         # Übersetzungen (DE/EN)
-│   ├── Dockerfile
+│   │   ├── pages/            # Route-Komponenten
+│   │   ├── components/       # Wiederverwendbare UI
+│   │   ├── lib/              # API-Client, Utils, Types
+│   │   └── i18n/             # Übersetzungen (DE/EN)
 │   └── package.json
 ├── docker/
 │   ├── docker-compose.yml              # Lokale Entwicklung
-│   ├── docker-compose.portainer.yml    # Portainer (ohne GPU)
-│   ├── docker-compose.portainer.gpu.yml # Portainer (mit GPU)
-│   └── stack.env                       # Umgebungsvariablen
+│   ├── docker-compose.portainer.yml    # Produktion (CPU)
+│   └── docker-compose.portainer.gpu.yml # Produktion (GPU)
 └── docs/
-    ├── architecture.md    # Systemarchitektur
-    ├── api_contracts.md   # API Spezifikation
-    ├── rulesets.md        # Steuerliche Regelwerke
-    └── requirements.md    # Funktionale Anforderungen
+    ├── rulesets.md           # Steuerliche Regelwerke (Ground Truth)
+    ├── api_contracts.md      # API-Spezifikation
+    ├── architecture.md       # Systemarchitektur
+    └── requirements.md       # Funktionale Anforderungen
 ```
-
----
-
-## API Endpunkte (wichtigste)
-
-```
-GET  /api/health              # Health Check
-GET  /api/health/detailed     # Detaillierter Status
-
-# Dokumente
-POST /api/documents/upload    # PDF hochladen
-GET  /api/documents/{id}      # Dokument abrufen
-POST /api/documents/{id}/analyze  # Analyse starten
-
-# Projekte
-GET  /api/projects            # Alle Projekte
-POST /api/projects            # Neues Projekt
-
-# LLM Provider
-GET  /api/llm/providers       # Verfügbare Provider
-POST /api/llm/providers/{id}/test  # Provider testen
-
-# Einstellungen
-GET  /api/settings            # Alle Einstellungen
-PUT  /api/settings            # Einstellungen aktualisieren
-```
-
----
-
-## Umgebungsvariablen
-
-### Backend (.env oder docker-compose)
-
-```bash
-# Datenbank
-DATABASE_URL=postgresql+asyncpg://flowaudit:flowaudit_secret@db:5432/flowaudit
-POSTGRES_PASSWORD=flowaudit_secret
-
-# Redis
-REDIS_URL=redis://redis:6379/0
-
-# ChromaDB
-CHROMA_HOST=chromadb
-CHROMA_PORT=8000
-CHROMA_TOKEN=flowaudit_chroma_token
-
-# Ollama
-OLLAMA_HOST=http://ollama:11434
-
-# Sicherheit
-SECRET_KEY=change_in_production
-
-# Logging
-LOG_LEVEL=INFO
-DEBUG=false
-```
-
----
-
-## Tests
-
-```bash
-# Backend Tests
-cd backend
-pytest
-
-# Frontend Tests
-cd frontend
-npm test
-```
-
----
-
-## Dokumentation
-
-Ausführliche Dokumentation in `/docs/`:
-
-- **architecture.md** - Systemarchitektur und Komponenten
-- **api_contracts.md** - Vollständige API-Spezifikation
-- **rulesets.md** - Steuerliche Regelwerke (DE/EU)
-- **requirements.md** - Funktionale Anforderungen
-- **rag_learning.md** - RAG und Lernmechanismus
-- **operations.md** - Betrieb und Monitoring
-
----
-
----
-
-## Frontend GUI
-
-### Seiten-Übersicht
-
-| Seite        | Route              | Zweck                              |
-|--------------|--------------------|------------------------------------|
-| Dashboard    | `/`                | Übersicht, Statistiken             |
-| Projekte     | `/projects`        | Projektverwaltung                  |
-| Dokumente    | `/documents`       | Dokumenten-Upload und Liste        |
-| Rulesets     | `/rulesets`        | Steuerliche Regelwerke verwalten   |
-| Statistik    | `/statistics`      | Auswertungen und Charts            |
-| Einstellungen| `/settings`        | LLM-Provider, Sprache, Theme       |
-| Login        | `/login`           | Anmeldung                          |
-
-### Komponenten-Struktur
-
-```
-src/
-├── pages/
-│   ├── Dashboard.tsx       # Startseite mit Kennzahlen
-│   ├── Projects.tsx        # Projektliste
-│   ├── ProjectDetail.tsx   # Einzelnes Projekt
-│   ├── Documents.tsx       # Dokumentenverwaltung
-│   ├── DocumentDetail.tsx  # Dokument-Analyse-Ansicht
-│   ├── Rulesets.tsx        # Regelwerk-Editor
-│   ├── Statistics.tsx      # Statistik-Dashboard
-│   ├── Settings.tsx        # Einstellungen
-│   └── Login.tsx           # Authentifizierung
-├── components/
-│   ├── Layout.tsx          # Haupt-Layout mit Sidebar
-│   ├── Sidebar.tsx         # Navigation
-│   └── ui/                 # Wiederverwendbare UI-Komponenten
-├── lib/
-│   ├── api.ts              # API-Client (axios)
-│   ├── types.ts            # TypeScript Interfaces
-│   └── i18n.ts             # Internationalisierung
-└── store/
-    └── authStore.ts        # Zustand für Auth
-```
-
-### UI-Funktionen
-
-- **Dark Mode**: Toggle in Settings, persistiert in localStorage
-- **Sprache**: Deutsch/Englisch umschaltbar
-- **LLM-Provider**: Auswahl zwischen Ollama, OpenAI, Anthropic, Gemini
-- **API-Keys**: Maskierte Eingabe für Cloud-Provider
-- **Live-Status**: System-Metriken (CPU, RAM, GPU) in Settings
-
-### Styling
-
-- **Tailwind CSS**: Utility-First CSS Framework
-- **Farben**: Primary (Blau), Grau-Töne, Status-Farben (Rot/Gelb/Grün)
-- **Icons**: Lucide React
-- **Responsive**: Mobile-First Design
-
-### State Management
-
-- **React Query**: Server-State (API-Daten, Caching)
-- **Zustand**: Client-State (Auth, UI-Preferences)
-- **localStorage**: Theme, Sprache
-
----
-
-## Portainer GUI Deployment
-
-### Schritt-für-Schritt
-
-1. **Portainer öffnen** → Stacks → Add Stack
-
-2. **Build method**: Repository wählen
-
-3. **Repository-Einstellungen**:
-   - URL: `https://github.com/janpow77/flowinvoice.git`
-   - Reference: `refs/heads/main`
-   - Compose path: `docker/docker-compose.portainer.yml`
-   - (Mit GPU: `docker/docker-compose.portainer.gpu.yml`)
-
-4. **Environment variables**:
-   - Werden aus `docker/stack.env` geladen
-   - Oder manuell überschreiben
-
-5. **Deploy the stack** klicken
-
-### Portainer Troubleshooting
-
-| Problem | Lösung |
-|---------|--------|
-| "stack.env not found" | Datei existiert jetzt im Repo |
-| "Image pull failed" | GitHub Actions muss Images erst bauen |
-| "GPU not available" | `docker-compose.portainer.yml` (ohne GPU) verwenden |
-| "Container unhealthy" | Logs prüfen, start_period abwarten |
 
 ---
 
 ## Bekannte Einschränkungen
 
-1. **Ollama braucht Zeit** - Erster Start lädt Modelle (mehrere GB)
-2. **GPU optional** - Ohne GPU ist LLM langsamer aber funktional
-3. **ChromaDB Healthcheck** - Gibt immer "healthy" zurück (by design)
-4. **Frontend Build** - Strikte TypeScript-Prüfung (keine `any` ohne Annotation)
-5. **GitHub Actions** - Images werden erst bei Push zu `main` gebaut
+1. **Ollama Startup**: Erster Start lädt Modelle (mehrere GB), kann Minuten dauern
+2. **GPU optional**: Ohne GPU funktioniert LLM, aber langsamer
+3. **TypeScript strict**: Frontend-Build schlägt bei `any` ohne Annotation fehl
+4. **Async-only**: Backend verwendet durchgehend async/await (kein sync SQLAlchemy)
+5. **Ruleset-Immutabilität**: Rulesets sind versioniert - Änderungen erzeugen neue Versionen
