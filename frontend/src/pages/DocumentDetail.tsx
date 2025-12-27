@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { useParams, Link } from 'react-router-dom'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
+import { useTranslation } from 'react-i18next'
 import {
   CheckCircle,
   AlertTriangle,
@@ -37,6 +38,7 @@ interface FieldCorrection {
 }
 
 export default function DocumentDetail() {
+  const { t } = useTranslation()
   const { id } = useParams<{ id: string }>()
   const queryClient = useQueryClient()
   const [feedbackSubmitted, setFeedbackSubmitted] = useState<'CORRECT' | 'INCORRECT' | null>(null)
@@ -142,9 +144,9 @@ export default function DocumentDetail() {
     return (
       <div className="text-center py-12">
         <FileText className="h-12 w-12 text-theme-text-muted mx-auto mb-4" />
-        <p className="text-theme-text-muted">Dokument nicht gefunden</p>
+        <p className="text-theme-text-muted">{t('documentDetail.notFound')}</p>
         <Link to="/documents" className="mt-4 text-theme-primary hover:underline">
-          Zurück zur Übersicht
+          {t('documentDetail.backToOverview')}
         </Link>
       </div>
     )
@@ -180,7 +182,7 @@ export default function DocumentDetail() {
               {document.original_filename}
             </h2>
             <p className="text-sm text-theme-text-muted">
-              Hochgeladen: {new Date(document.created_at).toLocaleDateString('de-DE')}
+              {t('documentDetail.uploadedOn')}: {new Date(document.created_at).toLocaleDateString('de-DE')}
             </p>
           </div>
         </div>
@@ -193,7 +195,7 @@ export default function DocumentDetail() {
               className="flex items-center px-4 py-2 bg-theme-primary text-white rounded-lg hover:bg-theme-primary-hover disabled:opacity-50"
             >
               <Play className="h-4 w-4 mr-2" />
-              {analyzeMutation.isPending ? 'Analysiere...' : 'KI-Analyse starten'}
+              {analyzeMutation.isPending ? t('documentDetail.analyzing') : t('documentDetail.startAnalysis')}
             </button>
           )}
           {!isEditing && document.analysis_result && !feedbackSubmitted && (
@@ -202,7 +204,7 @@ export default function DocumentDetail() {
               className="flex items-center px-4 py-2 border border-theme-border text-theme-text rounded-lg hover:bg-theme-hover"
             >
               <Edit2 className="h-4 w-4 mr-2" />
-              Korrigieren
+              {t('documentDetail.correct')}
             </button>
           )}
         </div>
@@ -211,7 +213,7 @@ export default function DocumentDetail() {
       {/* Status Summary */}
       <div className="grid grid-cols-3 gap-4">
         <div className="bg-theme-surface rounded-lg p-4 border border-theme-border">
-          <p className="text-sm text-theme-text-muted">Status</p>
+          <p className="text-sm text-theme-text-muted">{t('documents.status')}</p>
           <div className="flex items-center gap-2 mt-1">
             {document.status === 'ANALYZED' ? (
               <CheckCircle className="h-5 w-5 text-status-success" />
@@ -236,18 +238,18 @@ export default function DocumentDetail() {
                   : 'bg-status-danger-bg border-status-danger-border'
               )}
             >
-              <p className="text-sm text-theme-text-muted">Bewertung</p>
+              <p className="text-sm text-theme-text-muted">{t('documentDetail.assessment')}</p>
               <p className="font-medium mt-1">
                 {document.analysis_result.overall_assessment === 'ok'
-                  ? 'In Ordnung'
+                  ? t('documentDetail.assessmentOk')
                   : document.analysis_result.overall_assessment === 'review_needed'
-                  ? 'Prüfung erforderlich'
-                  : 'Abgelehnt'}
+                  ? t('documentDetail.assessmentReview')
+                  : t('documentDetail.assessmentRejected')}
               </p>
             </div>
 
             <div className="bg-theme-surface rounded-lg p-4 border border-theme-border">
-              <p className="text-sm text-theme-text-muted">Konfidenz</p>
+              <p className="text-sm text-theme-text-muted">{t('documentDetail.confidence')}</p>
               <p className="font-medium mt-1 text-theme-text">
                 {document.analysis_result.confidence != null
                   ? `${Math.round(document.analysis_result.confidence * 100)}%`
@@ -261,11 +263,11 @@ export default function DocumentDetail() {
       {/* Extracted Fields */}
       <div className="bg-theme-card rounded-lg border border-theme-border">
         <div className="px-4 py-3 border-b border-theme-border flex items-center justify-between">
-          <h3 className="font-semibold text-theme-text-primary">Extrahierte Daten</h3>
+          <h3 className="font-semibold text-theme-text-primary">{t('documentDetail.extractedData')}</h3>
           {isEditing && (
             <div className="flex items-center gap-2">
               <span className="text-sm text-theme-text-muted">
-                {corrections.length} Korrektur(en)
+                {t('documentDetail.correctionsCount', { count: corrections.length })}
               </span>
             </div>
           )}
@@ -335,12 +337,12 @@ export default function DocumentDetail() {
               {showAllFields ? (
                 <>
                   <ChevronUp className="w-4 h-4" />
-                  Weniger anzeigen
+                  {t('documentDetail.showLess')}
                 </>
               ) : (
                 <>
                   <ChevronDown className="w-4 h-4" />
-                  Alle {allFields.length} Felder anzeigen
+                  {t('documentDetail.showAllFields', { count: allFields.length })}
                 </>
               )}
             </button>
@@ -352,7 +354,7 @@ export default function DocumentDetail() {
       {document.precheck_errors && document.precheck_errors.length > 0 && (
         <div className="bg-theme-card rounded-lg border border-theme-border">
           <div className="px-4 py-3 border-b border-theme-border">
-            <h3 className="font-semibold text-theme-text-primary">Vorprüfung</h3>
+            <h3 className="font-semibold text-theme-text-primary">{t('documentDetail.precheck')}</h3>
           </div>
           <div className="p-4 space-y-2">
             {document.precheck_errors.map((error: PrecheckError, i: number) => (
@@ -388,10 +390,10 @@ export default function DocumentDetail() {
       {document.analysis_result && (
         <div className="bg-theme-card rounded-lg border border-theme-border">
           <div className="px-4 py-3 border-b border-theme-border flex items-center justify-between">
-            <h3 className="font-semibold text-theme-text-primary">Prüfergebnisse</h3>
+            <h3 className="font-semibold text-theme-text-primary">{t('checkResults.title')}</h3>
             <div className="flex items-center gap-1">
               <Info className="h-4 w-4 text-theme-text-muted" />
-              <span className="text-xs text-theme-text-muted">Schulungsansicht</span>
+              <span className="text-xs text-theme-text-muted">{t('checkResults.trainingView')}</span>
             </div>
           </div>
           <div className="p-4 space-y-4">
@@ -408,9 +410,9 @@ export default function DocumentDetail() {
                     : 'bg-status-success-bg'
                 )}>
                   <Shield className="h-5 w-5" />
-                  <span className="font-medium">Risikoprüfung</span>
+                  <span className="font-medium">{t('risk.check')}</span>
                   <span className="text-sm ml-auto">
-                    Score: {document.analysis_result.risk_assessment.risk_score}/100
+                    {t('risk.score')}: {document.analysis_result.risk_assessment.risk_score}/100
                   </span>
                 </div>
                 {document.analysis_result.risk_assessment.findings?.length > 0 ? (
@@ -434,7 +436,7 @@ export default function DocumentDetail() {
                 ) : (
                   <div className="p-3 text-sm text-status-success flex items-center gap-2">
                     <CheckCircle className="h-4 w-4" />
-                    Keine Risikoindikatoren gefunden
+                    {t('risk.noIndicators')}
                   </div>
                 )}
               </div>
@@ -450,10 +452,10 @@ export default function DocumentDetail() {
                     : 'bg-status-warning-bg'
                 )}>
                   <Brain className="h-5 w-5" />
-                  <span className="font-medium">Semantische Prüfung</span>
+                  <span className="font-medium">{t('checkResults.semantic.title')}</span>
                   {document.analysis_result.semantic_check.project_relevance_score !== undefined && (
                     <span className="text-sm ml-auto">
-                      Projektrelevanz: {Math.round(document.analysis_result.semantic_check.project_relevance_score * 100)}%
+                      {t('checkResults.semantic.projectRelevance')}: {Math.round(document.analysis_result.semantic_check.project_relevance_score * 100)}%
                     </span>
                   )}
                 </div>
@@ -476,7 +478,7 @@ export default function DocumentDetail() {
                   {document.analysis_result.semantic_check.passed && (
                     <div className="text-sm text-status-success flex items-center gap-2">
                       <CheckCircle className="h-4 w-4" />
-                      Semantische Prüfung bestanden
+                      {t('checkResults.semantic.passed')}
                     </div>
                   )}
                 </div>
@@ -493,7 +495,7 @@ export default function DocumentDetail() {
                     : 'bg-status-warning-bg'
                 )}>
                   <TrendingUp className="h-5 w-5" />
-                  <span className="font-medium">Wirtschaftlichkeitsprüfung</span>
+                  <span className="font-medium">{t('checkResults.economic.title')}</span>
                 </div>
                 <div className="p-3 space-y-2">
                   {document.analysis_result.economic_check.message && (
@@ -513,8 +515,8 @@ export default function DocumentDetail() {
                       ) : (
                         <XCircle className="h-4 w-4" />
                       )}
-                      Budgetprüfung: {document.analysis_result.economic_check.budget_check.message || (
-                        document.analysis_result.economic_check.budget_check.passed ? 'OK' : 'Nicht bestanden'
+                      {t('documentDetail.budgetCheck')}: {document.analysis_result.economic_check.budget_check.message || (
+                        document.analysis_result.economic_check.budget_check.passed ? t('common.success') : t('documentDetail.notPassed')
                       )}
                     </div>
                   )}
@@ -530,8 +532,8 @@ export default function DocumentDetail() {
                       ) : (
                         <AlertTriangle className="h-4 w-4" />
                       )}
-                      Preisprüfung: {document.analysis_result.economic_check.price_check.message || (
-                        document.analysis_result.economic_check.price_check.passed ? 'OK' : 'Abweichung erkannt'
+                      {t('documentDetail.priceCheck')}: {document.analysis_result.economic_check.price_check.message || (
+                        document.analysis_result.economic_check.price_check.passed ? t('common.success') : t('documentDetail.deviationDetected')
                       )}
                       {document.analysis_result.economic_check.price_check.deviation_percent !== undefined && (
                         <span className="ml-auto font-mono text-xs">
@@ -555,10 +557,10 @@ export default function DocumentDetail() {
                     : 'bg-status-warning-bg'
                 )}>
                   <UserCheck className="h-5 w-5" />
-                  <span className="font-medium">Empfängerprüfung</span>
+                  <span className="font-medium">{t('checkResults.beneficiary.title')}</span>
                   {document.analysis_result.beneficiary_match.confidence !== undefined && (
                     <span className="text-sm ml-auto">
-                      Konfidenz: {Math.round(document.analysis_result.beneficiary_match.confidence * 100)}%
+                      {t('documentDetail.confidence')}: {Math.round(document.analysis_result.beneficiary_match.confidence * 100)}%
                     </span>
                   )}
                 </div>
@@ -570,15 +572,15 @@ export default function DocumentDetail() {
                   ) : document.analysis_result.beneficiary_match.matched ? (
                     <div className="text-sm text-status-success flex items-center gap-2">
                       <CheckCircle className="h-4 w-4" />
-                      Empfänger stimmt überein
+                      {t('checkResults.beneficiary.matched')}
                     </div>
                   ) : (
                     <div className="text-sm space-y-1">
                       {document.analysis_result.beneficiary_match.expected_name && (
-                        <p>Erwartet: <span className="font-medium">{document.analysis_result.beneficiary_match.expected_name}</span></p>
+                        <p>{t('checkResults.beneficiary.expected')}: <span className="font-medium">{document.analysis_result.beneficiary_match.expected_name}</span></p>
                       )}
                       {document.analysis_result.beneficiary_match.found_name && (
-                        <p>Gefunden: <span className="font-medium">{document.analysis_result.beneficiary_match.found_name}</span></p>
+                        <p>{t('checkResults.beneficiary.found')}: <span className="font-medium">{document.analysis_result.beneficiary_match.found_name}</span></p>
                       )}
                     </div>
                   )}
@@ -598,7 +600,7 @@ export default function DocumentDetail() {
                     : 'bg-status-warning-bg'
                 )}>
                   <Target className="h-5 w-5" />
-                  <span className="font-medium">Zuwendungszweckprüfung</span>
+                  <span className="font-medium">{t('checkResults.grantPurpose.title')}</span>
                 </div>
                 <div className="p-3 space-y-3">
                   {/* Dimension Results */}
@@ -612,7 +614,7 @@ export default function DocumentDetail() {
                           ? 'bg-status-danger-bg'
                           : 'bg-status-warning-bg'
                       )}>
-                        <div className="font-medium">Sachlicher Zusammenhang</div>
+                        <div className="font-medium">{t('checkResults.grantPurpose.subjectRelation')}</div>
                         <div className="text-xs opacity-75">{document.analysis_result.grant_purpose_audit.subject_relation.result}</div>
                       </div>
                     )}
@@ -625,7 +627,7 @@ export default function DocumentDetail() {
                           ? 'bg-status-danger-bg'
                           : 'bg-status-warning-bg'
                       )}>
-                        <div className="font-medium">Zeitlicher Zusammenhang</div>
+                        <div className="font-medium">{t('checkResults.grantPurpose.temporalRelation')}</div>
                         <div className="text-xs opacity-75">{document.analysis_result.grant_purpose_audit.temporal_relation.result}</div>
                       </div>
                     )}
@@ -638,7 +640,7 @@ export default function DocumentDetail() {
                           ? 'bg-status-danger-bg'
                           : 'bg-status-warning-bg'
                       )}>
-                        <div className="font-medium">Organisatorischer Zusammenhang</div>
+                        <div className="font-medium">{t('checkResults.grantPurpose.organizationalRelation')}</div>
                         <div className="text-xs opacity-75">{document.analysis_result.grant_purpose_audit.organizational_relation.result}</div>
                       </div>
                     )}
@@ -651,7 +653,7 @@ export default function DocumentDetail() {
                           ? 'bg-status-danger-bg'
                           : 'bg-status-warning-bg'
                       )}>
-                        <div className="font-medium">Wirtschaftliche Plausibilität</div>
+                        <div className="font-medium">{t('checkResults.grantPurpose.economicPlausibility')}</div>
                         <div className="text-xs opacity-75">{document.analysis_result.grant_purpose_audit.economic_plausibility.result}</div>
                       </div>
                     )}
@@ -688,9 +690,9 @@ export default function DocumentDetail() {
               <div className="border border-theme-border rounded-lg overflow-hidden">
                 <div className="px-4 py-2 bg-status-warning-bg flex items-center gap-3">
                   <GitMerge className="h-5 w-5 text-status-warning" />
-                  <span className="font-medium">Konfliktauflösung</span>
+                  <span className="font-medium">{t('checkResults.conflicts.title')}</span>
                   <span className="text-sm ml-auto">
-                    {document.analysis_result.conflicts.length} Konflikt(e)
+                    {t('checkResults.conflicts.count', { count: document.analysis_result.conflicts.length })}
                   </span>
                 </div>
                 <div className="p-3 space-y-2">
@@ -699,14 +701,14 @@ export default function DocumentDetail() {
                       <div className="font-medium mb-1">{conflict.field}</div>
                       <div className="grid grid-cols-2 gap-2 text-xs">
                         <div>
-                          <span className="text-theme-text-muted">Regel:</span> {conflict.rule_value || '-'}
+                          <span className="text-theme-text-muted">{t('checkResults.conflicts.rule')}:</span> {conflict.rule_value || '-'}
                         </div>
                         <div>
-                          <span className="text-theme-text-muted">KI:</span> {conflict.llm_value || '-'}
+                          <span className="text-theme-text-muted">{t('checkResults.conflicts.ai')}:</span> {conflict.llm_value || '-'}
                         </div>
                       </div>
                       <div className="mt-1 text-xs">
-                        <span className="text-theme-text-muted">Aufgelöst durch:</span>{' '}
+                        <span className="text-theme-text-muted">{t('checkResults.conflicts.resolvedBy')}:</span>{' '}
                         <span className="font-medium">{conflict.resolved_by}</span> → {conflict.resolved_value}
                       </div>
                     </div>
@@ -720,7 +722,7 @@ export default function DocumentDetail() {
               <div className="border border-status-warning-border rounded-lg overflow-hidden">
                 <div className="px-4 py-2 bg-status-warning-bg flex items-center gap-3">
                   <AlertTriangle className="h-5 w-5 text-status-warning" />
-                  <span className="font-medium">Warnungen ({document.analysis_result.warnings.length})</span>
+                  <span className="font-medium">{t('checkResults.warnings', { count: document.analysis_result.warnings.length })}</span>
                 </div>
                 <div className="p-3 space-y-1">
                   {document.analysis_result.warnings.map((warning: string, i: number) => (
@@ -743,7 +745,7 @@ export default function DocumentDetail() {
              (!document.analysis_result.warnings || document.analysis_result.warnings.length === 0) && (
               <div className="text-center py-4 text-theme-text-muted">
                 <Info className="h-8 w-8 mx-auto mb-2 opacity-50" />
-                <p>Keine erweiterten Prüfergebnisse verfügbar</p>
+                <p>{t('checkResults.noResults')}</p>
               </div>
             )}
           </div>
@@ -765,15 +767,15 @@ export default function DocumentDetail() {
               <CheckCircle className="h-5 w-5" />
               <span>
                 {feedbackSubmitted === 'CORRECT'
-                  ? 'Feedback gesendet - Ergebnis bestätigt'
-                  : `Feedback gesendet - ${corrections.length} Korrektur(en) übermittelt`}
+                  ? t('documentDetail.feedback.confirmed')
+                  : t('documentDetail.feedback.correctionsSent', { count: corrections.length })}
               </span>
             </div>
           ) : isEditing ? (
             <div className="space-y-4">
               <div className="flex items-center justify-between">
                 <span className="text-sm text-theme-text-muted">
-                  Bearbeiten Sie die Felder und speichern Sie Ihre Korrekturen.
+                  {t('documentDetail.feedback.editHint')}
                 </span>
               </div>
               <div className="flex items-center gap-2">
@@ -782,7 +784,7 @@ export default function DocumentDetail() {
                   className="flex items-center px-4 py-2 border border-theme-border text-theme-text rounded-lg hover:bg-theme-hover"
                 >
                   <X className="h-4 w-4 mr-2" />
-                  Abbrechen
+                  {t('common.cancel')}
                 </button>
                 <button
                   onClick={submitWithCorrections}
@@ -801,14 +803,14 @@ export default function DocumentDetail() {
                     <Save className="h-4 w-4 mr-2" />
                   )}
                   {corrections.length > 0
-                    ? `${corrections.length} Korrektur(en) speichern`
-                    : 'Als korrekt bestätigen'}
+                    ? t('documentDetail.feedback.saveCorrections', { count: corrections.length })
+                    : t('documentDetail.feedback.confirmCorrect')}
                 </button>
               </div>
             </div>
           ) : (
             <div className="flex items-center gap-4">
-              <span className="text-sm text-theme-text-muted">War diese Analyse korrekt?</span>
+              <span className="text-sm text-theme-text-muted">{t('documentDetail.feedback.question')}</span>
               <div className="flex items-center gap-2">
                 <button
                   onClick={() => feedbackMutation.mutate({ rating: 'CORRECT' })}
@@ -820,14 +822,14 @@ export default function DocumentDetail() {
                   ) : (
                     <ThumbsUp className="h-4 w-4 mr-1" />
                   )}
-                  Ja
+                  {t('common.yes')}
                 </button>
                 <button
                   onClick={startEditing}
                   className="flex items-center px-3 py-1 text-sm text-status-danger border border-status-danger-border rounded-lg hover:bg-status-danger-bg"
                 >
                   <ThumbsDown className="h-4 w-4 mr-1" />
-                  Nein, korrigieren
+                  {t('documentDetail.feedback.noCorrect')}
                 </button>
               </div>
             </div>

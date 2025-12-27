@@ -182,11 +182,77 @@ export const de = {
     errors: 'Fehler',
     warnings: 'Warnungen',
     passed: 'Bestanden',
-    feedback: 'Feedback',
+    feedbackOld: 'Feedback',
     feedbackPlaceholder: 'Korrektur oder Anmerkung eingeben...',
     submitFeedback: 'Feedback senden',
     approve: 'Genehmigen',
     reject: 'Ablehnen',
+    // New translations
+    notFound: 'Dokument nicht gefunden',
+    backToOverview: 'Zurück zur Übersicht',
+    uploadedOn: 'Hochgeladen',
+    analyzing: 'Analysiere...',
+    startAnalysis: 'KI-Analyse starten',
+    correct: 'Korrigieren',
+    assessment: 'Bewertung',
+    assessmentOk: 'In Ordnung',
+    assessmentReview: 'Prüfung erforderlich',
+    assessmentRejected: 'Abgelehnt',
+    confidence: 'Konfidenz',
+    extractedData: 'Extrahierte Daten',
+    correctionsCount: '{{count}} Korrektur(en)',
+    showLess: 'Weniger anzeigen',
+    showAllFields: 'Alle {{count}} Felder anzeigen',
+    precheck: 'Vorprüfung',
+    budgetCheck: 'Budgetprüfung',
+    priceCheck: 'Preisprüfung',
+    notPassed: 'Nicht bestanden',
+    deviationDetected: 'Abweichung erkannt',
+    feedback: {
+      confirmed: 'Feedback gesendet - Ergebnis bestätigt',
+      correctionsSent: 'Feedback gesendet - {{count}} Korrektur(en) übermittelt',
+      editHint: 'Bearbeiten Sie die Felder und speichern Sie Ihre Korrekturen.',
+      saveCorrections: '{{count}} Korrektur(en) speichern',
+      confirmCorrect: 'Als korrekt bestätigen',
+      question: 'War diese Analyse korrekt?',
+      noCorrect: 'Nein, korrigieren',
+    },
+  },
+
+  // Check Results
+  checkResults: {
+    title: 'Prüfergebnisse',
+    trainingView: 'Schulungsansicht',
+    noResults: 'Keine erweiterten Prüfergebnisse verfügbar',
+    warnings: 'Warnungen ({{count}})',
+    semantic: {
+      title: 'Semantische Prüfung',
+      projectRelevance: 'Projektrelevanz',
+      passed: 'Semantische Prüfung bestanden',
+    },
+    economic: {
+      title: 'Wirtschaftlichkeitsprüfung',
+    },
+    beneficiary: {
+      title: 'Empfängerprüfung',
+      matched: 'Empfänger stimmt überein',
+      expected: 'Erwartet',
+      found: 'Gefunden',
+    },
+    grantPurpose: {
+      title: 'Zuwendungszweckprüfung',
+      subjectRelation: 'Sachlicher Zusammenhang',
+      temporalRelation: 'Zeitlicher Zusammenhang',
+      organizationalRelation: 'Organisatorischer Zusammenhang',
+      economicPlausibility: 'Wirtschaftliche Plausibilität',
+    },
+    conflicts: {
+      title: 'Konfliktauflösung',
+      count: '{{count}} Konflikt(e)',
+      rule: 'Regel',
+      ai: 'KI',
+      resolvedBy: 'Aufgelöst durch',
+    },
   },
 
   // Statistics
@@ -565,26 +631,6 @@ export const de = {
       organizational: 'Organisatorische Konsistenz',
       temporal: 'Zeitliche Konsistenz',
       economic: 'Wirtschaftlichkeit',
-    },
-  },
-
-  // Check Results (Document Detail)
-  checkResults: {
-    title: 'Prüfergebnisse',
-    trainingView: 'Schulungsansicht',
-    semantic: {
-      title: 'Semantische Prüfung',
-      projectRelevance: 'Projektrelevanz',
-      passed: 'Semantische Prüfung bestanden',
-    },
-    economic: {
-      title: 'Wirtschaftlichkeitsprüfung',
-      passed: 'Wirtschaftlichkeitsprüfung bestanden',
-    },
-    beneficiary: {
-      title: 'Begünstigtenabgleich',
-      match: 'Empfänger stimmt überein',
-      noMatch: 'Empfänger stimmt nicht überein',
     },
   },
 
