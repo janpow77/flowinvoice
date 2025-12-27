@@ -221,5 +221,5 @@ Abweichungen sind als Modell- oder Prompt-Effekt zu kennzeichnen.
 10. ✅ Datenklassifikation dokumentieren (data_classification.md)
 
 ### Phase 4: Frontend-Integration
-11. 🔄 Übersetzungen für neue Konzepte (teilweise, Erweiterung folgt)
-12. ⏳ UI-Komponenten für neue Prüfungen
+11. ✅ Übersetzungen für neue Konzepte (checkerSettings, checkResults, risk, grantPurpose, conflict)
+12. ✅ UI-Komponenten für neue Prüfungen (Grant Purpose Audit, Conflict Resolution)

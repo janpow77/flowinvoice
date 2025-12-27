@@ -14,6 +14,7 @@ import {
 } from 'lucide-react'
 import clsx from 'clsx'
 import { api } from '@/lib/api'
+import { useTranslation } from 'react-i18next'
 
 interface CheckerConfig {
   enabled: boolean
@@ -94,6 +95,7 @@ interface CheckersSettingsProps {
 }
 
 export default function CheckersSettings({ rulesetId }: CheckersSettingsProps) {
+  const { t } = useTranslation()
   const queryClient = useQueryClient()
   const [expandedSections, setExpandedSections] = useState<Record<string, boolean>>({
     risk: true,
@@ -196,10 +198,10 @@ export default function CheckersSettings({ rulesetId }: CheckersSettingsProps) {
       <div className="flex items-center justify-between">
         <div>
           <h3 className="text-lg font-semibold text-theme-text-primary">
-            Prüfmodul-Konfiguration
+            {t('checkerSettings.title')}
           </h3>
           <p className="text-sm text-theme-text-muted mt-1">
-            Konfigurieren Sie die automatischen Prüfungen für Rechnungsdokumente
+            {t('checkerSettings.description')}
           </p>
         </div>
         <div className="flex items-center gap-2">
@@ -213,7 +215,7 @@ export default function CheckersSettings({ rulesetId }: CheckersSettingsProps) {
             ) : (
               <RotateCcw className="w-4 h-4" />
             )}
-            Zurücksetzen
+            {t('checkerSettings.reset')}
           </button>
           <button
             onClick={handleSave}
@@ -230,7 +232,7 @@ export default function CheckersSettings({ rulesetId }: CheckersSettingsProps) {
             ) : (
               <Save className="w-4 h-4" />
             )}
-            Speichern
+            {t('checkerSettings.save')}
           </button>
         </div>
       </div>
@@ -246,9 +248,9 @@ export default function CheckersSettings({ rulesetId }: CheckersSettingsProps) {
               <Shield className="w-5 h-5 text-status-danger" />
             </div>
             <div className="text-left">
-              <h4 className="font-medium text-theme-text-primary">Risikoprüfung</h4>
+              <h4 className="font-medium text-theme-text-primary">{t('checkerSettings.risk.title')}</h4>
               <p className="text-sm text-theme-text-muted">
-                Betrugserkennungen und Plausibilitätsprüfungen
+                {t('checkerSettings.risk.description')}
               </p>
             </div>
           </div>
@@ -261,7 +263,7 @@ export default function CheckersSettings({ rulesetId }: CheckersSettingsProps) {
                   : 'bg-theme-surface text-theme-text-muted'
               )}
             >
-              {settings.risk_checker.enabled ? 'Aktiv' : 'Inaktiv'}
+              {settings.risk_checker.enabled ? t('checkerSettings.active') : t('checkerSettings.inactive')}
             </span>
             {expandedSections.risk ? (
               <ChevronDown className="w-5 h-5 text-theme-text-muted" />
@@ -276,7 +278,7 @@ export default function CheckersSettings({ rulesetId }: CheckersSettingsProps) {
             <div className="mt-4 space-y-4">
               {/* Enable/Disable */}
               <div className="flex items-center justify-between">
-                <label className="text-sm text-theme-text">Risikoprüfung aktivieren</label>
+                <label className="text-sm text-theme-text">{t('checkerSettings.risk.enable')}</label>
                 <input
                   type="checkbox"
                   checked={settings.risk_checker.enabled}
@@ -287,20 +289,20 @@ export default function CheckersSettings({ rulesetId }: CheckersSettingsProps) {
 
               {/* Severity Threshold */}
               <div>
-                <label className="block text-sm text-theme-text mb-1">Schwellenwert</label>
+                <label className="block text-sm text-theme-text mb-1">{t('checkerSettings.threshold')}</label>
                 <select
                   value={settings.risk_checker.severity_threshold}
                   onChange={e => updateSetting('risk_checker', 'severity_threshold', e.target.value)}
                   className="w-full px-3 py-2 text-sm border border-theme-border rounded-lg bg-theme-surface text-theme-text"
                 >
-                  <option value="LOW">Niedrig (alle Warnungen)</option>
-                  <option value="MEDIUM">Mittel (ab Warnung)</option>
-                  <option value="HIGH">Hoch (nur kritische)</option>
+                  <option value="LOW">{t('checkerSettings.thresholdLow')}</option>
+                  <option value="MEDIUM">{t('checkerSettings.thresholdMedium')}</option>
+                  <option value="HIGH">{t('checkerSettings.thresholdHigh')}</option>
                 </select>
               </div>
 
               <div className="border-t border-theme-border pt-4">
-                <p className="text-sm font-medium text-theme-text mb-3">Aktive Prüfungen</p>
+                <p className="text-sm font-medium text-theme-text mb-3">{t('checkerSettings.activeChecks')}</p>
                 <div className="space-y-3">
                   <label className="flex items-center gap-3">
                     <input
@@ -309,7 +311,7 @@ export default function CheckersSettings({ rulesetId }: CheckersSettingsProps) {
                       onChange={e => updateSetting('risk_checker', 'check_self_invoice', e.target.checked)}
                       className="rounded border-theme-border text-theme-primary focus:ring-theme-primary"
                     />
-                    <span className="text-sm text-theme-text">Selbstrechnungsprüfung</span>
+                    <span className="text-sm text-theme-text">{t('checkerSettings.risk.selfInvoice')}</span>
                   </label>
                   <label className="flex items-center gap-3">
                     <input
@@ -318,7 +320,7 @@ export default function CheckersSettings({ rulesetId }: CheckersSettingsProps) {
                       onChange={e => updateSetting('risk_checker', 'check_duplicate_invoice', e.target.checked)}
                       className="rounded border-theme-border text-theme-primary focus:ring-theme-primary"
                     />
-                    <span className="text-sm text-theme-text">Duplikatsprüfung</span>
+                    <span className="text-sm text-theme-text">{t('checkerSettings.risk.duplicate')}</span>
                   </label>
                   <label className="flex items-center gap-3">
                     <input
@@ -327,7 +329,7 @@ export default function CheckersSettings({ rulesetId }: CheckersSettingsProps) {
                       onChange={e => updateSetting('risk_checker', 'check_round_amounts', e.target.checked)}
                       className="rounded border-theme-border text-theme-primary focus:ring-theme-primary"
                     />
-                    <span className="text-sm text-theme-text">Runde Beträge erkennen</span>
+                    <span className="text-sm text-theme-text">{t('checkerSettings.risk.roundAmounts')}</span>
                   </label>
                   <label className="flex items-center gap-3">
                     <input
@@ -336,14 +338,14 @@ export default function CheckersSettings({ rulesetId }: CheckersSettingsProps) {
                       onChange={e => updateSetting('risk_checker', 'check_weekend_dates', e.target.checked)}
                       className="rounded border-theme-border text-theme-primary focus:ring-theme-primary"
                     />
-                    <span className="text-sm text-theme-text">Wochenend-Rechnungsdatum</span>
+                    <span className="text-sm text-theme-text">{t('checkerSettings.risk.weekendDates')}</span>
                   </label>
                 </div>
               </div>
 
               <div>
                 <label className="block text-sm text-theme-text mb-1">
-                  Schwelle für runde Beträge (EUR)
+                  {t('checkerSettings.risk.roundThreshold')}
                 </label>
                 <input
                   type="number"
@@ -355,7 +357,7 @@ export default function CheckersSettings({ rulesetId }: CheckersSettingsProps) {
                   className="w-full px-3 py-2 text-sm border border-theme-border rounded-lg bg-theme-surface text-theme-text"
                 />
                 <p className="text-xs text-theme-text-muted mt-1">
-                  Beträge ab diesem Wert werden bei runden Summen markiert
+                  {t('checkerSettings.risk.roundThresholdDesc')}
                 </p>
               </div>
             </div>
@@ -374,9 +376,9 @@ export default function CheckersSettings({ rulesetId }: CheckersSettingsProps) {
               <Brain className="w-5 h-5 text-status-info" />
             </div>
             <div className="text-left">
-              <h4 className="font-medium text-theme-text-primary">Semantische Prüfung</h4>
+              <h4 className="font-medium text-theme-text-primary">{t('checkerSettings.semantic.title')}</h4>
               <p className="text-sm text-theme-text-muted">
-                Projektrelevanz und Beschreibungsqualität
+                {t('checkerSettings.semantic.description')}
               </p>
             </div>
           </div>
@@ -389,7 +391,7 @@ export default function CheckersSettings({ rulesetId }: CheckersSettingsProps) {
                   : 'bg-theme-surface text-theme-text-muted'
               )}
             >
-              {settings.semantic_checker.enabled ? 'Aktiv' : 'Inaktiv'}
+              {settings.semantic_checker.enabled ? t('checkerSettings.active') : t('checkerSettings.inactive')}
             </span>
             {expandedSections.semantic ? (
               <ChevronDown className="w-5 h-5 text-theme-text-muted" />
@@ -403,7 +405,7 @@ export default function CheckersSettings({ rulesetId }: CheckersSettingsProps) {
           <div className="px-4 pb-4 border-t border-theme-border">
             <div className="mt-4 space-y-4">
               <div className="flex items-center justify-between">
-                <label className="text-sm text-theme-text">Semantische Prüfung aktivieren</label>
+                <label className="text-sm text-theme-text">{t('checkerSettings.semantic.enable')}</label>
                 <input
                   type="checkbox"
                   checked={settings.semantic_checker.enabled}
@@ -413,7 +415,7 @@ export default function CheckersSettings({ rulesetId }: CheckersSettingsProps) {
               </div>
 
               <div className="border-t border-theme-border pt-4">
-                <p className="text-sm font-medium text-theme-text mb-3">Aktive Prüfungen</p>
+                <p className="text-sm font-medium text-theme-text mb-3">{t('checkerSettings.activeChecks')}</p>
                 <div className="space-y-3">
                   <label className="flex items-center gap-3">
                     <input
@@ -422,7 +424,7 @@ export default function CheckersSettings({ rulesetId }: CheckersSettingsProps) {
                       onChange={e => updateSetting('semantic_checker', 'check_project_relevance', e.target.checked)}
                       className="rounded border-theme-border text-theme-primary focus:ring-theme-primary"
                     />
-                    <span className="text-sm text-theme-text">Projektrelevanz prüfen</span>
+                    <span className="text-sm text-theme-text">{t('checkerSettings.semantic.projectRelevance')}</span>
                   </label>
                   <label className="flex items-center gap-3">
                     <input
@@ -431,7 +433,7 @@ export default function CheckersSettings({ rulesetId }: CheckersSettingsProps) {
                       onChange={e => updateSetting('semantic_checker', 'check_description_quality', e.target.checked)}
                       className="rounded border-theme-border text-theme-primary focus:ring-theme-primary"
                     />
-                    <span className="text-sm text-theme-text">Beschreibungsqualität</span>
+                    <span className="text-sm text-theme-text">{t('checkerSettings.semantic.descriptionQuality')}</span>
                   </label>
                   <label className="flex items-center gap-3">
                     <input
@@ -440,14 +442,14 @@ export default function CheckersSettings({ rulesetId }: CheckersSettingsProps) {
                       onChange={e => updateSetting('semantic_checker', 'use_rag_context', e.target.checked)}
                       className="rounded border-theme-border text-theme-primary focus:ring-theme-primary"
                     />
-                    <span className="text-sm text-theme-text">RAG-Kontext verwenden</span>
+                    <span className="text-sm text-theme-text">{t('checkerSettings.semantic.useRag')}</span>
                   </label>
                 </div>
               </div>
 
               <div>
                 <label className="block text-sm text-theme-text mb-1">
-                  Minimale Relevanz-Score: {(settings.semantic_checker.min_relevance_score * 100).toFixed(0)}%
+                  {t('checkerSettings.semantic.minRelevance')}: {(settings.semantic_checker.min_relevance_score * 100).toFixed(0)}%
                 </label>
                 <input
                   type="range"
@@ -475,9 +477,9 @@ export default function CheckersSettings({ rulesetId }: CheckersSettingsProps) {
               <TrendingUp className="w-5 h-5 text-status-warning" />
             </div>
             <div className="text-left">
-              <h4 className="font-medium text-theme-text-primary">Wirtschaftlichkeitsprüfung</h4>
+              <h4 className="font-medium text-theme-text-primary">{t('checkerSettings.economic.title')}</h4>
               <p className="text-sm text-theme-text-muted">
-                Budget- und Preiskontrollen
+                {t('checkerSettings.economic.description')}
               </p>
             </div>
           </div>
@@ -490,7 +492,7 @@ export default function CheckersSettings({ rulesetId }: CheckersSettingsProps) {
                   : 'bg-theme-surface text-theme-text-muted'
               )}
             >
-              {settings.economic_checker.enabled ? 'Aktiv' : 'Inaktiv'}
+              {settings.economic_checker.enabled ? t('checkerSettings.active') : t('checkerSettings.inactive')}
             </span>
             {expandedSections.economic ? (
               <ChevronDown className="w-5 h-5 text-theme-text-muted" />
@@ -504,7 +506,7 @@ export default function CheckersSettings({ rulesetId }: CheckersSettingsProps) {
           <div className="px-4 pb-4 border-t border-theme-border">
             <div className="mt-4 space-y-4">
               <div className="flex items-center justify-between">
-                <label className="text-sm text-theme-text">Wirtschaftlichkeitsprüfung aktivieren</label>
+                <label className="text-sm text-theme-text">{t('checkerSettings.economic.enable')}</label>
                 <input
                   type="checkbox"
                   checked={settings.economic_checker.enabled}
@@ -514,7 +516,7 @@ export default function CheckersSettings({ rulesetId }: CheckersSettingsProps) {
               </div>
 
               <div className="border-t border-theme-border pt-4">
-                <p className="text-sm font-medium text-theme-text mb-3">Aktive Prüfungen</p>
+                <p className="text-sm font-medium text-theme-text mb-3">{t('checkerSettings.activeChecks')}</p>
                 <div className="space-y-3">
                   <label className="flex items-center gap-3">
                     <input
@@ -523,7 +525,7 @@ export default function CheckersSettings({ rulesetId }: CheckersSettingsProps) {
                       onChange={e => updateSetting('economic_checker', 'check_budget_limits', e.target.checked)}
                       className="rounded border-theme-border text-theme-primary focus:ring-theme-primary"
                     />
-                    <span className="text-sm text-theme-text">Budgetgrenzen prüfen</span>
+                    <span className="text-sm text-theme-text">{t('checkerSettings.economic.budgetLimits')}</span>
                   </label>
                   <label className="flex items-center gap-3">
                     <input
@@ -532,7 +534,7 @@ export default function CheckersSettings({ rulesetId }: CheckersSettingsProps) {
                       onChange={e => updateSetting('economic_checker', 'check_unit_prices', e.target.checked)}
                       className="rounded border-theme-border text-theme-primary focus:ring-theme-primary"
                     />
-                    <span className="text-sm text-theme-text">Stückpreise prüfen</span>
+                    <span className="text-sm text-theme-text">{t('checkerSettings.economic.unitPrices')}</span>
                   </label>
                   <label className="flex items-center gap-3">
                     <input
@@ -541,14 +543,14 @@ export default function CheckersSettings({ rulesetId }: CheckersSettingsProps) {
                       onChange={e => updateSetting('economic_checker', 'check_funding_rate', e.target.checked)}
                       className="rounded border-theme-border text-theme-primary focus:ring-theme-primary"
                     />
-                    <span className="text-sm text-theme-text">Fördersatz prüfen</span>
+                    <span className="text-sm text-theme-text">{t('checkerSettings.economic.fundingRate')}</span>
                   </label>
                 </div>
               </div>
 
               <div>
                 <label className="block text-sm text-theme-text mb-1">
-                  Max. Abweichung: {settings.economic_checker.max_deviation_percent}%
+                  {t('checkerSettings.economic.maxDeviation')}: {settings.economic_checker.max_deviation_percent}%
                 </label>
                 <input
                   type="range"
@@ -560,7 +562,7 @@ export default function CheckersSettings({ rulesetId }: CheckersSettingsProps) {
                   className="w-full"
                 />
                 <p className="text-xs text-theme-text-muted mt-1">
-                  Erlaubte Preisabweichung vom Durchschnitt
+                  {t('checkerSettings.economic.deviationDesc')}
                 </p>
               </div>
             </div>
@@ -579,9 +581,9 @@ export default function CheckersSettings({ rulesetId }: CheckersSettingsProps) {
               <Scale className="w-5 h-5 text-purple-600 dark:text-purple-400" />
             </div>
             <div className="text-left">
-              <h4 className="font-medium text-theme-text-primary">Rechtliche Prüfung</h4>
+              <h4 className="font-medium text-theme-text-primary">{t('checkerSettings.legal.title')}</h4>
               <p className="text-sm text-theme-text-muted">
-                EU-Verordnungen und Förderbedingungen
+                {t('checkerSettings.legal.description')}
               </p>
             </div>
           </div>
@@ -594,7 +596,7 @@ export default function CheckersSettings({ rulesetId }: CheckersSettingsProps) {
                   : 'bg-theme-surface text-theme-text-muted'
               )}
             >
-              {settings.legal_checker.enabled ? 'Aktiv' : 'Inaktiv'}
+              {settings.legal_checker.enabled ? t('checkerSettings.active') : t('checkerSettings.inactive')}
             </span>
             {expandedSections.legal ? (
               <ChevronDown className="w-5 h-5 text-theme-text-muted" />
@@ -610,14 +612,12 @@ export default function CheckersSettings({ rulesetId }: CheckersSettingsProps) {
               {/* Info Banner */}
               <div className="bg-purple-50 dark:bg-purple-900/20 border border-purple-200 dark:border-purple-800 rounded-lg p-3">
                 <p className="text-sm text-purple-700 dark:text-purple-300">
-                  <strong>Legal Retrieval:</strong> Aktiviert die Suche nach relevanten EU-Verordnungen
-                  und Rechtstexten aus der Vektordatenbank. Die Ergebnisse werden nach Normenhierarchie
-                  gewichtet (EU-Recht &gt; Nationales Recht &gt; Guidance).
+                  {t('checkerSettings.legal.infoText')}
                 </p>
               </div>
 
               <div className="flex items-center justify-between">
-                <label className="text-sm text-theme-text">Rechtliche Prüfung aktivieren</label>
+                <label className="text-sm text-theme-text">{t('checkerSettings.legal.enable')}</label>
                 <input
                   type="checkbox"
                   checked={settings.legal_checker.enabled}
@@ -627,19 +627,19 @@ export default function CheckersSettings({ rulesetId }: CheckersSettingsProps) {
               </div>
 
               <div>
-                <label className="block text-sm text-theme-text mb-1">EU-Förderperiode</label>
+                <label className="block text-sm text-theme-text mb-1">{t('checkerSettings.legal.fundingPeriod')}</label>
                 <select
                   value={settings.legal_checker.funding_period}
                   onChange={e => updateSetting('legal_checker', 'funding_period', e.target.value)}
                   className="w-full px-3 py-2 text-sm border border-theme-border rounded-lg bg-theme-surface text-theme-text"
                 >
-                  <option value="2021-2027">2021-2027 (aktuelle Periode)</option>
-                  <option value="2014-2020">2014-2020 (vorherige Periode)</option>
+                  <option value="2021-2027">2021-2027 ({t('checkerSettings.legal.periodCurrent')})</option>
+                  <option value="2014-2020">2014-2020 ({t('checkerSettings.legal.periodPrevious')})</option>
                 </select>
               </div>
 
               <div className="border-t border-theme-border pt-4">
-                <p className="text-sm font-medium text-theme-text mb-3">Retrieval-Optionen</p>
+                <p className="text-sm font-medium text-theme-text mb-3">{t('checkerSettings.legal.retrievalOptions')}</p>
                 <div className="space-y-3">
                   <label className="flex items-center gap-3">
                     <input
@@ -648,7 +648,7 @@ export default function CheckersSettings({ rulesetId }: CheckersSettingsProps) {
                       onChange={e => updateSetting('legal_checker', 'use_hierarchy_weighting', e.target.checked)}
                       className="rounded border-theme-border text-theme-primary focus:ring-theme-primary"
                     />
-                    <span className="text-sm text-theme-text">Normenhierarchie-Gewichtung</span>
+                    <span className="text-sm text-theme-text">{t('checkerSettings.legal.hierarchyWeighting')}</span>
                   </label>
                   <label className="flex items-center gap-3">
                     <input
@@ -657,14 +657,14 @@ export default function CheckersSettings({ rulesetId }: CheckersSettingsProps) {
                       onChange={e => updateSetting('legal_checker', 'include_definitions', e.target.checked)}
                       className="rounded border-theme-border text-theme-primary focus:ring-theme-primary"
                     />
-                    <span className="text-sm text-theme-text">Legaldefinitionen einbeziehen</span>
+                    <span className="text-sm text-theme-text">{t('checkerSettings.legal.includeDefinitions')}</span>
                   </label>
                 </div>
               </div>
 
               <div>
                 <label className="block text-sm text-theme-text mb-1">
-                  Max. Ergebnisse: {settings.legal_checker.max_results}
+                  {t('checkerSettings.legal.maxResults')}: {settings.legal_checker.max_results}
                 </label>
                 <input
                   type="range"
@@ -679,7 +679,7 @@ export default function CheckersSettings({ rulesetId }: CheckersSettingsProps) {
 
               <div>
                 <label className="block text-sm text-theme-text mb-1">
-                  Minimale Relevanz: {(settings.legal_checker.min_relevance_score * 100).toFixed(0)}%
+                  {t('checkerSettings.legal.minRelevance')}: {(settings.legal_checker.min_relevance_score * 100).toFixed(0)}%
                 </label>
                 <input
                   type="range"
@@ -701,10 +701,9 @@ export default function CheckersSettings({ rulesetId }: CheckersSettingsProps) {
         <div className="flex items-start gap-3">
           <Info className="w-5 h-5 text-status-info mt-0.5" />
           <div>
-            <p className="font-medium text-status-info">Hinweis</p>
+            <p className="font-medium text-status-info">{t('checkerSettings.note')}</p>
             <p className="text-sm text-status-info mt-1">
-              Änderungen an den Prüfmodulen wirken sich nur auf neue Analysen aus.
-              Bereits analysierte Dokumente müssen erneut verarbeitet werden.
+              {t('checkerSettings.noteText')}
             </p>
           </div>
         </div>

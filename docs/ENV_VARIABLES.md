@@ -76,7 +76,7 @@ python3 -c "import secrets; print(secrets.token_hex(32))"
 |----------|---------|--------------|
 | `OLLAMA_HOST` | `http://ollama:11434` | Ollama API URL |
 | `OLLAMA_DEFAULT_MODEL` | `llama3.1:8b` | Standard-Modell |
-| `OLLAMA_TIMEOUT_SEC` | `120` | Request-Timeout |
+| `OLLAMA_TIMEOUT_SEC` | `300` | Request-Timeout (5 Minuten für komplexe Analysen) |
 | `OLLAMA_GPU_MEMORY_FRACTION` | `0.8` | GPU-Speicher Anteil (0-1) |
 | `OLLAMA_NUM_GPU` | `999` | GPU-Layers (-1=alle, 0=CPU) |
 | `OLLAMA_NUM_PARALLEL` | `2` | Parallele Requests |

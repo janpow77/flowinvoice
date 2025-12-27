@@ -60,7 +60,7 @@ class Settings(BaseSettings):
     # Ollama (Local LLM)
     ollama_host: str = "http://localhost:11434"
     ollama_default_model: str = "llama3.1:8b"
-    ollama_timeout_sec: int = 120
+    ollama_timeout_sec: int = 300  # 5 Minuten für komplexe Analysen
 
     # Custom Local LLM (für weitere lokale APIs)
     local_custom_host: str | None = None  # z.B. "http://localhost:8080"

@@ -32,17 +32,17 @@ class OllamaProvider(BaseLLMProvider):
     provider = Provider.LOCAL_OLLAMA
     default_model = "llama3.1:8b"
 
-    def __init__(self, base_url: str | None = None, timeout: int = 120):
+    def __init__(self, base_url: str | None = None, timeout: int | None = None):
         """
         Initialisiert Ollama Provider.
 
         Args:
             base_url: Ollama API URL (default: aus Settings)
-            timeout: Timeout in Sekunden
+            timeout: Timeout in Sekunden (default: aus Settings)
         """
         settings = get_settings()
         self.base_url = base_url or settings.ollama_host
-        self.timeout = timeout
+        self.timeout = timeout or settings.ollama_timeout_sec
         # Client wird lazy erstellt, um Event-Loop-Probleme in Celery zu vermeiden
         self._client: httpx.AsyncClient | None = None
 
