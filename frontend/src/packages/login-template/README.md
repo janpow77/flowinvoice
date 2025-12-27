@@ -10,19 +10,26 @@ Wiederverwendbares Login-Template mit animiertem Fisch und Binary-Datenwasser.
 - **Frosted Glass Design**: Moderne Login-Karte mit Blur-Effekt
 - **Responsive**: Mobile-first Design
 - **Tailwind CSS**: Nutzt nur Tailwind-Klassen
+- **Logo inklusive**: Das FlowAudit-Logo ist im Package enthalten
 
 ## Voraussetzungen
 
 - React 18+
 - Tailwind CSS
-- Das Logo muss im `public`-Verzeichnis liegen: `/public/auditlogo.png`
+- Vite oder Webpack (für Asset-Imports)
 
 ## Verwendung
 
 ### Einfaches Beispiel
 
 ```tsx
-import { LoginTemplate, LoginInput, LoginButton, LoginError } from '@/packages/login-template';
+import {
+  LoginTemplate,
+  LoginInput,
+  LoginButton,
+  LoginError,
+  logoPath  // Logo aus dem Package importieren
+} from '@/packages/login-template';
 
 function LoginPage() {
   const [username, setUsername] = useState('');
@@ -36,7 +43,7 @@ function LoginPage() {
 
   return (
     <LoginTemplate
-      logoPath="/auditlogo.png"
+      logoPath={logoPath}  // Mitgeliefertes Logo verwenden
       title="flowaudit"
       subtitle="Automated Audit Systems"
       footer={<p className="text-xs text-blue-200/60 text-center">Demo: admin / admin</p>}
@@ -75,11 +82,12 @@ import {
   LoginDivider,
   OAuthButton,
   GoogleIcon,
+  logoPath,
 } from '@/packages/login-template';
 
 function LoginPage() {
   return (
-    <LoginTemplate logoPath="/auditlogo.png" title="flowaudit">
+    <LoginTemplate logoPath={logoPath} title="flowaudit">
       <form className="space-y-6" onSubmit={handleSubmit}>
         {/* Standard Login Form */}
         <LoginInput label="Kennung" />
@@ -103,7 +111,7 @@ function LoginPage() {
 
 | Prop | Typ | Default | Beschreibung |
 |------|-----|---------|--------------|
-| `logoPath` | `string` | `/auditlogo.png` | Pfad zum Logo (das Original!) |
+| `logoPath` | `string` | `/auditlogo.png` | Pfad zum Logo (import aus Package empfohlen) |
 | `title` | `string` | `flowaudit` | Haupttitel |
 | `subtitle` | `string` | `Automated Audit Systems` | Untertitel |
 | `children` | `ReactNode` | - | Login-Formular (required) |
@@ -172,10 +180,24 @@ login-template/
 ├── index.ts              # Package exports
 ├── LoginTemplate.tsx     # Hauptkomponente mit Animationen
 ├── LoginFormElements.tsx # Form-Komponenten
-└── README.md            # Diese Dokumentation
+├── assets/
+│   ├── auditlogo.png     # FlowAudit Logo (PNG)
+│   └── auditlogo.svg     # FlowAudit Logo (SVG)
+├── assets.d.ts           # TypeScript Deklarationen
+├── README.md             # Diese Dokumentation
+└── CLAUDE.md             # Claude Code Anleitung
 ```
 
-## Logo-Hinweis
+## Logo
 
-**WICHTIG**: Das Template verwendet das Original-Logo (`auditlogo.png`) ohne Änderungen.
-Das Logo muss als Datei im `public`-Verzeichnis vorliegen. Es wird nicht modifiziert oder generiert.
+Das FlowAudit-Logo ist im Package enthalten und kann direkt importiert werden:
+
+```tsx
+import { logoPath, logoPathSvg } from '@/packages/login-template';
+
+// PNG verwenden (empfohlen)
+<img src={logoPath} alt="Logo" />
+
+// SVG verwenden
+<img src={logoPathSvg} alt="Logo" />
+```

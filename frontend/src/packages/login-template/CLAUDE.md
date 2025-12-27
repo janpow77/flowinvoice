@@ -8,13 +8,18 @@ Dieses Package enthält ein wiederverwendbares Login-Template mit animiertem Fis
 
 ### Logo-Verwendung
 
-**KRITISCH**: Das Logo (`auditlogo.png`) wird IMMER als externe Datei referenziert und NIEMALS generiert oder modifiziert. Das Logo muss im `public`-Verzeichnis der Anwendung liegen.
+**Das Logo ist im Package enthalten** unter `assets/auditlogo.png` und `assets/auditlogo.svg`.
 
 ```tsx
-// RICHTIG: Logo als Pfad referenzieren
-<LoginTemplate logoPath="/auditlogo.png" />
+// RICHTIG: Logo aus dem Package importieren
+import { LoginTemplate, logoPath } from '@/packages/login-template';
 
-// FALSCH: Kein SVG generieren oder Logo verändern!
+<LoginTemplate logoPath={logoPath} />
+
+// AUCH MÖGLICH: Eigenes Logo verwenden
+<LoginTemplate logoPath="/mein-eigenes-logo.png" />
+
+// FALSCH: Kein SVG generieren oder Logo programmatisch erstellen!
 ```
 
 ### Dateistruktur
@@ -24,14 +29,24 @@ login-template/
 ├── index.ts              # Alle Exports - hier importieren!
 ├── LoginTemplate.tsx     # Hauptkomponente mit Animationen
 ├── LoginFormElements.tsx # Styled Form-Komponenten
-├── README.md            # Benutzer-Dokumentation
-└── CLAUDE.md            # Diese Datei (für Claude Code)
+├── assets/
+│   ├── auditlogo.png     # Original FlowAudit Logo (PNG)
+│   └── auditlogo.svg     # Original FlowAudit Logo (SVG)
+├── assets.d.ts           # TypeScript Deklarationen für Assets
+├── README.md             # Benutzer-Dokumentation
+└── CLAUDE.md             # Diese Datei (für Claude Code)
 ```
 
 ### Exports
 
 ```typescript
 // Aus index.ts verfügbar:
+
+// Logo Assets (im Package enthalten!)
+logoPath             // Pfad zu auditlogo.png (empfohlen)
+logoPathSvg          // Pfad zu auditlogo.svg
+logoPng              // Alias für logoPath
+logoSvg              // Alias für logoPathSvg
 
 // Hauptkomponente
 LoginTemplate        // Container mit Background, Animationen, Logo
@@ -61,13 +76,14 @@ import {
   LoginTemplate,
   LoginInput,
   LoginButton,
-  LoginError
+  LoginError,
+  logoPath  // Logo aus dem Package!
 } from '@/packages/login-template';
 
 function MyLogin() {
   return (
     <LoginTemplate
-      logoPath="/mein-logo.png"
+      logoPath={logoPath}  // Verwendet das mitgelieferte Logo
       title="MeinProjekt"
       subtitle="Untertitel hier"
     >
@@ -149,7 +165,7 @@ Die Animationen sind als CSS-String in `loginAnimations` exportiert. Sie werden 
 
 1. **Fester Hintergrund**: Der blaue Gradient ist nicht konfigurierbar
 2. **Tailwind erforderlich**: Funktioniert nicht ohne Tailwind CSS
-3. **Logo extern**: Muss als Datei vorliegen, nicht inline
+3. **Vite/Webpack erforderlich**: Asset-Imports müssen vom Bundler unterstützt werden
 
 ### Bei Änderungen beachten
 

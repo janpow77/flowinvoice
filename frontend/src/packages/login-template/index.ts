@@ -2,16 +2,14 @@
  * FlowAudit Login Template Package
  *
  * Wiederverwendbares Login-Template mit Animationen.
- *
- * WICHTIG: Das Logo (auditlogo.png) muss im public-Verzeichnis liegen!
- * Das Template verwendet das Original-Logo ohne Änderungen.
+ * Das Logo ist im Package enthalten (assets/auditlogo.png).
  *
  * Verwendung:
  * ```tsx
- * import { LoginTemplate, LoginInput, LoginButton } from '@/packages/login-template';
+ * import { LoginTemplate, LoginInput, LoginButton, logoPath } from '@/packages/login-template';
  *
  * <LoginTemplate
- *   logoPath="/auditlogo.png"  // Pfad zum Original-Logo
+ *   logoPath={logoPath}  // Logo aus dem Package
  *   title="flowaudit"
  *   subtitle="Automated Audit Systems"
  * >
@@ -23,6 +21,14 @@
  * </LoginTemplate>
  * ```
  */
+
+// Logo Assets - im Package enthalten
+import logoPng from './assets/auditlogo.png';
+import logoSvg from './assets/auditlogo.svg';
+
+export const logoPath = logoPng;
+export const logoPathSvg = logoSvg;
+export { logoPng, logoSvg };
 
 // Main Template
 export {
