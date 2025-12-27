@@ -87,6 +87,16 @@ class RagSettings(BaseModel):
     similarity_threshold: float = Field(
         default=0.25, ge=0.0, le=1.0, description="Ähnlichkeitsschwelle"
     )
+    # RAG-Einschränkungen
+    max_examples: int = Field(
+        default=3, ge=1, le=5, description="Maximale Anzahl Beispiele (1-5)"
+    )
+    same_document_type: bool = Field(
+        default=True, description="Nur Beispiele vom gleichen Dokumenttyp"
+    )
+    same_ruleset: bool = Field(
+        default=True, description="Nur Beispiele vom gleichen Ruleset"
+    )
 
 
 class LoggingSettings(BaseModel):

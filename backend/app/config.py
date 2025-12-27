@@ -95,6 +95,10 @@ class Settings(BaseSettings):
     rag_enabled: bool = True
     rag_top_k: int = 3
     rag_similarity_threshold: float = 0.25
+    # RAG-Einschränkungen
+    rag_max_examples: int = 3  # Maximale Anzahl Beispiele (1-5)
+    rag_same_document_type: bool = True  # Nur Beispiele vom gleichen Dokumenttyp
+    rag_same_ruleset: bool = True  # Nur Beispiele vom gleichen Ruleset
     # Multilingual embedding model for German invoice texts
     # Supports 50+ languages including German, 768 dimensions
     embedding_model: str = "sentence-transformers/paraphrase-multilingual-mpnet-base-v2"

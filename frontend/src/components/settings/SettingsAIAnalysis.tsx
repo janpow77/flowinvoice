@@ -33,6 +33,9 @@ interface RagSettings {
   enabled: boolean
   top_k: number
   similarity_threshold: number
+  max_examples: number
+  same_document_type: boolean
+  same_ruleset: boolean
   embedding_model: string
   embedding_info: {
     name: string
@@ -657,6 +660,92 @@ export function SettingsAIAnalysis({ isAdmin }: Props) {
               <span>0% (alle)</span>
               <span>50%</span>
               <span>100% (nur exakt)</span>
+            </div>
+          </div>
+
+          {/* RAG Restrictions Section */}
+          <div className="pt-4 border-t border-theme-border-default">
+            <h4 className="font-medium text-theme-text-primary mb-4">{t('settings.ragRestrictions')}</h4>
+
+            {/* Max Examples Slider */}
+            <div className="mb-4">
+              <div className="flex items-center justify-between mb-2">
+                <div>
+                  <p className="font-medium text-theme-text-primary">{t('settings.maxExamples')}</p>
+                  <p className="text-sm text-theme-text-muted">
+                    {t('settings.maxExamplesDescription')}
+                  </p>
+                </div>
+                <span className="text-sm font-mono text-theme-text-primary bg-theme-hover px-2 py-1 rounded">
+                  {ragSettings?.max_examples ?? 3}
+                </span>
+              </div>
+              <input
+                type="range"
+                min="1"
+                max="5"
+                step="1"
+                value={ragSettings?.max_examples ?? 3}
+                onChange={(e) => handleRagChange('max_examples', parseInt(e.target.value))}
+                disabled={!isAdmin}
+                className={clsx(
+                  "w-full h-2 bg-theme-hover rounded-lg appearance-none cursor-pointer accent-accent-primary",
+                  !isAdmin && "opacity-60 cursor-not-allowed"
+                )}
+              />
+              <div className="flex justify-between text-xs text-theme-text-muted mt-1">
+                <span>1</span>
+                <span>2</span>
+                <span>3</span>
+                <span>4</span>
+                <span>5</span>
+              </div>
+            </div>
+
+            {/* Same Document Type Toggle */}
+            <div className="flex items-center justify-between mb-4">
+              <div>
+                <p className="font-medium text-theme-text-primary">{t('settings.sameDocumentType')}</p>
+                <p className="text-sm text-theme-text-muted">
+                  {t('settings.sameDocumentTypeDescription')}
+                </p>
+              </div>
+              <label className="relative inline-flex items-center cursor-pointer">
+                <input
+                  type="checkbox"
+                  className="sr-only peer"
+                  checked={ragSettings?.same_document_type ?? true}
+                  onChange={(e) => handleRagChange('same_document_type', e.target.checked)}
+                  disabled={!isAdmin}
+                />
+                <div className={clsx(
+                  "w-11 h-6 bg-theme-hover peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-accent-primary/50 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-theme-border-default after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-accent-primary",
+                  !isAdmin && "opacity-60 cursor-not-allowed"
+                )} />
+              </label>
+            </div>
+
+            {/* Same Ruleset Toggle */}
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="font-medium text-theme-text-primary">{t('settings.sameRuleset')}</p>
+                <p className="text-sm text-theme-text-muted">
+                  {t('settings.sameRulesetDescription')}
+                </p>
+              </div>
+              <label className="relative inline-flex items-center cursor-pointer">
+                <input
+                  type="checkbox"
+                  className="sr-only peer"
+                  checked={ragSettings?.same_ruleset ?? true}
+                  onChange={(e) => handleRagChange('same_ruleset', e.target.checked)}
+                  disabled={!isAdmin}
+                />
+                <div className={clsx(
+                  "w-11 h-6 bg-theme-hover peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-accent-primary/50 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-theme-border-default after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-accent-primary",
+                  !isAdmin && "opacity-60 cursor-not-allowed"
+                )} />
+              </label>
             </div>
           </div>
 

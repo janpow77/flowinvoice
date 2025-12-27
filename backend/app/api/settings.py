@@ -136,6 +136,9 @@ async def get_settings_endpoint(
             "enabled": config.rag_enabled,
             "top_k": config.rag_top_k,
             "similarity_threshold": config.rag_similarity_threshold,
+            "max_examples": config.rag_max_examples,
+            "same_document_type": config.rag_same_document_type,
+            "same_ruleset": config.rag_same_ruleset,
             "embedding_model": config.embedding_model,
             "embedding_info": {
                 "name": config.embedding_model.split("/")[-1],
