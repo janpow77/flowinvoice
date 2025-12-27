@@ -29,6 +29,7 @@ interface UserFormData {
   organization: string
   role: UserRole
   assigned_project_id: string
+  language: 'de' | 'en'
 }
 
 interface Project {
@@ -59,6 +60,7 @@ export default function Users() {
     organization: '',
     role: 'schueler',
     assigned_project_id: '',
+    language: 'de',
   })
 
   // Queries
@@ -137,6 +139,7 @@ export default function Users() {
       organization: '',
       role: 'schueler',
       assigned_project_id: '',
+      language: 'de',
     })
   }
 
@@ -149,6 +152,7 @@ export default function Users() {
       organization: formData.organization || undefined,
       role: formData.role,
       assigned_project_id: formData.assigned_project_id || undefined,
+      language: formData.language,
     })
   }
 
@@ -162,6 +166,7 @@ export default function Users() {
         organization: formData.organization || undefined,
         role: formData.role,
         assigned_project_id: formData.assigned_project_id || null,
+        language: formData.language,
       },
     })
   }
@@ -175,6 +180,7 @@ export default function Users() {
       organization: '',
       role: user.role,
       assigned_project_id: user.assigned_project_id || '',
+      language: (user as UserListItem & { language?: 'de' | 'en' }).language || 'de',
     })
     setEditingUser(user)
     setActiveDropdown(null)
@@ -363,8 +369,9 @@ export default function Users() {
                         : t('users.never')}
                     </td>
                     <td className="px-6 py-4 text-right">
-                      <div className="relative">
+                      <div className="relative" style={{ overflow: 'visible' }}>
                         <button
+                          id={`dropdown-btn-${user.id}`}
                           onClick={(e) => {
                             e.stopPropagation()
                             setActiveDropdown(activeDropdown === user.id ? null : user.id)
@@ -374,7 +381,13 @@ export default function Users() {
                           <MoreVertical className="w-5 h-5 text-theme-text-muted" />
                         </button>
                         {activeDropdown === user.id && (
-                          <div className="absolute right-0 mt-2 w-48 bg-theme-card border border-theme-border rounded-lg shadow-lg z-10">
+                          <div
+                            className="fixed w-48 bg-theme-card border border-theme-border rounded-lg shadow-lg z-50"
+                            style={{
+                              top: document.getElementById(`dropdown-btn-${user.id}`)?.getBoundingClientRect().bottom ?? 0,
+                              right: window.innerWidth - (document.getElementById(`dropdown-btn-${user.id}`)?.getBoundingClientRect().right ?? 0),
+                            }}
+                          >
                             <button
                               onClick={() => handleEditClick(user)}
                               className="flex items-center gap-2 w-full px-4 py-2 text-left text-theme-text-primary hover:bg-theme-hover"
@@ -738,6 +751,20 @@ function UserForm({
           <option value="schueler">{t('users.roles.schueler')}</option>
           <option value="admin">{t('users.roles.admin')}</option>
           <option value="extern">{t('users.roles.extern')}</option>
+        </select>
+      </div>
+
+      <div>
+        <label className="block text-sm font-medium text-theme-text-secondary mb-1">
+          {t('users.form.language')}
+        </label>
+        <select
+          value={formData.language}
+          onChange={(e) => setFormData({ ...formData, language: e.target.value as 'de' | 'en' })}
+          className="w-full px-4 py-2 bg-theme-card border border-theme-border rounded-lg text-theme-text-primary focus:outline-none focus:ring-2 focus:ring-theme-primary"
+        >
+          <option value="de">{t('users.languages.de')}</option>
+          <option value="en">{t('users.languages.en')}</option>
         </select>
       </div>
 

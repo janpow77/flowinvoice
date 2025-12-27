@@ -99,7 +99,7 @@ export function LogoSpinner({
         <circle
           cx={center}
           cy={center}
-          r={radius - 4}
+          r={Math.max(0, radius - 4)}
           fill="none"
           stroke="currentColor"
           strokeWidth="1"
@@ -128,7 +128,7 @@ export function LogoSpinner({
         ))}
 
         {/* Fortschritts-Bogen (optional) */}
-        {!isStatic && progress !== undefined && (
+        {!isStatic && progress !== undefined && radius > 12 && (
           <circle
             cx={center}
             cy={center}

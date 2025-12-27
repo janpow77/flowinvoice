@@ -118,8 +118,13 @@ export const de = {
       organization: 'Organisation',
       organizationPlaceholder: 'z.B. Muster GmbH',
       role: 'Rolle',
+      language: 'Sprache',
       assignedProject: 'Zugewiesenes Projekt',
       noProject: 'Kein Projekt zugewiesen',
+    },
+    languages: {
+      de: 'Deutsch',
+      en: 'Englisch',
     },
   },
 

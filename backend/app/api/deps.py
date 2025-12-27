@@ -242,46 +242,19 @@ class RequireProjectAccess:
         if current_user.is_admin:
             return current_user
 
+        # Extern: Lesezugriff auf alle Projekte, kein Schreibzugriff
+        if current_user.is_extern:
+            if self.require_write:
+                raise HTTPException(
+                    status_code=status.HTTP_403_FORBIDDEN,
+                    detail="Schreibzugriff nicht erlaubt",
+                )
+            return current_user
+
         # Schüler: Nur Zugriff auf zugewiesenes Projekt
         if current_user.is_schueler:
             if current_user.assigned_project_id == project_id:
                 return current_user
-            raise HTTPException(
-                status_code=status.HTTP_403_FORBIDDEN,
-                detail="Kein Zugriff auf dieses Projekt",
-            )
-
-        # Extern: Prüfen ob Projekt freigegeben ist
-        if current_user.is_extern:
-            # Prüfen ob direkt dem Nutzer zugewiesen
-            if current_user.assigned_project_id == project_id:
-                if self.require_write:
-                    raise HTTPException(
-                        status_code=status.HTTP_403_FORBIDDEN,
-                        detail="Schreibzugriff nicht erlaubt",
-                    )
-                return current_user
-
-            # Prüfen ob Projekt explizit freigegeben wurde
-            share_query = select(ProjectShare).where(
-                ProjectShare.project_id == project_id,
-                ProjectShare.user_id == current_user.id,
-                or_(
-                    ProjectShare.expires_at.is_(None),
-                    ProjectShare.expires_at > datetime.now(UTC),
-                ),
-            )
-            result = await session.execute(share_query)
-            share = result.scalar_one_or_none()
-
-            if share:
-                if self.require_write and share.permissions != "write":
-                    raise HTTPException(
-                        status_code=status.HTTP_403_FORBIDDEN,
-                        detail="Schreibzugriff nicht erlaubt",
-                    )
-                return current_user
-
             raise HTTPException(
                 status_code=status.HTTP_403_FORBIDDEN,
                 detail="Kein Zugriff auf dieses Projekt",
@@ -304,29 +277,15 @@ async def get_accessible_project_ids(
     Returns:
         Liste von Projekt-IDs
     """
-    # Admin: Alle Projekte
-    if current_user.is_admin:
+    # Admin und Extern: Alle Projekte
+    if current_user.is_admin or current_user.is_extern:
         result = await session.execute(select(Project.id))
         return [row[0] for row in result.fetchall()]
 
     project_ids: list[str] = []
 
-    # Zugewiesenes Projekt
+    # Zugewiesenes Projekt (für Schüler)
     if current_user.assigned_project_id:
         project_ids.append(current_user.assigned_project_id)
-
-    # Für Externe: Zusätzlich freigegebene Projekte
-    if current_user.is_extern:
-        share_query = select(ProjectShare.project_id).where(
-            ProjectShare.user_id == current_user.id,
-            or_(
-                ProjectShare.expires_at.is_(None),
-                ProjectShare.expires_at > datetime.now(UTC),
-            ),
-        )
-        result = await session.execute(share_query)
-        for row in result.fetchall():
-            if row[0] not in project_ids:
-                project_ids.append(row[0])
 
     return project_ids

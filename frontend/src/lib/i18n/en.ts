@@ -118,8 +118,13 @@ export const en = {
       organization: 'Organization',
       organizationPlaceholder: 'e.g. Acme Inc.',
       role: 'Role',
+      language: 'Language',
       assignedProject: 'Assigned Project',
       noProject: 'No project assigned',
+    },
+    languages: {
+      de: 'German',
+      en: 'English',
     },
   },
 
