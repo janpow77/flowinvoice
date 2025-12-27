@@ -105,6 +105,117 @@ export const api = {
   },
 
   // ============================================
+  // User Management (Admin only)
+  // ============================================
+
+  /** Get all users (admin only) */
+  getUsers: async (params?: {
+    role?: string
+    is_active?: boolean
+    search?: string
+    limit?: number
+    offset?: number
+  }) => {
+    const queryParams = new URLSearchParams()
+    if (params?.role) queryParams.append('role', params.role)
+    if (params?.is_active !== undefined) queryParams.append('is_active', String(params.is_active))
+    if (params?.search) queryParams.append('search', params.search)
+    if (params?.limit) queryParams.append('limit', String(params.limit))
+    if (params?.offset) queryParams.append('offset', String(params.offset))
+    const response = await apiClient.get(`/users?${queryParams.toString()}`)
+    return response.data
+  },
+
+  /** Get a single user by ID (admin only) */
+  getUser: async (userId: string) => {
+    const response = await apiClient.get(`/users/${userId}`)
+    return response.data
+  },
+
+  /** Create a new user (admin only) */
+  createUser: async (data: {
+    username: string
+    email: string
+    password: string
+    full_name?: string
+    organization?: string
+    contact_info?: string
+    language?: string
+    theme?: string
+    role?: string
+    assigned_project_id?: string
+    access_expires_at?: string
+  }) => {
+    const response = await apiClient.post('/users', data)
+    return response.data
+  },
+
+  /** Update a user (admin only) */
+  updateUser: async (userId: string, data: {
+    email?: string
+    full_name?: string
+    organization?: string
+    contact_info?: string
+    language?: string
+    theme?: string
+    role?: string
+    assigned_project_id?: string | null
+    access_expires_at?: string | null
+  }) => {
+    const response = await apiClient.put(`/users/${userId}`, data)
+    return response.data
+  },
+
+  /** Delete a user (admin only) */
+  deleteUser: async (userId: string) => {
+    await apiClient.delete(`/users/${userId}`)
+  },
+
+  /** Reset a user's password (admin only) */
+  resetUserPassword: async (userId: string, newPassword: string) => {
+    const response = await apiClient.put(`/users/${userId}/password`, {
+      new_password: newPassword,
+    })
+    return response.data
+  },
+
+  /** Toggle user active status (admin only) */
+  toggleUserActive: async (userId: string) => {
+    const response = await apiClient.put(`/users/${userId}/toggle-active`)
+    return response.data
+  },
+
+  /** Assign a project to a user (admin only) */
+  assignProjectToUser: async (userId: string, projectId: string | null) => {
+    const response = await apiClient.put(`/users/${userId}/assign-project`, {
+      project_id: projectId,
+    })
+    return response.data
+  },
+
+  /** Update own password */
+  updatePassword: async (currentPassword: string, newPassword: string) => {
+    const response = await apiClient.put('/users/me/password', {
+      current_password: currentPassword,
+      new_password: newPassword,
+    })
+    return response.data
+  },
+
+  /** Update own profile */
+  updateProfile: async (data: {
+    email?: string
+    full_name?: string
+    organization?: string
+    contact_info?: string
+    language?: string
+    theme?: string
+  }) => {
+    const response = await apiClient.put('/users/me', data)
+    return response.data
+  },
+
+  // ============================================
   // Dashboard
   // ============================================
   getStats: async () => {
