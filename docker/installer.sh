@@ -5,6 +5,11 @@
 # This script performs preflight checks and sets up FlowAudit.
 # Requirements: Docker, Docker Compose v2+, 16GB RAM, 20GB disk space
 #
+# Usage:
+#   ./installer.sh              # Run preflight checks only
+#   ./installer.sh --setup-gpu  # Detect and setup NVIDIA GPU drivers
+#   ./installer.sh --help       # Show help
+#
 
 set -e
 
@@ -23,6 +28,26 @@ MIN_DISK_GB=20
 
 # Track errors
 ERRORS=()
+
+# Global flags
+SETUP_GPU=false
+SHOW_HELP=false
+
+# Show usage help
+show_help() {
+    echo "FlowAudit Installer Script"
+    echo ""
+    echo "Usage: $0 [OPTIONS]"
+    echo ""
+    echo "Options:"
+    echo "  --setup-gpu    Detect NVIDIA GPU and install drivers + container toolkit"
+    echo "  --help         Show this help message"
+    echo ""
+    echo "Examples:"
+    echo "  $0                 # Run preflight checks only"
+    echo "  $0 --setup-gpu     # Setup NVIDIA GPU support"
+    echo ""
+}
 
 print_header() {
     echo -e "\n${BLUE}╔════════════════════════════════════════════════╗${NC}"
@@ -210,6 +235,234 @@ check_network() {
     return 0
 }
 
+# Detect NVIDIA GPU hardware
+detect_nvidia_gpu() {
+    print_step "Detecting NVIDIA GPU hardware..."
+
+    # Check for NVIDIA GPU via lspci
+    if command -v lspci &> /dev/null; then
+        GPU_INFO=$(lspci | grep -i nvidia 2>/dev/null || true)
+        if [ -n "$GPU_INFO" ]; then
+            print_success "NVIDIA GPU detected in system:"
+            echo "$GPU_INFO" | while read -r line; do
+                echo -e "    ${GREEN}•${NC} $line"
+            done
+            return 0
+        fi
+    fi
+
+    # Alternative check via /sys
+    if [ -d "/sys/class/drm" ]; then
+        for card in /sys/class/drm/card*/device/vendor; do
+            if [ -f "$card" ] && grep -q "0x10de" "$card" 2>/dev/null; then
+                print_success "NVIDIA GPU detected via sysfs"
+                return 0
+            fi
+        done
+    fi
+
+    print_warning "No NVIDIA GPU hardware detected in this system."
+    return 1
+}
+
+# Check CUDA/driver version compatibility
+check_cuda_compatibility() {
+    print_step "Checking CUDA/driver compatibility..."
+
+    if ! command -v nvidia-smi &> /dev/null; then
+        print_warning "nvidia-smi not found. Driver may not be installed."
+        return 1
+    fi
+
+    DRIVER_VERSION=$(nvidia-smi --query-gpu=driver_version --format=csv,noheader 2>/dev/null | head -1 || echo "unknown")
+    CUDA_VERSION=$(nvidia-smi --query-gpu=cuda_version --format=csv,noheader 2>/dev/null | head -1 2>/dev/null || \
+                   nvidia-smi | grep "CUDA Version" | awk '{print $9}' || echo "unknown")
+
+    if [ "$DRIVER_VERSION" = "unknown" ]; then
+        print_warning "Could not determine driver version"
+        return 1
+    fi
+
+    print_success "NVIDIA Driver: $DRIVER_VERSION"
+    print_success "CUDA Version: $CUDA_VERSION"
+
+    # Check minimum driver version for CUDA 11+ (required for modern LLMs)
+    DRIVER_MAJOR=$(echo "$DRIVER_VERSION" | cut -d. -f1)
+    if [ "$DRIVER_MAJOR" -lt 450 ]; then
+        print_warning "Driver version $DRIVER_VERSION may be too old for optimal LLM performance."
+        print_warning "Recommended minimum: 450.x for CUDA 11 support."
+    fi
+
+    return 0
+}
+
+# Install NVIDIA driver on Debian/Ubuntu
+install_nvidia_driver() {
+    print_step "Installing NVIDIA driver..."
+
+    # Check if already installed
+    if command -v nvidia-smi &> /dev/null && nvidia-smi &> /dev/null; then
+        print_success "NVIDIA driver is already installed and working."
+        return 0
+    fi
+
+    # Check for apt (Debian/Ubuntu)
+    if ! command -v apt-get &> /dev/null; then
+        print_error "apt-get not found. This script only supports Debian/Ubuntu for automatic driver installation."
+        print_warning "For other distributions, please install the NVIDIA driver manually."
+        return 1
+    fi
+
+    # Check for root/sudo
+    if [ "$EUID" -ne 0 ]; then
+        print_warning "Root privileges required for driver installation."
+        echo -e "${YELLOW}Please run: sudo $0 --setup-gpu${NC}"
+        return 1
+    fi
+
+    print_step "Updating package lists..."
+    apt-get update -qq
+
+    print_step "Installing NVIDIA driver (this may take a few minutes)..."
+
+    # Try nvidia-driver-535 (recommended for modern GPUs)
+    if apt-cache show nvidia-driver-535 &> /dev/null; then
+        apt-get install -y nvidia-driver-535
+    elif apt-cache show nvidia-driver-525 &> /dev/null; then
+        apt-get install -y nvidia-driver-525
+    elif apt-cache show nvidia-driver-470 &> /dev/null; then
+        apt-get install -y nvidia-driver-470
+    else
+        # Use ubuntu-drivers to auto-select
+        if command -v ubuntu-drivers &> /dev/null; then
+            ubuntu-drivers autoinstall
+        else
+            apt-get install -y ubuntu-drivers-common
+            ubuntu-drivers autoinstall
+        fi
+    fi
+
+    print_success "NVIDIA driver installed successfully."
+    print_warning "A system reboot may be required for the driver to take effect."
+    return 0
+}
+
+# Install NVIDIA Container Toolkit
+install_container_toolkit() {
+    print_step "Installing NVIDIA Container Toolkit..."
+
+    # Check if already working
+    if docker info 2>/dev/null | grep -q "nvidia"; then
+        print_success "NVIDIA Container Toolkit is already installed and configured."
+        return 0
+    fi
+
+    # Check for apt (Debian/Ubuntu)
+    if ! command -v apt-get &> /dev/null; then
+        print_error "apt-get not found. This script only supports Debian/Ubuntu."
+        print_warning "For other distributions, see: https://docs.nvidia.com/datacenter/cloud-native/container-toolkit/install-guide.html"
+        return 1
+    fi
+
+    # Check for root/sudo
+    if [ "$EUID" -ne 0 ]; then
+        print_warning "Root privileges required for toolkit installation."
+        echo -e "${YELLOW}Please run: sudo $0 --setup-gpu${NC}"
+        return 1
+    fi
+
+    print_step "Adding NVIDIA Container Toolkit repository..."
+
+    # Install prerequisites
+    apt-get update -qq
+    apt-get install -y curl gnupg
+
+    # Add NVIDIA GPG key and repository
+    curl -fsSL https://nvidia.github.io/libnvidia-container/gpgkey | gpg --dearmor -o /usr/share/keyrings/nvidia-container-toolkit-keyring.gpg
+
+    curl -s -L https://nvidia.github.io/libnvidia-container/stable/deb/nvidia-container-toolkit.list | \
+        sed 's#deb https://#deb [signed-by=/usr/share/keyrings/nvidia-container-toolkit-keyring.gpg] https://#g' | \
+        tee /etc/apt/sources.list.d/nvidia-container-toolkit.list > /dev/null
+
+    apt-get update -qq
+
+    print_step "Installing nvidia-container-toolkit..."
+    apt-get install -y nvidia-container-toolkit
+
+    print_step "Configuring Docker to use NVIDIA runtime..."
+    nvidia-ctk runtime configure --runtime=docker
+
+    print_step "Restarting Docker daemon..."
+    systemctl restart docker
+
+    # Verify installation
+    if docker info 2>/dev/null | grep -q "nvidia"; then
+        print_success "NVIDIA Container Toolkit installed and configured successfully."
+    else
+        print_warning "Installation completed but Docker NVIDIA runtime not detected."
+        print_warning "You may need to restart Docker or the system."
+    fi
+
+    return 0
+}
+
+# Full GPU setup
+setup_gpu() {
+    echo -e "\n${BLUE}═══════════════════════════════════════════════════${NC}"
+    echo -e "${BLUE}         NVIDIA GPU Setup${NC}"
+    echo -e "${BLUE}═══════════════════════════════════════════════════${NC}\n"
+
+    # Step 1: Detect hardware
+    if ! detect_nvidia_gpu; then
+        print_error "No NVIDIA GPU found. GPU setup cannot continue."
+        return 1
+    fi
+
+    # Step 2: Check/install driver
+    if ! check_cuda_compatibility; then
+        echo ""
+        read -p "Would you like to install the NVIDIA driver? [y/N] " -n 1 -r
+        echo ""
+        if [[ $REPLY =~ ^[Yy]$ ]]; then
+            install_nvidia_driver
+        else
+            print_warning "Skipping driver installation."
+        fi
+    fi
+
+    # Step 3: Install container toolkit
+    if ! docker info 2>/dev/null | grep -q "nvidia"; then
+        echo ""
+        read -p "Would you like to install the NVIDIA Container Toolkit? [y/N] " -n 1 -r
+        echo ""
+        if [[ $REPLY =~ ^[Yy]$ ]]; then
+            install_container_toolkit
+        else
+            print_warning "Skipping container toolkit installation."
+        fi
+    fi
+
+    # Summary
+    echo -e "\n${BLUE}═══════════════════════════════════════════════════${NC}"
+    echo -e "${GREEN}GPU Setup Complete${NC}\n"
+
+    if command -v nvidia-smi &> /dev/null && nvidia-smi &> /dev/null; then
+        print_success "NVIDIA driver is working"
+    else
+        print_warning "NVIDIA driver needs installation or reboot"
+    fi
+
+    if docker info 2>/dev/null | grep -q "nvidia"; then
+        print_success "Docker can use NVIDIA GPU"
+        echo -e "\nTo use GPU-accelerated Ollama, use:"
+        echo -e "  ${BLUE}docker compose -f docker-compose.portainer.gpu.yml up -d${NC}\n"
+    else
+        print_warning "Docker NVIDIA runtime not configured"
+    fi
+
+    return 0
+}
+
 # Summary of checks
 print_summary() {
     echo -e "\n${BLUE}═══════════════════════════════════════════════════${NC}"
@@ -229,9 +482,42 @@ print_summary() {
     fi
 }
 
+# Parse command line arguments
+parse_args() {
+    while [[ $# -gt 0 ]]; do
+        case $1 in
+            --setup-gpu)
+                SETUP_GPU=true
+                shift
+                ;;
+            --help|-h)
+                SHOW_HELP=true
+                shift
+                ;;
+            *)
+                print_error "Unknown option: $1"
+                show_help
+                exit 1
+                ;;
+        esac
+    done
+}
+
 # Main execution
 main() {
+    parse_args "$@"
+
+    if [ "$SHOW_HELP" = true ]; then
+        show_help
+        exit 0
+    fi
+
     print_header
+
+    if [ "$SETUP_GPU" = true ]; then
+        setup_gpu
+        exit $?
+    fi
 
     echo -e "Running preflight checks...\n"
 
