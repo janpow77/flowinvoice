@@ -6,9 +6,10 @@
 # Requirements: Docker, Docker Compose v2+, 16GB RAM, 20GB disk space
 #
 # Usage:
-#   ./installer.sh              # Run preflight checks only
-#   ./installer.sh --setup-gpu  # Detect and setup NVIDIA GPU drivers
-#   ./installer.sh --help       # Show help
+#   ./installer.sh                  # Run preflight checks only
+#   ./installer.sh --setup-gpu      # Detect and setup NVIDIA GPU drivers
+#   ./installer.sh --generate-secrets  # Generate secure secrets for production
+#   ./installer.sh --help           # Show help
 #
 
 set -e
@@ -31,7 +32,12 @@ ERRORS=()
 
 # Global flags
 SETUP_GPU=false
+GENERATE_SECRETS=false
 SHOW_HELP=false
+
+# Default env file location
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+ENV_FILE="${SCRIPT_DIR}/stack.env"
 
 # Show usage help
 show_help() {
@@ -40,12 +46,14 @@ show_help() {
     echo "Usage: $0 [OPTIONS]"
     echo ""
     echo "Options:"
-    echo "  --setup-gpu    Detect NVIDIA GPU and install drivers + container toolkit"
-    echo "  --help         Show this help message"
+    echo "  --setup-gpu         Detect NVIDIA GPU and install drivers + container toolkit"
+    echo "  --generate-secrets  Generate secure secrets for production deployment"
+    echo "  --help              Show this help message"
     echo ""
     echo "Examples:"
-    echo "  $0                 # Run preflight checks only"
-    echo "  $0 --setup-gpu     # Setup NVIDIA GPU support"
+    echo "  $0                     # Run preflight checks only"
+    echo "  $0 --setup-gpu         # Setup NVIDIA GPU support"
+    echo "  $0 --generate-secrets  # Generate production secrets"
     echo ""
 }
 
@@ -231,6 +239,124 @@ check_network() {
     else
         print_warning "Cannot reach Docker Hub. Make sure you have internet connectivity for pulling images."
     fi
+
+    return 0
+}
+
+# Generate a random hex string
+generate_random_hex() {
+    local length="${1:-32}"
+    if command -v openssl &> /dev/null; then
+        openssl rand -hex "$length"
+    elif [ -f /dev/urandom ]; then
+        head -c "$length" /dev/urandom | xxd -p | tr -d '\n'
+    else
+        # Fallback using $RANDOM (less secure)
+        local result=""
+        for _ in $(seq 1 "$length"); do
+            result="${result}$(printf '%x' $((RANDOM % 16)))"
+        done
+        echo "$result"
+    fi
+}
+
+# Generate secure secrets for production
+generate_secrets() {
+    echo -e "\n${BLUE}═══════════════════════════════════════════════════${NC}"
+    echo -e "${BLUE}         Generate Production Secrets${NC}"
+    echo -e "${BLUE}═══════════════════════════════════════════════════${NC}\n"
+
+    print_step "Generating secure random secrets..."
+
+    # Generate secrets
+    SECRET_KEY=$(generate_random_hex 32)
+    POSTGRES_PASSWORD=$(generate_random_hex 16)
+    CHROMA_TOKEN=$(generate_random_hex 16)
+
+    print_success "SECRET_KEY generated (64 chars)"
+    print_success "POSTGRES_PASSWORD generated (32 chars)"
+    print_success "CHROMA_TOKEN generated (32 chars)"
+
+    # Check if env file exists
+    if [ -f "$ENV_FILE" ]; then
+        echo ""
+        print_warning "Environment file already exists: $ENV_FILE"
+        read -p "Do you want to update it with new secrets? [y/N] " -n 1 -r
+        echo ""
+        if [[ ! $REPLY =~ ^[Yy]$ ]]; then
+            print_warning "Aborted. No changes made."
+            return 0
+        fi
+    fi
+
+    print_step "Creating environment file: $ENV_FILE"
+
+    # Read existing stack.env.example if exists, or create new
+    if [ -f "${SCRIPT_DIR}/stack.env.example" ]; then
+        cp "${SCRIPT_DIR}/stack.env.example" "$ENV_FILE"
+        print_success "Copied from stack.env.example"
+    fi
+
+    # Update or create the env file with new secrets
+    # Create backup if file exists
+    if [ -f "$ENV_FILE" ]; then
+        cp "$ENV_FILE" "${ENV_FILE}.bak"
+        print_success "Backup created: ${ENV_FILE}.bak"
+    fi
+
+    # Update SECRET_KEY
+    if grep -q "^SECRET_KEY=" "$ENV_FILE" 2>/dev/null; then
+        sed -i "s/^SECRET_KEY=.*/SECRET_KEY=${SECRET_KEY}/" "$ENV_FILE"
+    else
+        echo "SECRET_KEY=${SECRET_KEY}" >> "$ENV_FILE"
+    fi
+
+    # Update POSTGRES_PASSWORD
+    if grep -q "^POSTGRES_PASSWORD=" "$ENV_FILE" 2>/dev/null; then
+        sed -i "s/^POSTGRES_PASSWORD=.*/POSTGRES_PASSWORD=${POSTGRES_PASSWORD}/" "$ENV_FILE"
+    else
+        echo "POSTGRES_PASSWORD=${POSTGRES_PASSWORD}" >> "$ENV_FILE"
+    fi
+
+    # Update CHROMA_TOKEN
+    if grep -q "^CHROMA_TOKEN=" "$ENV_FILE" 2>/dev/null; then
+        sed -i "s/^CHROMA_TOKEN=.*/CHROMA_TOKEN=${CHROMA_TOKEN}/" "$ENV_FILE"
+    else
+        echo "CHROMA_TOKEN=${CHROMA_TOKEN}" >> "$ENV_FILE"
+    fi
+
+    # Disable demo users for production
+    if grep -q "^DEMO_USERS=" "$ENV_FILE" 2>/dev/null; then
+        sed -i 's/^DEMO_USERS=.*/DEMO_USERS=/' "$ENV_FILE"
+    else
+        echo "DEMO_USERS=" >> "$ENV_FILE"
+    fi
+
+    # Disable debug mode for production
+    if grep -q "^DEBUG=" "$ENV_FILE" 2>/dev/null; then
+        sed -i 's/^DEBUG=.*/DEBUG=false/' "$ENV_FILE"
+    else
+        echo "DEBUG=false" >> "$ENV_FILE"
+    fi
+
+    print_success "Environment file updated: $ENV_FILE"
+
+    # Summary
+    echo -e "\n${BLUE}═══════════════════════════════════════════════════${NC}"
+    echo -e "${GREEN}Secrets Generated Successfully${NC}\n"
+
+    echo -e "The following changes were made to ${BLUE}$ENV_FILE${NC}:\n"
+    echo -e "  ${GREEN}•${NC} SECRET_KEY       = ${SECRET_KEY:0:8}...${SECRET_KEY: -8} (masked)"
+    echo -e "  ${GREEN}•${NC} POSTGRES_PASSWORD = ${POSTGRES_PASSWORD:0:4}...${POSTGRES_PASSWORD: -4} (masked)"
+    echo -e "  ${GREEN}•${NC} CHROMA_TOKEN     = ${CHROMA_TOKEN:0:4}...${CHROMA_TOKEN: -4} (masked)"
+    echo -e "  ${GREEN}•${NC} DEMO_USERS       = (empty - disabled)"
+    echo -e "  ${GREEN}•${NC} DEBUG            = false"
+
+    echo -e "\n${YELLOW}IMPORTANT:${NC}"
+    echo -e "  • Keep these secrets secure and never commit them to version control"
+    echo -e "  • A backup was saved to: ${ENV_FILE}.bak"
+    echo -e "  • Update DATABASE_URL if you changed POSTGRES_PASSWORD"
+    echo ""
 
     return 0
 }
@@ -490,6 +616,10 @@ parse_args() {
                 SETUP_GPU=true
                 shift
                 ;;
+            --generate-secrets)
+                GENERATE_SECRETS=true
+                shift
+                ;;
             --help|-h)
                 SHOW_HELP=true
                 shift
@@ -516,6 +646,11 @@ main() {
 
     if [ "$SETUP_GPU" = true ]; then
         setup_gpu
+        exit $?
+    fi
+
+    if [ "$GENERATE_SECRETS" = true ]; then
+        generate_secrets
         exit $?
     fi
 
