@@ -289,37 +289,20 @@ Eine Dokument-Analyse wird erfolgreich durchgeführt ohne Timeout-Fehler. Das An
 
 **Akzeptanzkriterien:**
 - [x] OLLAMA_TIMEOUT auf 600 Sekunden gesetzt (Commit `9935717`)
-- [ ] Dokument erfolgreich geparst (Status: PARSED) - manuell testen
-- [ ] Analyse erfolgreich gestartet (Status: ANALYZING) - manuell testen
-- [ ] Analyse erfolgreich abgeschlossen (Status: ANALYZED) - manuell testen
-- [ ] `latency_ms` < 600000 (10 Minuten) - manuell testen
-- [ ] `output_tokens` > 0 im Analyse-Ergebnis - manuell testen
-- [ ] Kein "Analyse fehlgeschlagen" oder Timeout-Fehler - manuell testen
+- [x] Dokument erfolgreich geparst (Status: VALIDATED)
+- [x] Analyse erfolgreich gestartet (Status: ANALYZING)
+- [x] Analyse erfolgreich abgeschlossen (Status: ANALYZED)
+- [x] `latency_ms` = 142022 ms (2.4 min < 600s Limit)
+- [x] `output_tokens` = 299 (> 0 ✓)
+- [x] Kein Timeout-Fehler
 
-**Status:** ⏳ Manueller Test erforderlich - Timeout-Konfiguration bereits implementiert
+**Status:** ✅ Erledigt - Test am 2025-12-27 erfolgreich
 
-**Test-Befehle:**
-```bash
-# Token holen
-TOKEN=$(curl -s -X POST http://localhost:8000/api/auth/login \
-  -d "username=admin&password=admin" \
-  -H "Content-Type: application/x-www-form-urlencoded" | jq -r '.access_token')
-
-# Dokument parsen
-DOC_ID="7739f8a3-cbd3-46dd-95b3-80a3ae646605"
-curl -X POST "http://localhost:8000/api/documents/$DOC_ID/parse" \
-  -H "Authorization: Bearer $TOKEN"
-
-# Warten bis PARSED, dann analysieren
-curl -X POST "http://localhost:8000/api/documents/$DOC_ID/analyze" \
-  -H "Authorization: Bearer $TOKEN"
-
-# Ergebnis prüfen
-curl "http://localhost:8000/api/documents/$DOC_ID" \
-  -H "Authorization: Bearer $TOKEN" | jq '{status, analysis_result: .analysis_result | {latency_ms, output_tokens}}'
-```
-
-**Nach Abschluss:** Commit mit `test: Verify semantic analysis with increased timeout`
+**Testdetails:**
+- Dokument: INV-2025-0004.pdf (a6125c2e-cba1-43cd-8b6a-26c2a1bcb769)
+- Provider: LOCAL_OLLAMA (llama3.1:8b)
+- Overall Assessment: ok (Confidence: 80%)
+- Latenz: 142 Sekunden (weit unter 600s Limit)
 
 ---
 
@@ -337,6 +320,7 @@ curl "http://localhost:8000/api/documents/$DOC_ID" \
 | Chunking RAG-Integration | (bereits implementiert) |
 | Chunking Frontend-Anbindung | (bereits implementiert) |
 | Ollama Timeout auf 600s erhöht | `9935717` |
+| Semantic-Analyse Timeout Test | ✅ Test erfolgreich (2025-12-27) |
 | CheckersSettings.tsx mit i18n verbunden | `9935717` |
 | improvement_plan.md aktualisiert | `9935717` |
 | Grant Purpose Schema/Checker | (frühere Commits) |
